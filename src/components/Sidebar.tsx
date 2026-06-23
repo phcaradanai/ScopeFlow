@@ -28,31 +28,31 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
   const { workspaceName, tree, selectedFile, setSelectedFile } = useWorkspace();
 
   return (
-    <aside className="w-72 min-w-[280px] h-full bg-surface-2 border-r border-border flex flex-col">
+    <aside className="w-72 min-w-[280px] h-full bg-surface/50 backdrop-blur-xl border-r border-white/5 flex flex-col">
       {/* Workspace header */}
-      <div className="p-4 border-b border-border flex items-center justify-between">
-        <div className="flex items-center gap-2 overflow-hidden">
+      <div className="p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3 overflow-hidden">
           <FolderOpen className="w-4 h-4 text-primary-light shrink-0" />
           <h2 className="text-sm font-semibold text-text truncate">{workspaceName}</h2>
         </div>
         <div className="flex shrink-0">
           <button
             onClick={onRunHealthCheck}
-            className="p-1 rounded hover:bg-surface-3 text-text-dim hover:text-warning transition-colors"
+            className="p-1.5 rounded-lg hover:bg-white/5 text-text-dim hover:text-warning transition-all duration-200"
             title="ตรวจสอบ Workspace"
           >
             <ShieldCheck className="w-4 h-4" />
           </button>
           <button
             onClick={onBackupWorkspace}
-            className="p-1 rounded hover:bg-surface-3 text-text-dim hover:text-success transition-colors"
+            className="p-1.5 rounded-lg hover:bg-white/5 text-text-dim hover:text-success transition-all duration-200"
             title="สำรอง Workspace (.zip)"
           >
             <Download className="w-4 h-4" />
           </button>
           <button
             onClick={onOpenSettings}
-            className="p-1 rounded hover:bg-surface-3 text-text-dim hover:text-primary-light transition-colors"
+            className="p-1.5 rounded-lg hover:bg-white/5 text-text-dim hover:text-primary-light transition-all duration-200"
             title="ตั้งค่าบริษัท"
           >
             <Settings className="w-4 h-4" />
@@ -71,7 +71,7 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
               </span>
               <button
                 onClick={onCreateClient}
-                className="p-0.5 rounded hover:bg-surface-3 text-text-dim hover:text-primary-light transition-colors"
+                className="p-1 rounded-lg hover:bg-white/5 text-text-dim hover:text-primary-light transition-all duration-200"
                 title="สร้างลูกค้าใหม่"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -128,7 +128,7 @@ function ClientNode({
     <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-surface-3 transition-colors group text-left"
+        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/5 transition-all duration-200 group text-left"
       >
         {expanded ? (
           <ChevronDown className="w-3.5 h-3.5 text-text-dim" />
@@ -142,7 +142,7 @@ function ClientNode({
             e.stopPropagation();
             onCreateProject(clientId);
           }}
-          className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-surface-3 text-text-dim hover:text-primary-light transition-all"
+          className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-white/10 text-text-dim hover:text-primary-light transition-all duration-200"
           title="สร้างโครงการใหม่"
         >
           <Plus className="w-3 h-3" />
@@ -197,7 +197,7 @@ function ProjectNode({
           setExpanded(!expanded);
           onSelect(node.path);
         }}
-        className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-colors group text-left ${selectedFile === node.path ? 'bg-primary/20 text-primary-light' : 'hover:bg-surface-3'}`}
+        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 group text-left ${selectedFile === node.path ? 'bg-primary/10 text-primary-light font-medium' : 'hover:bg-white/5 text-text-muted'}`}
       >
         {expanded ? (
           <ChevronDown className="w-3.5 h-3.5 text-text-dim" />
@@ -212,7 +212,7 @@ function ProjectNode({
               e.stopPropagation();
               onExportProject(clientId, projectId, node.path);
             }}
-            className="p-0.5 rounded hover:bg-surface-3 text-text-dim hover:text-primary-light"
+            className="p-1 rounded-md hover:bg-white/10 text-text-dim hover:text-primary-light transition-all duration-200"
             title="ส่งออกชุดเอกสาร"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -222,7 +222,7 @@ function ProjectNode({
               e.stopPropagation();
               onCreateDocument(clientId, projectId, node.path);
             }}
-            className="p-0.5 rounded hover:bg-surface-3 text-text-dim hover:text-primary-light"
+            className="p-1 rounded-md hover:bg-white/10 text-text-dim hover:text-primary-light transition-all duration-200"
             title="สร้างเอกสารใหม่"
           >
             <Plus className="w-3 h-3" />
@@ -239,10 +239,10 @@ function ProjectNode({
               <button
                 key={doc.path}
                 onClick={() => onSelect(doc.path)}
-                className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-colors text-left ${
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 text-left ${
                   selectedFile === doc.path
-                    ? 'bg-primary/20 text-primary-light'
-                    : 'hover:bg-surface-3 text-text-muted'
+                    ? 'bg-primary/10 text-primary-light font-medium'
+                    : 'hover:bg-white/5 text-text-muted'
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />

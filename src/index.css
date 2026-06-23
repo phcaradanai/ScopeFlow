@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", "Noto Sans Thai", system-ui, sans-serif;
+  --font-sans: "Inter", "Plus Jakarta Sans", "Noto Sans Thai", system-ui, sans-serif;
   --color-primary: #6366f1;
   --color-primary-hover: #4f46e5;
   --color-primary-light: #818cf8;
-  --color-surface: #0f172a;
-  --color-surface-2: #1e293b;
-  --color-surface-3: #334155;
-  --color-border: #334155;
-  --color-border-light: #475569;
-  --color-text: #f1f5f9;
-  --color-text-muted: #94a3b8;
-  --color-text-dim: #64748b;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-accent: #8b5cf6;
+  --color-surface: #09090b;      /* Zinc 950 */
+  --color-surface-2: #18181b;    /* Zinc 900 */
+  --color-surface-3: #27272a;    /* Zinc 800 */
+  --color-border: #27272a;       /* Zinc 800 */
+  --color-border-light: #3f3f46; /* Zinc 700 */
+  --color-text: #fafafa;         /* Zinc 50 */
+  --color-text-muted: #a1a1aa;   /* Zinc 400 */
+  --color-text-dim: #71717a;     /* Zinc 500 */
+  --color-success: #10b981;      /* Emerald 500 */
+  --color-warning: #f59e0b;      /* Amber 500 */
+  --color-error: #ef4444;        /* Red 500 */
+  --color-accent: #8b5cf6;       /* Violet 500 */
 }
 
 * {
@@ -35,8 +35,8 @@ html, body, #root {
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -45,11 +45,21 @@ html, body, #root {
 
 ::-webkit-scrollbar-thumb {
   background: var(--color-surface-3);
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-border-light);
+}
+
+/* Custom Animations */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* Focus styles */
