@@ -90,30 +90,30 @@ export default function ProjectForm({ clientId, onClose }: ProjectFormProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-border">
+      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
           <h2 className="text-lg font-semibold">สร้างโครงการใหม่</h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-surface-3 text-text-dim hover:text-text transition-colors"
+            className="p-2 rounded-xl hover:bg-surface-3 text-text-dim hover:text-text transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          <div className="px-3 py-2 rounded-lg bg-surface-3/50 text-sm text-text-muted">
-            ลูกค้า: <span className="font-medium text-text">{clientId}</span>
+        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+          <div className="px-4 py-3 rounded-xl bg-surface-3/50 text-sm text-text-muted">
+            ลูกค้า: <span className="font-semibold text-text">{clientId}</span>
           </div>
 
           {error && (
-            <div className="p-3 rounded-lg bg-error/10 border border-error/30 text-error text-sm">
+            <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-text-muted mb-1">
+            <label className="block text-sm font-semibold text-text-muted mb-2">
               ชื่อโครงการ <span className="text-error">*</span>
             </label>
             <input
@@ -121,13 +121,13 @@ export default function ProjectForm({ clientId, onClose }: ProjectFormProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="เช่น Website Redesign 2025"
-              className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text-muted mb-1">
+            <label className="block text-sm font-semibold text-text-muted mb-2">
               รหัสโครงการ (ID)
             </label>
             <input
@@ -135,75 +135,75 @@ export default function ProjectForm({ clientId, onClose }: ProjectFormProps) {
               value={customId}
               onChange={(e) => setCustomId(e.target.value)}
               placeholder={generatedId || 'auto-generated'}
-              className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-mono text-sm"
+              className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none font-mono text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text-muted mb-1">
+            <label className="block text-sm font-semibold text-text-muted mb-2">
               ประเภทโครงการ <span className="text-error">*</span>
             </label>
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer"
             >
               <option value="new-project">โครงการใหม่</option>
               <option value="maintenance">ดูแลระบบ (MA)</option>
               <option value="support-contract">สัญญาซัพพอร์ต</option>
             </select>
             {(type === 'maintenance' || type === 'support-contract') && (
-              <p className="text-xs text-primary-light mt-1">
+              <p className="text-xs text-primary-light mt-1.5 px-1">
                 📁 จะสร้างโฟลเดอร์ current-system/ สำหรับบันทึกข้อมูลระบบปัจจุบัน
               </p>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-text-muted mb-1">วันเริ่มต้น</label>
+              <label className="block text-sm font-semibold text-text-muted mb-2">วันเริ่มต้น</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-text-muted mb-1">
+              <label className="block text-sm font-semibold text-text-muted mb-2">
                 วันที่คาดว่าจะเสร็จ
               </label>
               <input
                 type="date"
                 value={targetDate}
                 onChange={(e) => setTargetDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text-muted mb-1">หมายเหตุ</label>
+            <label className="block text-sm font-semibold text-text-muted mb-2">หมายเหตุ</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none"
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-3 pt-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm text-text-muted hover:text-text hover:bg-surface-3 transition-colors"
+              className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text-muted hover:text-text hover:bg-surface-3 transition-colors"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2 rounded-lg text-sm font-medium bg-primary hover:bg-primary-hover text-white transition-colors disabled:opacity-50"
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent text-white transition-all shadow-md shadow-primary/25 disabled:opacity-50"
             >
               {saving ? 'กำลังบันทึก...' : 'สร้างโครงการ'}
             </button>

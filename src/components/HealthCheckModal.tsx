@@ -49,14 +49,14 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
   const infos = issues.filter(i => i.type === 'info');
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-surface-2 w-full max-w-2xl rounded-2xl shadow-xl border border-border flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between p-6 border-b border-border">
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+      <div className="bg-surface-2 w-full max-w-2xl rounded-2xl shadow-2xl border border-border flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
           <div className="flex items-center gap-3">
             <ShieldCheck className="w-6 h-6 text-primary" />
             <h2 className="text-xl font-bold text-text">ตรวจสอบ Workspace</h2>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-3 text-text-dim hover:text-text transition-colors">
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-surface-3 text-text-dim hover:text-text transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -72,13 +72,13 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
               
               {/* Errors */}
               {errors.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-error flex items-center gap-2">
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-error flex items-center gap-2.5">
                     <XCircle className="w-4 h-4" /> ข้อผิดพลาดร้ายแรง (Errors) ({errors.length})
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {errors.map((err, i) => (
-                      <div key={i} className="p-3 bg-error/10 border border-error/20 rounded-lg text-sm text-text">
+                      <div key={i} className="p-4 bg-error/10 border border-error/20 rounded-xl text-sm text-text">
                         {err.message}
                       </div>
                     ))}
@@ -88,18 +88,18 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
 
               {/* Warnings */}
               {warnings.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-warning flex items-center gap-2">
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-warning flex items-center gap-2.5">
                     <AlertTriangle className="w-4 h-4" /> ข้อควรระวัง (Warnings) ({warnings.length})
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {warnings.map((warn, i) => (
-                      <div key={i} className="p-3 bg-warning/10 border border-warning/20 rounded-lg text-sm text-text flex items-center justify-between">
+                      <div key={i} className="p-4 bg-warning/10 border border-warning/20 rounded-xl text-sm text-text flex items-center justify-between gap-4">
                         <span>{warn.message}</span>
                         {warn.fixAction === 'create_project_folders' && (
                           <button 
                             onClick={() => handleFixFolders(warn.payload)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-warning text-warning-foreground rounded-md text-xs font-medium hover:bg-warning/90 transition-colors"
+                            className="flex items-center gap-1.5 px-4 py-2 bg-warning/20 hover:bg-warning/30 border border-warning/30 text-warning rounded-xl text-xs font-semibold transition-colors shrink-0"
                           >
                             <FolderPlus className="w-3.5 h-3.5" /> ซ่อมแซมโฟลเดอร์
                           </button>
@@ -113,9 +113,9 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
               {/* Infos */}
               {infos.length > 0 && errors.length === 0 && warnings.length === 0 && (
                 <div className="space-y-3">
-                  <div className="p-4 bg-success/10 border border-success/20 rounded-lg flex items-center gap-3 text-success">
-                    <ShieldCheck className="w-5 h-5" />
-                    <span className="font-medium">Workspace สมบูรณ์ ไม่มีข้อผิดพลาดใดๆ</span>
+                  <div className="p-4.5 bg-success/10 border border-success/20 rounded-xl flex items-center gap-3.5 text-success">
+                    <ShieldCheck className="w-5 h-5 shrink-0" />
+                    <span className="font-semibold">Workspace สมบูรณ์ ไม่มีข้อผิดพลาดใดๆ</span>
                   </div>
                 </div>
               )}
@@ -124,21 +124,21 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
           )}
         </div>
 
-        <div className="p-6 border-t border-border bg-surface-3 rounded-b-2xl flex justify-between items-center">
-          <p className="text-xs text-text-dim flex items-center gap-1.5">
+        <div className="px-6 py-5 border-t border-border bg-surface-3 rounded-b-2xl flex justify-between items-center gap-4 flex-wrap">
+          <p className="text-xs text-text-dim flex items-center gap-1.5 font-medium">
             <Info className="w-3.5 h-3.5" /> ไม่มีการแก้ไขอัตโนมัติในส่วนที่อาจทำให้ข้อมูลสูญหาย
           </p>
           <div className="flex gap-3">
             <button
               onClick={runCheck}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-text bg-surface border border-border rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2.5 text-sm font-semibold text-text bg-surface border border-border rounded-xl hover:bg-surface-2 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> ตรวจสอบอีกครั้ง
             </button>
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+              className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent text-white rounded-xl hover:shadow-md hover:shadow-primary/10 transition-all"
             >
               ปิด (Close)
             </button>

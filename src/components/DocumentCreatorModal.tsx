@@ -177,36 +177,36 @@ export default function DocumentCreatorModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-border">
+      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
           <h2 className="text-lg font-semibold">สร้างเอกสารใหม่</h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-surface-3 text-text-dim hover:text-text transition-colors"
+            className="p-2 rounded-xl hover:bg-surface-3 text-text-dim hover:text-text transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          <div className="px-3 py-2 rounded-lg bg-surface-3/50 text-sm text-text-muted">
-            โครงการ: <span className="font-medium text-text">{projectId}</span>
+        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+          <div className="px-4 py-3 rounded-xl bg-surface-3/50 text-sm text-text-muted">
+            โครงการ: <span className="font-semibold text-text">{projectId}</span>
           </div>
 
           {error && (
-            <div className="p-3 rounded-lg bg-error/10 border border-error/30 text-error text-sm">
+            <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-text-muted mb-1">
+            <label className="block text-sm font-semibold text-text-muted mb-2">
               ประเภทเอกสาร <span className="text-error">*</span>
             </label>
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer"
             >
               <option value="scope">ขอบเขตงาน (Scope)</option>
               <option value="quotation">ใบเสนอราคา (Quotation)</option>
@@ -221,7 +221,7 @@ export default function DocumentCreatorModal({
           {requiresSlug && (
             <>
               <div>
-                <label className="block text-sm font-medium text-text-muted mb-1">
+                <label className="block text-sm font-semibold text-text-muted mb-2">
                   ชื่อเอกสาร / หัวข้อ <span className="text-error">*</span>
                 </label>
                 <input
@@ -229,12 +229,12 @@ export default function DocumentCreatorModal({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="เช่น เพิ่มระบบรายงานยอดขาย"
-                  className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                  className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                   autoFocus
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-muted mb-1">
+                <label className="block text-sm font-semibold text-text-muted mb-2">
                   Slug (สำหรับตั้งชื่อไฟล์) <span className="text-error">*</span>
                 </label>
                 <input
@@ -242,15 +242,15 @@ export default function DocumentCreatorModal({
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
                   placeholder="เช่น add-sales-report"
-                  className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-mono text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none font-mono text-sm"
                 />
                 {!slug && title && (
-                  <p className="text-xs text-error mt-1">
+                  <p className="text-xs text-error mt-1.5 px-1">
                     กรุณากรอก slug ภาษาอังกฤษ เช่น add-sales-report
                   </p>
                 )}
                 {slug && (
-                  <p className="text-xs text-text-dim mt-1 font-mono">
+                  <p className="text-xs text-text-dim mt-1.5 px-1 font-mono">
                     → ไฟล์ที่จะสร้าง: {type.toUpperCase()}-XXX-{slug}.md
                   </p>
                 )}
@@ -260,13 +260,13 @@ export default function DocumentCreatorModal({
 
           {type === 'dcr' && (
             <div>
-              <label className="block text-sm font-medium text-text-muted mb-1">
+              <label className="block text-sm font-semibold text-text-muted mb-2">
                 ประเภทการเปลี่ยนแปลง <span className="text-error">*</span>
               </label>
               <select
                 value={changeKind}
                 onChange={(e) => setChangeKind(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer"
               >
                 <option value="behavior">การทำงาน (Behavior / Logic)</option>
                 <option value="ui">หน้าจอ (UI / UX)</option>
@@ -282,13 +282,13 @@ export default function DocumentCreatorModal({
 
           {(type === 'sup' || type === 'ma') && (
             <div>
-              <label className="block text-sm font-medium text-text-muted mb-1">
+              <label className="block text-sm font-semibold text-text-muted mb-2">
                 หมวดหมู่ <span className="text-error">*</span>
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer"
               >
                 <option value="bug">บั๊ก (Bug)</option>
                 <option value="feature-request">ขอเพิ่มฟีเจอร์ (Feature Request)</option>
@@ -300,18 +300,18 @@ export default function DocumentCreatorModal({
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-3 pt-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm text-text-muted hover:text-text hover:bg-surface-3 transition-colors"
+              className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text-muted hover:text-text hover:bg-surface-3 transition-colors"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2 rounded-lg text-sm font-medium bg-primary hover:bg-primary-hover text-white transition-colors disabled:opacity-50"
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent text-white transition-all shadow-md shadow-primary/25 disabled:opacity-50"
             >
               {saving ? 'กำลังสร้าง...' : 'สร้างเอกสาร'}
             </button>

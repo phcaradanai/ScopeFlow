@@ -174,23 +174,23 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex flex-wrap items-center justify-between px-4 py-2 border-b border-border bg-surface-2 gap-2">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between px-6 py-4.5 border-b border-border bg-surface-2 gap-3 shadow-sm">
+        <div className="flex items-center gap-2.5">
           <FileText className="w-4 h-4 text-primary-light" />
-          <span className="text-sm font-medium text-text">{filename}</span>
-          {isLocked && <Lock className="w-4 h-4 text-warning ml-1" />}
+          <span className="text-sm font-semibold text-text">{filename}</span>
+          {isLocked && <Lock className="w-4 h-4 text-warning ml-1.5" />}
           {hasChanges && !isLocked && (
-            <span className="w-2 h-2 rounded-full bg-warning" title="มีการเปลี่ยนแปลง" />
+            <span className="w-2.5 h-2.5 rounded-full bg-warning" title="มีการเปลี่ยนแปลง" />
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           {!isLocked && !isApprovalRecord && !hasChanges && (
             <button
               onClick={() => setShowApprovalModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-success/10 text-success hover:bg-success hover:text-white transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-success/10 text-success hover:bg-success hover:text-white transition-all shadow-sm"
             >
-              <CheckCircle className="w-3 h-3" />
+              <CheckCircle className="w-3.5 h-3.5" />
               บันทึกการอนุมัติ
             </button>
           )}
@@ -198,43 +198,43 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
           {isLocked && !isApprovalRecord && (
             <button
               onClick={handleCreateRevision}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
             >
-              <Copy className="w-3 h-3" />
+              <Copy className="w-3.5 h-3.5" />
               สร้างเวอร์ชันใหม่
             </button>
           )}
 
-          <div className="w-px h-4 bg-border mx-1"></div>
+          <div className="w-px h-5 bg-border mx-1"></div>
 
-          <div className="flex rounded-lg border border-border overflow-hidden">
+          <div className="flex rounded-xl border border-border overflow-hidden shadow-sm">
             {(docType === 'quotation' || docType === 'scope') && (
               <button
                 onClick={() => setMode('form')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold transition-colors ${
                   mode === 'form' ? 'bg-primary text-white' : 'bg-surface-2 text-text-muted hover:text-text'
                 }`}
               >
-                <FileText className="w-3 h-3" />
+                <FileText className="w-3.5 h-3.5" />
                 ฟอร์ม
               </button>
             )}
             <button
               onClick={() => setMode('edit')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold transition-colors ${
                 mode === 'edit' ? 'bg-primary text-white' : 'bg-surface-2 text-text-muted hover:text-text'
               }`}
             >
-              <Edit3 className="w-3 h-3" />
+              <Edit3 className="w-3.5 h-3.5" />
               แก้ไข
             </button>
             <button
               onClick={() => setMode('preview')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold transition-colors ${
                 mode === 'preview' ? 'bg-primary text-white' : 'bg-surface-2 text-text-muted hover:text-text'
               }`}
             >
-              <Eye className="w-3 h-3" />
+              <Eye className="w-3.5 h-3.5" />
               ดูตัวอย่าง
             </button>
           </div>
@@ -242,29 +242,29 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
           <button
             onClick={handleSave}
             disabled={!hasChanges || saving || isLocked}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm ${
               saved
                 ? 'bg-success/20 text-success'
                 : (hasChanges && !isLocked)
-                ? 'bg-primary hover:bg-primary-hover text-white'
+                ? 'bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent text-white hover:shadow-md'
                 : 'bg-surface-3 text-text-dim cursor-not-allowed'
             }`}
           >
-            <Save className="w-3 h-3" />
+            <Save className="w-3.5 h-3.5" />
             {saving ? 'กำลังบันทึก...' : saved ? 'บันทึกแล้ว ✓' : 'บันทึก'}
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="px-4 py-2 bg-error/10 border-b border-error/30 text-error text-sm">
+        <div className="px-6 py-3.5 bg-error/10 border-b border-error/30 text-error text-sm">
           {error}
         </div>
       )}
 
       {isLocked && mode === 'edit' && (
-        <div className="px-4 py-2 bg-warning/10 border-b border-warning/30 text-warning-text text-sm flex items-center justify-center gap-2">
-          <Lock className="w-4 h-4" />
+        <div className="px-6 py-3.5 bg-warning/10 border-b border-warning/30 text-warning text-sm flex items-center justify-center gap-2.5 font-medium">
+          <Lock className="w-4 h-4 text-warning" />
           เอกสารนี้ถูกล็อกแล้ว กรุณาสร้างเวอร์ชันใหม่เพื่อแก้ไข
         </div>
       )}
@@ -318,23 +318,23 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
             value={content}
             onChange={(e) => setContent(e.target.value)}
             disabled={isLocked}
-            className={`editor-textarea w-full h-full p-4 bg-surface text-text border-none outline-none ${isLocked ? 'opacity-70' : ''}`}
+            className={`editor-textarea w-full h-full p-8 bg-surface text-text border-none outline-none resize-none leading-relaxed text-sm ${isLocked ? 'opacity-70' : ''}`}
             spellCheck={false}
           />
         ) : (
-          <div className="h-full overflow-y-auto p-6">
-            <div className="max-w-3xl mx-auto markdown-preview">
+          <div className="h-full overflow-y-auto p-8">
+            <div className="max-w-4xl mx-auto markdown-preview">
               <ReactMarkdown>{bodyForPreview}</ReactMarkdown>
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex items-center justify-between px-4 py-1.5 border-t border-border bg-surface-2 text-xs text-text-dim">
+      <div className="flex items-center justify-between px-6 py-2.5 border-t border-border bg-surface-2 text-xs text-text-dim">
         <span>{filePath}</span>
         <div className="flex items-center gap-4">
-          {isApproved && <span className="text-success flex items-center gap-1"><CheckCircle className="w-3 h-3"/> อนุมัติแล้ว</span>}
-          <span>{content.split('\n').length} บรรทัด</span>
+          {isApproved && <span className="text-success flex items-center gap-1.5 font-semibold"><CheckCircle className="w-3.5 h-3.5"/> อนุมัติแล้ว</span>}
+          <span className="font-medium">{content.split('\n').length} บรรทัด</span>
         </div>
       </div>
 

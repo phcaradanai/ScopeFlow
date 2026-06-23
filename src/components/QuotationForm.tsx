@@ -70,41 +70,41 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
 
   return (
     <div className="flex flex-col h-full bg-surface">
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-8 space-y-8">
         
         {/* Header Section */}
-        <div className="bg-surface-2 border border-border p-4 rounded-xl space-y-4">
-          <h3 className="font-semibold flex items-center gap-2">
-            <FileText className="w-4 h-4 text-primary" />
+        <div className="bg-surface-2 border border-border p-8 rounded-2xl shadow-lg space-y-6">
+          <h3 className="text-base font-bold flex items-center gap-2.5 text-text border-b border-white/5 pb-4">
+            <FileText className="w-5 h-5 text-primary" />
             ข้อมูลทั่วไป
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-5">
             <div className="col-span-2 sm:col-span-1">
-              <label className="block text-sm font-medium text-text-muted mb-1">ชื่อเอกสาร (Title)</label>
+              <label className="block text-sm font-semibold text-text-muted mb-2">ชื่อเอกสาร (Title)</label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={e => handleChange('title', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface border border-border focus:border-primary"
+                className="w-full px-4 py-3 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none font-sans text-sm shadow-sm"
               />
             </div>
             <div className="col-span-2 sm:col-span-1">
-              <label className="block text-sm font-medium text-text-muted mb-1">อ้างอิงขอบเขตงาน (Scope Ref)</label>
+              <label className="block text-sm font-semibold text-text-muted mb-2">อ้างอิงขอบเขตงาน (Scope Ref)</label>
               <input
                 type="text"
                 value={formData.scope_ref}
                 onChange={e => handleChange('scope_ref', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface border border-border focus:border-primary"
+                className="w-full px-4 py-3 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none font-sans text-sm shadow-sm"
                 placeholder="เช่น Scope v1.0"
               />
             </div>
             <div className="col-span-2 sm:col-span-1">
-              <label className="block text-sm font-medium text-text-muted mb-1">ยืนราคาถึงวันที่ (Valid Until)</label>
+              <label className="block text-sm font-semibold text-text-muted mb-2">ยืนราคาถึงวันที่ (Valid Until)</label>
               <input
                 type="text"
                 value={formData.valid_until}
                 onChange={e => handleChange('valid_until', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface border border-border focus:border-primary"
+                className="w-full px-4 py-3 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none font-sans text-sm shadow-sm"
                 placeholder="เช่น 31 ธันวาคม 2569"
               />
             </div>
@@ -112,31 +112,31 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
         </div>
 
         {/* Line Items Section */}
-        <div className="bg-surface-2 border border-border p-4 rounded-xl space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold flex items-center gap-2">
-              <Calculator className="w-4 h-4 text-accent" />
+        <div className="bg-surface-2 border border-border p-8 rounded-2xl shadow-lg space-y-6">
+          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+            <h3 className="text-base font-bold flex items-center gap-2.5 text-text">
+              <Calculator className="w-5 h-5 text-accent" />
               รายการ (Line Items)
             </h3>
             <button
               onClick={addLineItem}
-              className="text-sm flex items-center gap-1 text-primary-light hover:text-primary transition-colors"
+              className="text-sm font-semibold flex items-center gap-1.5 text-primary-light hover:text-primary transition-colors hover:underline"
             >
               <Plus className="w-4 h-4" /> เพิ่มรายการ
             </button>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {formData.line_items.map((item, index) => (
-              <div key={item.id} className="flex flex-wrap sm:flex-nowrap gap-2 items-start bg-surface p-3 rounded-lg border border-border">
-                <div className="w-full sm:w-12 text-center text-sm text-text-muted pt-2">{index + 1}</div>
+              <div key={item.id} className="flex flex-wrap sm:flex-nowrap gap-4 items-center bg-surface p-4.5 rounded-xl border border-border/80 shadow-sm">
+                <div className="w-full sm:w-10 text-center text-sm font-semibold text-text-muted">{index + 1}</div>
                 <div className="flex-1 min-w-[200px]">
                   <input
                     type="text"
                     value={item.description}
                     onChange={e => handleLineItemChange(item.id, 'description', e.target.value)}
                     placeholder="รายละเอียดงาน"
-                    className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-border focus:border-primary"
+                    className="w-full px-4 py-2.5 rounded-xl bg-surface-2 border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm"
                   />
                 </div>
                 <div className="w-24">
@@ -146,7 +146,7 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
                     value={item.quantity}
                     onChange={e => handleLineItemChange(item.id, 'quantity', parseFloat(e.target.value) || 0)}
                     placeholder="จำนวน"
-                    className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-border focus:border-primary"
+                    className="w-full px-4 py-2.5 rounded-xl bg-surface-2 border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm text-right"
                   />
                 </div>
                 <div className="w-24">
@@ -155,7 +155,7 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
                     value={item.unit}
                     onChange={e => handleLineItemChange(item.id, 'unit', e.target.value)}
                     placeholder="หน่วย"
-                    className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-border focus:border-primary"
+                    className="w-full px-4 py-2.5 rounded-xl bg-surface-2 border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm text-center"
                   />
                 </div>
                 <div className="w-32">
@@ -165,16 +165,16 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
                     value={item.unit_price}
                     onChange={e => handleLineItemChange(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
                     placeholder="ราคา/หน่วย"
-                    className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-border focus:border-primary"
+                    className="w-full px-4 py-2.5 rounded-xl bg-surface-2 border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm text-right"
                   />
                 </div>
-                <div className="w-32 pt-2 text-right font-medium">
+                <div className="w-32 text-right font-bold text-text">
                   {(item.quantity * item.unit_price).toLocaleString('th-TH')}
                 </div>
                 <button
                   onClick={() => removeLineItem(item.id)}
                   disabled={formData.line_items.length === 1}
-                  className="p-2 text-text-muted hover:text-error disabled:opacity-30 transition-colors"
+                  className="p-2.5 text-text-dim hover:text-error disabled:opacity-30 transition-all hover:scale-105"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -213,43 +213,43 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
               )}
             </div>
             
-            <div className="flex justify-between items-center w-full max-w-sm gap-2">
-              <label className="text-sm text-text-muted whitespace-nowrap flex items-center gap-1">
-                VAT (%) <Settings className="w-3 h-3" />
+            <div className="flex justify-between items-center w-full max-w-sm gap-4">
+              <label className="text-sm font-semibold text-text-muted whitespace-nowrap flex items-center gap-1.5">
+                VAT (%) <Settings className="w-3.5 h-3.5 text-text-dim" />
               </label>
-              <div className="flex items-center gap-2 w-32">
+              <div className="flex items-center gap-4 w-32 justify-end">
                 <input
                   type="number"
                   min="0"
                   max="100"
                   value={formData.vat_percent}
                   onChange={e => handleChange('vat_percent', parseFloat(e.target.value) || 0)}
-                  className="w-16 px-3 py-1 rounded-lg bg-surface border border-border focus:border-primary text-right"
+                  className="w-16 px-3 py-1.5 rounded-xl bg-surface border border-border text-text focus:border-primary text-right outline-none text-sm"
                 />
-                <span className="text-sm text-text-muted flex-1 text-right">
+                <span className="text-sm font-semibold text-text">
                   {totals.vatAmount.toLocaleString('th-TH')}
                 </span>
               </div>
             </div>
 
-            <div className="flex justify-between w-64 text-lg font-bold text-text pt-2 border-t border-border/50">
+            <div className="flex justify-between w-64 text-lg font-bold text-text pt-4 border-t border-border">
               <span>ยอดชำระสุทธิ:</span>
-              <span className="text-primary">{totals.grandTotal.toLocaleString('th-TH')} บาท</span>
+              <span className="text-primary-light font-extrabold text-xl">{totals.grandTotal.toLocaleString('th-TH')} บาท</span>
             </div>
           </div>
         </div>
 
         {/* Footer Settings Section */}
-        <div className="bg-surface-2 border border-border p-4 rounded-xl space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="bg-surface-2 border border-border p-8 rounded-2xl shadow-lg space-y-6">
+          <div className="grid grid-cols-2 gap-5">
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-text-muted mb-1">เงื่อนไขการชำระเงิน (Payment Terms)</label>
+              <label className="block text-sm font-semibold text-text-muted mb-2">เงื่อนไขการชำระเงิน (Payment Terms)</label>
               {presets?.payment_terms && presets.payment_terms.length > 0 && (
-                <div className="mb-2">
+                <div className="mb-3">
                   <select 
                     onChange={e => handleChange('payment_terms_preset', e.target.value)}
                     value={formData.payment_terms_preset}
-                    className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm focus:border-primary"
+                    className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-sm focus:border-primary outline-none cursor-pointer text-text"
                   >
                     <option value="">-- เลือกแบบฟอร์มเงื่อนไขการชำระเงิน --</option>
                     {presets.payment_terms.map((preset, idx) => (
@@ -262,26 +262,26 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
                 value={formData.payment_terms_preset}
                 onChange={e => handleChange('payment_terms_preset', e.target.value)}
                 rows={2}
-                className="w-full px-3 py-2 rounded-lg bg-surface border border-border focus:border-primary resize-none text-sm"
+                className="w-full px-4 py-3 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none text-sm leading-relaxed"
               />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-text-muted mb-1">หมายเหตุ (Notes)</label>
+              <label className="block text-sm font-semibold text-text-muted mb-2">หมายเหตุ (Notes)</label>
               <textarea
                 value={formData.notes}
                 onChange={e => handleChange('notes', e.target.value)}
                 rows={2}
-                className="w-full px-3 py-2 rounded-lg bg-surface border border-border focus:border-primary resize-none text-sm"
+                className="w-full px-4 py-3 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none text-sm leading-relaxed"
               />
             </div>
           </div>
         </div>
       </div>
-
-      <div className="p-4 bg-surface-2 border-t border-border flex justify-end">
+ 
+      <div className="px-8 py-5 bg-surface-2 border-t border-border flex justify-end">
         <button
           onClick={() => onGenerate(formData)}
-          className="px-6 py-2 rounded-lg text-sm font-medium bg-primary hover:bg-primary-hover text-white transition-colors"
+          className="px-6 py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent text-white hover:shadow-lg hover:shadow-primary/20 transition-all"
         >
           สร้าง Markdown จากฟอร์ม
         </button>

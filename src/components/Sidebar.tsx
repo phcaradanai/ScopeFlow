@@ -30,7 +30,7 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
   return (
     <aside className="w-72 min-w-[280px] h-full bg-surface/50 backdrop-blur-xl border-r border-white/5 flex flex-col">
       {/* Workspace header */}
-      <div className="p-4 flex items-center justify-between">
+      <div className="px-6 py-5 flex items-center justify-between border-b border-white/5">
         <div className="flex items-center gap-3 overflow-hidden">
           <FolderOpen className="w-4 h-4 text-primary-light shrink-0" />
           <h2 className="text-sm font-semibold text-text truncate">{workspaceName}</h2>
@@ -61,12 +61,12 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
       </div>
 
       {/* Tree navigation */}
-      <div className="flex-1 overflow-y-auto p-2">
+      <div className="flex-1 overflow-y-auto px-5 py-4">
         {tree && tree.children && tree.children.length > 0 ? (
-          <div className="space-y-0.5">
+          <div className="space-y-2.5">
             {/* Clients header */}
-            <div className="flex items-center justify-between px-2 py-1.5">
-              <span className="text-xs font-medium text-text-dim uppercase tracking-wider">
+            <div className="flex items-center justify-between px-2 py-1">
+              <span className="text-xs font-semibold text-text-dim uppercase tracking-wider">
                 ลูกค้า
               </span>
               <button
@@ -128,7 +128,7 @@ function ClientNode({
     <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/5 transition-all duration-200 group text-left"
+        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/5 transition-all duration-300 group text-left"
       >
         {expanded ? (
           <ChevronDown className="w-3.5 h-3.5 text-text-dim" />
@@ -150,7 +150,7 @@ function ClientNode({
       </button>
 
       {expanded && node.children && (
-        <div className="ml-4 space-y-0.5">
+        <div className="ml-3 pl-3 border-l border-white/5 mt-1 space-y-1.5">
           {node.children.length === 0 ? (
             <p className="text-xs text-text-dim px-2 py-1">ยังไม่มีโครงการ</p>
           ) : (
@@ -197,7 +197,7 @@ function ProjectNode({
           setExpanded(!expanded);
           onSelect(node.path);
         }}
-        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 group text-left ${selectedFile === node.path ? 'bg-primary/10 text-primary-light font-medium' : 'hover:bg-white/5 text-text-muted'}`}
+        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-300 group text-left ${selectedFile === node.path ? 'bg-primary/10 text-primary-light font-medium shadow-sm' : 'hover:bg-white/5 text-text-muted'}`}
       >
         {expanded ? (
           <ChevronDown className="w-3.5 h-3.5 text-text-dim" />
@@ -231,7 +231,7 @@ function ProjectNode({
       </button>
 
       {expanded && node.children && (
-        <div className="ml-4 space-y-0.5">
+        <div className="ml-3 pl-3 border-l border-white/5 mt-1 space-y-1.5">
           {node.children.length === 0 ? (
             <p className="text-xs text-text-dim px-2 py-1">ยังไม่มีเอกสาร</p>
           ) : (
@@ -239,9 +239,9 @@ function ProjectNode({
               <button
                 key={doc.path}
                 onClick={() => onSelect(doc.path)}
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 text-left ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-300 text-left ${
                   selectedFile === doc.path
-                    ? 'bg-primary/10 text-primary-light font-medium'
+                    ? 'bg-primary/10 text-primary-light font-medium shadow-sm'
                     : 'hover:bg-white/5 text-text-muted'
                 }`}
               >
