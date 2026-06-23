@@ -1,0 +1,206 @@
+import { useState } from 'react';
+import { useWorkspace } from '../lib/workspace-context';
+import type { FileEntry } from '../lib/tauri-commands';
+import {
+  ChevronRight,
+  ChevronDown,
+  FolderOpen,
+  FileText,
+  User,
+  Briefcase,
+  Plus,
+} from 'lucide-react';
+
+interface SidebarProps {
+  onCreateClient: () => void;
+  onCreateProject: (clientId: string) => void;
+  onCreateDocument: (clientId: string, projectId: string, projectPath: string) => void;
+}
+
+export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocument }: SidebarProps) {
+  const { workspaceName, tree, selectedFile, setSelectedFile } = useWorkspace();
+
+  return (
+    <aside className="w-72 min-w-[280px] h-full bg-surface-2 border-r border-border flex flex-col">
+      {/* Workspace header */}
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <FolderOpen className="w-4 h-4 text-primary-light" />
+          <h2 className="text-sm font-semibold text-text truncate">{workspaceName}</h2>
+        </div>
+      </div>
+
+      {/* Tree navigation */}
+      <div className="flex-1 overflow-y-auto p-2">
+        {tree && tree.children && tree.children.length > 0 ? (
+          <div className="space-y-0.5">
+            {/* Clients header */}
+            <div className="flex items-center justify-between px-2 py-1.5">
+              <span className="text-xs font-medium text-text-dim uppercase tracking-wider">
+                ลูกค้า
+              </span>
+              <button
+                onClick={onCreateClient}
+                className="p-0.5 rounded hover:bg-surface-3 text-text-dim hover:text-primary-light transition-colors"
+                title="สร้างลูกค้าใหม่"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            {tree.children.map((client) => (
+              <ClientNode
+                key={client.path}
+                node={client}
+                selectedFile={selectedFile}
+                onSelect={setSelectedFile}
+                onCreateProject={onCreateProject}
+                onCreateDocument={onCreateDocument}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <User className="w-8 h-8 text-text-dim mx-auto mb-2" />
+            <p className="text-sm text-text-dim">ยังไม่มีลูกค้า</p>
+            <button
+              onClick={onCreateClient}
+              className="mt-2 text-xs text-primary-light hover:text-primary transition-colors"
+            >
+              + สร้างลูกค้าใหม่
+            </button>
+          </div>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+function ClientNode({
+  node,
+  selectedFile,
+  onSelect,
+  onCreateProject,
+  onCreateDocument,
+}: {
+  node: FileEntry;
+  selectedFile: string | null;
+  onSelect: (path: string | null) => void;
+  onCreateProject: (clientId: string) => void;
+  onCreateDocument: (clientId: string, projectId: string, projectPath: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const clientId = node.path.split('/').pop() || '';
+
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-surface-3 transition-colors group text-left"
+      >
+        {expanded ? (
+          <ChevronDown className="w-3.5 h-3.5 text-text-dim" />
+        ) : (
+          <ChevronRight className="w-3.5 h-3.5 text-text-dim" />
+        )}
+        <User className="w-3.5 h-3.5 text-accent" />
+        <span className="text-sm text-text truncate flex-1">{node.name}</span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onCreateProject(clientId);
+          }}
+          className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-surface-3 text-text-dim hover:text-primary-light transition-all"
+          title="สร้างโครงการใหม่"
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+      </button>
+
+      {expanded && node.children && (
+        <div className="ml-4 space-y-0.5">
+          {node.children.length === 0 ? (
+            <p className="text-xs text-text-dim px-2 py-1">ยังไม่มีโครงการ</p>
+          ) : (
+            node.children.map((project) => (
+              <ProjectNode
+                key={project.path}
+                node={project}
+                clientId={clientId}
+                selectedFile={selectedFile}
+                onSelect={onSelect}
+                onCreateDocument={onCreateDocument}
+              />
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProjectNode({
+  node,
+  clientId,
+  selectedFile,
+  onSelect,
+  onCreateDocument,
+}: {
+  node: FileEntry;
+  clientId: string;
+  selectedFile: string | null;
+  onSelect: (path: string | null) => void;
+  onCreateDocument: (clientId: string, projectId: string, projectPath: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const projectId = node.path.split('/').pop() || '';
+
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-surface-3 transition-colors group text-left"
+      >
+        {expanded ? (
+          <ChevronDown className="w-3.5 h-3.5 text-text-dim" />
+        ) : (
+          <ChevronRight className="w-3.5 h-3.5 text-text-dim" />
+        )}
+        <Briefcase className="w-3.5 h-3.5 text-primary-light" />
+        <span className="text-sm text-text truncate flex-1">{node.name}</span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onCreateDocument(clientId, projectId, node.path);
+          }}
+          className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-surface-3 text-text-dim hover:text-primary-light transition-all"
+          title="สร้างเอกสารใหม่"
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+      </button>
+
+      {expanded && node.children && (
+        <div className="ml-4 space-y-0.5">
+          {node.children.length === 0 ? (
+            <p className="text-xs text-text-dim px-2 py-1">ยังไม่มีเอกสาร</p>
+          ) : (
+            node.children.map((doc) => (
+              <button
+                key={doc.path}
+                onClick={() => onSelect(doc.path)}
+                className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-colors text-left ${
+                  selectedFile === doc.path
+                    ? 'bg-primary/20 text-primary-light'
+                    : 'hover:bg-surface-3 text-text-muted'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span className="text-xs truncate">{doc.name}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
