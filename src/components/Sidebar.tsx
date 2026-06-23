@@ -9,6 +9,7 @@ import {
   User,
   Briefcase,
   Plus,
+  Settings,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -16,19 +17,27 @@ interface SidebarProps {
   onCreateProject: (clientId: string) => void;
   onCreateDocument: (clientId: string, projectId: string, projectPath: string) => void;
   onExportProject: (clientId: string, projectId: string, projectPath: string) => void;
+  onOpenSettings: () => void;
 }
 
-export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocument, onExportProject }: SidebarProps) {
+export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocument, onExportProject, onOpenSettings }: SidebarProps) {
   const { workspaceName, tree, selectedFile, setSelectedFile } = useWorkspace();
 
   return (
     <aside className="w-72 min-w-[280px] h-full bg-surface-2 border-r border-border flex flex-col">
       {/* Workspace header */}
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center gap-2">
-          <FolderOpen className="w-4 h-4 text-primary-light" />
+      <div className="p-4 border-b border-border flex items-center justify-between">
+        <div className="flex items-center gap-2 overflow-hidden">
+          <FolderOpen className="w-4 h-4 text-primary-light shrink-0" />
           <h2 className="text-sm font-semibold text-text truncate">{workspaceName}</h2>
         </div>
+        <button
+          onClick={onOpenSettings}
+          className="p-1 rounded hover:bg-surface-3 text-text-dim hover:text-primary-light transition-colors shrink-0"
+          title="ตั้งค่าบริษัท"
+        >
+          <Settings className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Tree navigation */}

@@ -7,6 +7,7 @@ import ProjectForm from './components/ProjectForm';
 import MarkdownEditor from './components/MarkdownEditor';
 import DocumentCreatorModal from './components/DocumentCreatorModal';
 import ExportModal from './components/ExportModal';
+import CompanySettingsModal from './components/CompanySettingsModal';
 import { listProjectDocuments, DocumentInfo } from './lib/tauri-commands';
 import { FileText } from 'lucide-react';
 import './index.css';
@@ -23,6 +24,7 @@ function AppContent() {
     projectPath: '',
   });
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showCompanySettings, setShowCompanySettings] = useState(false);
   const [exportModalProps, setExportModalProps] = useState({
     projectPath: '',
     projectName: '',
@@ -97,6 +99,7 @@ function AppContent() {
         onCreateProject={handleCreateProject}
         onCreateDocument={handleCreateDocument}
         onExportProject={handleExportProject}
+        onOpenSettings={() => setShowCompanySettings(true)}
       />
 
       <main className="flex-1 h-full overflow-hidden">
@@ -138,6 +141,12 @@ function AppContent() {
         <ExportModal
           {...exportModalProps}
           onClose={() => setShowExportModal(false)}
+        />
+      )}
+      {showCompanySettings && (
+        <CompanySettingsModal
+          workspacePath={workspacePath}
+          onClose={() => setShowCompanySettings(false)}
         />
       )}
     </div>

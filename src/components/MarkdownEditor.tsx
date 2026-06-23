@@ -3,6 +3,11 @@ import { readFileContent, writeFileContent, copyEvidenceFiles, createDocument } 
 import { updateDocumentApprovalStatus, generateApprovalRecord, lockDocument } from '../lib/templates';
 import { getNextDocumentNumber } from '../lib/document-utils';
 import { getNextRevisionFilename, generateRevisionDocument } from '../lib/revisions';
+import QuotationForm from './QuotationForm';
+import ScopeHelperForm from './ScopeHelperForm';
+import { parseQuotationFormData, generateQuotationMarkdown } from '../lib/quotation-builder';
+import { parseScopeFormData, generateScopeMarkdown } from '../lib/scope-builder';
+import { getCompanyProfile } from '../lib/settings';
 import ReactMarkdown from 'react-markdown';
 import { Save, Eye, Edit3, FileText, CheckCircle, Lock, Copy } from 'lucide-react';
 import ApprovalModal from './ApprovalModal';
@@ -18,7 +23,7 @@ interface MarkdownEditorProps {
 export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocument, allFiles, workspacePath }: MarkdownEditorProps) {
   const [content, setContent] = useState('');
   const [originalContent, setOriginalContent] = useState('');
-  const [mode, setMode] = useState<'edit' | 'preview'>('preview');
+  const [mode, setMode] = useState<'edit' | 'preview' | 'form'>('preview');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -197,6 +202,17 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
           <div className="w-px h-4 bg-border mx-1"></div>
 
           <div className="flex rounded-lg border border-border overflow-hidden">
+            {(docType === 'quotation' || docType === 'scope') && (
+              <button
+                onClick={() => setMode('form')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${
+                  mode === 'form' ? 'bg-primary text-white' : 'bg-surface-2 text-text-muted hover:text-text'
+                }`}
+              >
+                <FileText className="w-3 h-3" />
+                ฟอร์ม
+              </button>
+            )}
             <button
               onClick={() => setMode('edit')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${
@@ -248,7 +264,50 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
       )}
 
       <div className="flex-1 overflow-hidden">
-        {mode === 'edit' ? (
+        {mode === 'form' && docType === 'quotation' ? (
+          <QuotationForm
+            workspacePath={workspacePath}
+            initialData={parseQuotationFormData(content)}
+            onGenerate={async (data) => {
+              if (isLocked) {
+                alert('เอกสารนี้ถูกล็อกแล้ว กรุณาสร้างเวอร์ชันใหม่เพื่อแก้ไข');
+                return;
+              }
+              if (content.trim() && !window.confirm('การสร้างเอกสารใหม่จากฟอร์มอาจแทนที่เนื้อหาเดิม กรุณาตรวจสอบก่อนบันทึก')) {
+                return;
+              }
+              let profile = null;
+              try {
+                profile = await getCompanyProfile(workspacePath);
+              } catch (err: any) {
+                if (err.message === 'MALFORMED_YAML') {
+                  alert('คำเตือน: ไฟล์ตั้งค่าบริษัทเสียหาย จะไม่แสดงข้อมูลบริษัทในเอกสารนี้');
+                } else {
+                  console.error(err);
+                }
+              }
+              const md = generateQuotationMarkdown(data, profile, clientId, projId, filename);
+              setContent(md);
+              setMode('preview');
+            }}
+          />
+        ) : mode === 'form' && docType === 'scope' ? (
+          <ScopeHelperForm
+            initialData={parseScopeFormData(content)}
+            onGenerate={(data) => {
+              if (isLocked) {
+                alert('เอกสารนี้ถูกล็อกแล้ว กรุณาสร้างเวอร์ชันใหม่เพื่อแก้ไข');
+                return;
+              }
+              if (content.trim() && !window.confirm('การสร้างเอกสารใหม่จากฟอร์มอาจแทนที่เนื้อหาเดิม กรุณาตรวจสอบก่อนบันทึก')) {
+                return;
+              }
+              const md = generateScopeMarkdown(data, filename);
+              setContent(md);
+              setMode('preview');
+            }}
+          />
+        ) : mode === 'edit' ? (
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}

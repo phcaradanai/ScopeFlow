@@ -23,6 +23,20 @@ This is content.`;
       expect(result).toBe('# Heading 1\nThis is content.');
     });
 
+    it('should strip structured form data', () => {
+      const markdown = `---
+title: Quotation
+form_data:
+  title: Title
+  discount_type: amount
+  discount_value: 100
+---
+# Content`;
+      const result = stripFrontmatter(markdown);
+      expect(result).toBe('# Content');
+      expect(result).not.toContain('form_data');
+    });
+
     it('should leave markdown without frontmatter unchanged', () => {
       const markdown = `# Heading 1\nThis is content.`;
       const result = stripFrontmatter(markdown);
