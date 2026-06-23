@@ -12,7 +12,8 @@
     "tauri:build": "tauri build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke-test": "npm run test && cd src-tauri && cargo test && npm run build"
+    "smoke-test": "npm run test && cd src-tauri && cargo test && npm run build",
+    "release:check": "npm run test && npm run build && cd src-tauri && cargo test"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
