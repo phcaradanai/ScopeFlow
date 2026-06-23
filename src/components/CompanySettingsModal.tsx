@@ -118,7 +118,7 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                   type="text"
                   value={profile.provider_name}
                   onChange={e => handleChange('provider_name', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
                   placeholder="เช่น บริษัท สโคปโฟลว์ จำกัด"
                 />
               </div>
@@ -127,7 +127,7 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                 <select
                   value={profile.provider_type}
                   onChange={e => handleChange('provider_type', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer text-sm font-medium"
                 >
                   <option value="company">บริษัท (Company)</option>
                   <option value="agency">เอเจนซี่ (Agency)</option>
@@ -141,7 +141,7 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                   value={profile.address || ''}
                   onChange={e => handleChange('address', e.target.value)}
                   rows={2}
-                  className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none text-sm font-medium leading-relaxed"
                   placeholder="ที่อยู่สำหรับออกเอกสาร"
                 />
               </div>
@@ -152,7 +152,7 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                   type="text"
                   value={profile.tax_id || ''}
                   onChange={e => handleChange('tax_id', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
                 />
               </div>
             </div>
@@ -167,7 +167,7 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                   type="text"
                   value={profile.contact_name || ''}
                   onChange={e => handleChange('contact_name', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
                 />
               </div>
               <div className="col-span-2 sm:col-span-1">
@@ -176,7 +176,7 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                   type="text"
                   value={profile.phone || ''}
                   onChange={e => handleChange('phone', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
                 />
               </div>
               <div className="col-span-2 sm:col-span-1">
@@ -185,7 +185,7 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                   type="email"
                   value={profile.email || ''}
                   onChange={e => handleChange('email', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
                 />
               </div>
               <div className="col-span-2 sm:col-span-1">
@@ -194,7 +194,7 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                   type="text"
                   value={profile.website || ''}
                   onChange={e => handleChange('website', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
                 />
               </div>
             </div>
@@ -209,7 +209,7 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                   type="text"
                   value={profile.default_currency || 'THB'}
                   onChange={e => handleChange('default_currency', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
                 />
               </div>
               <div className="col-span-2 sm:col-span-1">
@@ -220,7 +220,7 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                   max="100"
                   value={profile.default_vat_percent ?? 7}
                   onChange={e => handleChange('default_vat_percent', parseFloat(e.target.value) || 0)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
                 />
               </div>
             </div>

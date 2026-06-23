@@ -94,7 +94,7 @@ export default function ApprovalModal({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-text-muted mb-1">
+            <label className="block text-sm font-semibold text-text-muted mb-2">
               ผู้อนุมัติ (ชื่อลูกค้า / ผู้ประสานงาน) <span className="text-error">*</span>
             </label>
             <input
@@ -102,27 +102,27 @@ export default function ApprovalModal({
               value={approvedBy}
               onChange={(e) => setApprovedBy(e.target.value)}
               placeholder="เช่น คุณสมชาย ฝ่ายจัดซื้อ"
-              className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text-muted mb-1">
+            <label className="block text-sm font-semibold text-text-muted mb-2">
               วิธีการอนุมัติ <span className="text-error">*</span>
             </label>
             <select
               value={approvalMethod}
               onChange={(e) => setApprovalMethod(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer text-sm font-medium"
             >
-              <option value="signed-pdf">เซ็นรับรอง (Signed PDF)</option>
-              <option value="email">อีเมล (Email Confirmation)</option>
-              <option value="line-chat">แชท LINE (LINE Chat)</option>
-              <option value="verbal">วาจา (Verbal / Meeting)</option>
-              <option value="screenshot">ภาพถ่ายหน้าจอ (Screenshot)</option>
-              <option value="in-person">พบปะส่วนตัว (In-Person)</option>
-              <option value="other">อื่นๆ (Other)</option>
+              <option value="signed-pdf" className="bg-surface-2">เซ็นรับรอง (Signed PDF)</option>
+              <option value="email" className="bg-surface-2">อีเมล (Email Confirmation)</option>
+              <option value="line-chat" className="bg-surface-2">แชท LINE (LINE Chat)</option>
+              <option value="verbal" className="bg-surface-2">วาจา (Verbal / Meeting)</option>
+              <option value="screenshot" className="bg-surface-2">ภาพถ่ายหน้าจอ (Screenshot)</option>
+              <option value="in-person" className="bg-surface-2">พบปะส่วนตัว (In-Person)</option>
+              <option value="other" className="bg-surface-2">อื่นๆ (Other)</option>
             </select>
           </div>
 

@@ -206,7 +206,7 @@ export default function DocumentCreatorModal({
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer"
+              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer text-sm font-medium"
             >
               <option value="scope">ขอบเขตงาน (Scope)</option>
               <option value="quotation">ใบเสนอราคา (Quotation)</option>
@@ -229,7 +229,7 @@ export default function DocumentCreatorModal({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="เช่น เพิ่มระบบรายงานยอดขาย"
-                  className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
                   autoFocus
                 />
               </div>
@@ -242,7 +242,7 @@ export default function DocumentCreatorModal({
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
                   placeholder="เช่น add-sales-report"
-                  className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none font-mono text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none font-mono text-sm font-medium"
                 />
                 {!slug && title && (
                   <p className="text-xs text-error mt-1.5 px-1">
@@ -266,7 +266,7 @@ export default function DocumentCreatorModal({
               <select
                 value={changeKind}
                 onChange={(e) => setChangeKind(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer"
+                className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer text-sm font-medium"
               >
                 <option value="behavior">การทำงาน (Behavior / Logic)</option>
                 <option value="ui">หน้าจอ (UI / UX)</option>
@@ -288,7 +288,7 @@ export default function DocumentCreatorModal({
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer"
+                className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer text-sm font-medium"
               >
                 <option value="bug">บั๊ก (Bug)</option>
                 <option value="feature-request">ขอเพิ่มฟีเจอร์ (Feature Request)</option>

@@ -109,9 +109,9 @@ export default function WelcomeScreen() {
   }
 
   return (
-    <div className="h-full flex items-center justify-center bg-surface relative overflow-hidden">
+    <div className="h-full flex items-center justify-center bg-gradient-to-b from-[#121214] to-[#09090b] relative overflow-hidden">
       {/* Decorative background glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-primary/10 to-accent/10 rounded-full blur-[120px] pointer-events-none animate-pulse-slow" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-gradient-to-br from-primary/30 via-accent/25 to-transparent rounded-full blur-[140px] pointer-events-none animate-pulse-slow opacity-80" />
       
       <div className="max-w-lg w-full px-6 text-center relative z-10">
         {/* Logo area */}

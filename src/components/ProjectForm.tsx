@@ -121,7 +121,7 @@ export default function ProjectForm({ clientId, onClose }: ProjectFormProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="เช่น Website Redesign 2025"
-              className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
               autoFocus
             />
           </div>
@@ -135,7 +135,7 @@ export default function ProjectForm({ clientId, onClose }: ProjectFormProps) {
               value={customId}
               onChange={(e) => setCustomId(e.target.value)}
               placeholder={generatedId || 'auto-generated'}
-              className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none font-mono text-sm"
+              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none font-mono text-sm font-medium"
             />
           </div>
 
@@ -146,7 +146,7 @@ export default function ProjectForm({ clientId, onClose }: ProjectFormProps) {
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer"
+              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer text-sm font-medium"
             >
               <option value="new-project">โครงการใหม่</option>
               <option value="maintenance">ดูแลระบบ (MA)</option>
@@ -166,7 +166,7 @@ export default function ProjectForm({ clientId, onClose }: ProjectFormProps) {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
               />
             </div>
             <div>
@@ -177,7 +177,7 @@ export default function ProjectForm({ clientId, onClose }: ProjectFormProps) {
                 type="date"
                 value={targetDate}
                 onChange={(e) => setTargetDate(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
               />
             </div>
           </div>
@@ -188,7 +188,7 @@ export default function ProjectForm({ clientId, onClose }: ProjectFormProps) {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border text-text placeholder:text-text-dim focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none text-sm font-medium leading-relaxed"
             />
           </div>
 
