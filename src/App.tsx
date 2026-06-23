@@ -6,6 +6,8 @@ import ClientForm from './components/ClientForm';
 import ProjectForm from './components/ProjectForm';
 import MarkdownEditor from './components/MarkdownEditor';
 import DocumentCreatorModal from './components/DocumentCreatorModal';
+import ExportModal from './components/ExportModal';
+import { listProjectDocuments, DocumentInfo } from './lib/tauri-commands';
 import { FileText } from 'lucide-react';
 import './index.css';
 
@@ -20,6 +22,13 @@ function AppContent() {
     projectId: '',
     projectPath: '',
   });
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportModalProps, setExportModalProps] = useState({
+    projectPath: '',
+    projectName: '',
+    clientName: '',
+    documents: [] as DocumentInfo[]
+  });
 
   if (!workspacePath) {
     return <WelcomeScreen />;
@@ -33,6 +42,37 @@ function AppContent() {
   function handleCreateProject(clientId: string) {
     setProjectFormClientId(clientId);
     setShowProjectForm(true);
+  }
+
+  async function handleExportProject(clientId: string, projectId: string, projectPath: string) {
+    let clientName = clientId;
+    let projectName = projectId;
+    
+    if (tree?.children) {
+      const clientNode = tree.children.find((c: any) => c.path.endsWith(clientId));
+      if (clientNode) {
+        clientName = clientNode.name;
+        if (clientNode.children) {
+          const projectNode = clientNode.children.find((p: any) => p.path === projectPath);
+          if (projectNode) {
+            projectName = projectNode.name;
+          }
+        }
+      }
+    }
+
+    try {
+      const docs = await listProjectDocuments(workspacePath, clientId, projectId);
+      setExportModalProps({
+        projectPath,
+        projectName,
+        clientName,
+        documents: docs
+      });
+      setShowExportModal(true);
+    } catch (err) {
+      console.error("Failed to load documents for export:", err);
+    }
   }
 
   // Flatten the tree to get all files
@@ -56,6 +96,7 @@ function AppContent() {
         onCreateClient={() => setShowClientForm(true)}
         onCreateProject={handleCreateProject}
         onCreateDocument={handleCreateDocument}
+        onExportProject={handleExportProject}
       />
 
       <main className="flex-1 h-full overflow-hidden">
@@ -91,6 +132,12 @@ function AppContent() {
         <DocumentCreatorModal
           {...documentCreatorProps}
           onClose={() => setShowDocumentCreator(false)}
+        />
+      )}
+      {showExportModal && (
+        <ExportModal
+          {...exportModalProps}
+          onClose={() => setShowExportModal(false)}
         />
       )}
     </div>

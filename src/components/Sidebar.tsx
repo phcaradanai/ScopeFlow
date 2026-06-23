@@ -15,9 +15,10 @@ interface SidebarProps {
   onCreateClient: () => void;
   onCreateProject: (clientId: string) => void;
   onCreateDocument: (clientId: string, projectId: string, projectPath: string) => void;
+  onExportProject: (clientId: string, projectId: string, projectPath: string) => void;
 }
 
-export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocument }: SidebarProps) {
+export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocument, onExportProject }: SidebarProps) {
   const { workspaceName, tree, selectedFile, setSelectedFile } = useWorkspace();
 
   return (
@@ -55,6 +56,7 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
                 onSelect={setSelectedFile}
                 onCreateProject={onCreateProject}
                 onCreateDocument={onCreateDocument}
+                onExportProject={onExportProject}
               />
             ))}
           </div>
@@ -87,6 +89,7 @@ function ClientNode({
   onSelect: (path: string | null) => void;
   onCreateProject: (clientId: string) => void;
   onCreateDocument: (clientId: string, projectId: string, projectPath: string) => void;
+  onExportProject: (clientId: string, projectId: string, projectPath: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const clientId = node.path.split('/').pop() || '';
@@ -129,6 +132,7 @@ function ClientNode({
                 selectedFile={selectedFile}
                 onSelect={onSelect}
                 onCreateDocument={onCreateDocument}
+                onExportProject={onExportProject}
               />
             ))
           )}
@@ -150,6 +154,7 @@ function ProjectNode({
   selectedFile: string | null;
   onSelect: (path: string | null) => void;
   onCreateDocument: (clientId: string, projectId: string, projectPath: string) => void;
+  onExportProject: (clientId: string, projectId: string, projectPath: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const projectId = node.path.split('/').pop() || '';
@@ -167,16 +172,28 @@ function ProjectNode({
         )}
         <Briefcase className="w-3.5 h-3.5 text-primary-light" />
         <span className="text-sm text-text truncate flex-1">{node.name}</span>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onCreateDocument(clientId, projectId, node.path);
-          }}
-          className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-surface-3 text-text-dim hover:text-primary-light transition-all"
-          title="สร้างเอกสารใหม่"
-        >
-          <Plus className="w-3 h-3" />
-        </button>
+        <div className="flex opacity-0 group-hover:opacity-100 transition-all">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onExportProject(clientId, projectId, node.path);
+            }}
+            className="p-0.5 rounded hover:bg-surface-3 text-text-dim hover:text-primary-light"
+            title="ส่งออกชุดเอกสาร"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onCreateDocument(clientId, projectId, node.path);
+            }}
+            className="p-0.5 rounded hover:bg-surface-3 text-text-dim hover:text-primary-light"
+            title="สร้างเอกสารใหม่"
+          >
+            <Plus className="w-3 h-3" />
+          </button>
+        </div>
       </button>
 
       {expanded && node.children && (
