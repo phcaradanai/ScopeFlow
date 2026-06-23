@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+use std::fs::File;
+use std::io::{Read, Write};
+use walkdir::WalkDir;
+use zip::write::FileOptions;
 
 // ─── Data Structures ────────────────────────────────────────────
 
@@ -572,6 +576,134 @@ fn extract_yaml_value(content: &str, key: &str) -> String {
     String::new()
 }
 
+// ─── Backup & Restore Commands ───────────────────────────────────
+
+#[tauri::command]
+pub fn backup_workspace(workspace_path: String, dest_zip_path: String) -> Result<(), String> {
+    let workspace = Path::new(&workspace_path);
+    if !workspace.exists() {
+        return Err("ไม่พบ Workspace".to_string());
+    }
+
+    let file = File::create(&dest_zip_path).map_err(|e| format!("สร้างไฟล์ ZIP ไม่สำเร็จ: {}", e))?;
+    let mut zip = zip::ZipWriter::new(file);
+    let options = FileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated)
+        .unix_permissions(0o755);
+
+    for entry in WalkDir::new(workspace).into_iter().filter_map(|e| e.ok()) {
+        let path = entry.path();
+        
+        // Exclude forbidden directories and files
+        if path.components().any(|c| {
+            let name = c.as_os_str().to_string_lossy();
+            matches!(
+                name.as_ref(),
+                "node_modules" | "target" | "build" | "dist" | ".git" | 
+                "out" | "coverage" | ".DS_Store" | "Thumbs.db"
+            )
+        }) {
+            continue;
+        }
+
+        // Security: Prevent symlink escape
+        if entry.path_is_symlink() {
+            continue;
+        }
+
+        let name = path.strip_prefix(workspace).unwrap();
+        let name_str = name.to_string_lossy().replace("\\", "/");
+
+        if name_str.is_empty() {
+            continue;
+        }
+
+        // Exclude rebuildable/temp .scopeflow artifacts
+        if name_str.starts_with(".scopeflow/cache") ||
+           name_str.starts_with(".scopeflow/tmp") ||
+           name_str.starts_with(".scopeflow/index") ||
+           name_str.ends_with(".lock") {
+            continue;
+        }
+
+        if path.is_file() {
+            zip.start_file(&name_str, options).map_err(|e| format!("เพิ่มไฟล์ลง ZIP ไม่สำเร็จ: {}", e))?;
+            let mut f = File::open(path).map_err(|e| format!("เปิดไฟล์ไม่สำเร็จ: {}", e))?;
+            let mut buffer = Vec::new();
+            f.read_to_end(&mut buffer).map_err(|e| format!("อ่านไฟล์ไม่สำเร็จ: {}", e))?;
+            zip.write_all(&buffer).map_err(|e| format!("เขียนไฟล์ลง ZIP ไม่สำเร็จ: {}", e))?;
+        } else if path.is_dir() {
+            zip.add_directory(&name_str, options).map_err(|e| format!("เพิ่มโฟลเดอร์ลง ZIP ไม่สำเร็จ: {}", e))?;
+        }
+    }
+
+    zip.finish().map_err(|e| format!("ปิดไฟล์ ZIP ไม่สำเร็จ: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn restore_workspace(zip_path: String, dest_dir_path: String, force_overwrite: bool) -> Result<(), String> {
+    let file = File::open(&zip_path).map_err(|e| format!("เปิดไฟล์ ZIP ไม่สำเร็จ: {}", e))?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("อ่านไฟล์ ZIP ไม่สำเร็จ: {}", e))?;
+
+    // Validate scopeflow.yaml
+    let mut has_scopeflow = false;
+    for i in 0..archive.len() {
+        if let Ok(file) = archive.by_index(i) {
+            if file.name() == "scopeflow.yaml" || file.name() == ".scopeflow/config.yaml" {
+                has_scopeflow = true;
+                break;
+            }
+        }
+    }
+
+    if !has_scopeflow {
+        return Err("ไฟล์ที่เลือกไม่ใช่ข้อมูลสำรองของ ScopeFlow (ไม่พบ scopeflow.yaml)".to_string());
+    }
+
+    let dest = Path::new(&dest_dir_path);
+    
+    if dest.exists() && dest.read_dir().map(|mut i| i.next().is_some()).unwrap_or(false) && !force_overwrite {
+        return Err("DIR_NOT_EMPTY".to_string());
+    }
+
+    // Attempt to create dest folder if missing
+    fs::create_dir_all(dest).map_err(|e| format!("สร้างโฟลเดอร์ปลายทางไม่สำเร็จ: {}", e))?;
+
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i).map_err(|e| format!("อ่านข้อมูลใน ZIP ไม่สำเร็จ: {}", e))?;
+        
+        // Security: Extra Zip Slip protection (reject absolute paths, parent directory traversals, Windows drives)
+        let name = file.name();
+        if name.contains("..") || name.starts_with('/') || name.starts_with('\\') || name.contains(":\\") {
+            println!("Warning: Skipping suspicious path in zip: {}", name);
+            continue;
+        }
+
+        let outpath = match file.enclosed_name() {
+            Some(path) => dest.join(path),
+            None => {
+                println!("Warning: enclosed_name rejected path: {}", name);
+                continue;
+            }
+        };
+
+        if name.ends_with('/') {
+            fs::create_dir_all(&outpath).map_err(|e| format!("สร้างโฟลเดอร์ไม่สำเร็จ: {}", e))?;
+        } else {
+            if let Some(p) = outpath.parent() {
+                if !p.exists() {
+                    fs::create_dir_all(p).map_err(|e| format!("สร้างโฟลเดอร์ไม่สำเร็จ: {}", e))?;
+                }
+            }
+            let mut outfile = File::create(&outpath).map_err(|e| format!("แตกไฟล์ไม่สำเร็จ: {}", e))?;
+            std::io::copy(&mut file, &mut outfile).map_err(|e| format!("คัดลอกไฟล์ไม่สำเร็จ: {}", e))?;
+        }
+    }
+
+    Ok(())
+}
+
 // ─── Tests ──────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -759,6 +891,180 @@ mod tests {
         assert_eq!(copied_files2.len(), 1);
         assert!(copied_files2[0].starts_with("dummy-") && copied_files2[0].ends_with(".jpg"));
         assert!(attachments_dir.join(&copied_files2[0]).exists());
+    }
+
+    #[test]
+    fn test_backup_and_restore_workspace() {
+        let temp_dir = env::temp_dir().join("scopeflow_test_backup_restore");
+        if temp_dir.exists() {
+            fs::remove_dir_all(&temp_dir).unwrap();
+        }
+        let workspace_path = temp_dir.join("original").to_string_lossy().to_string();
+        
+        let config_content = "workspace:\n  name: Test Backup\n".to_string();
+        create_workspace(workspace_path.clone(), "Test Backup".to_string(), config_content).unwrap();
+
+        let zip_path = temp_dir.join("backup.zip").to_string_lossy().to_string();
+        
+        // Backup
+        let backup_res = backup_workspace(workspace_path.clone(), zip_path.clone());
+        assert!(backup_res.is_ok(), "Backup failed");
+        assert!(Path::new(&zip_path).exists(), "ZIP file not created");
+
+        // Restore
+        let restore_path = temp_dir.join("restored").to_string_lossy().to_string();
+        let restore_res = restore_workspace(zip_path.clone(), restore_path.clone(), false);
+        assert!(restore_res.is_ok(), "Restore failed");
+
+        let restored_config = Path::new(&restore_path).join("scopeflow.yaml");
+        assert!(restored_config.exists(), "Restored workspace missing scopeflow.yaml");
+        
+        fs::remove_dir_all(&temp_dir).unwrap();
+    }
+
+    #[test]
+    fn test_restore_zip_slip() {
+        let temp_dir = env::temp_dir().join("scopeflow_test_zip_slip");
+        if temp_dir.exists() {
+            fs::remove_dir_all(&temp_dir).unwrap();
+        }
+        fs::create_dir_all(&temp_dir).unwrap();
+        let zip_path = temp_dir.join("malicious.zip").to_string_lossy().to_string();
+
+        let file = File::create(&zip_path).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        let options = zip::write::FileOptions::default();
+
+        zip.start_file("scopeflow.yaml", options).unwrap();
+        zip.write_all(b"safe").unwrap();
+
+        // Malicious file name
+        zip.start_file("../../evil.txt", options).unwrap();
+        zip.write_all(b"evil").unwrap();
+        
+        zip.start_file("/tmp/evil_abs.txt", options).unwrap();
+        zip.write_all(b"evil_abs").unwrap();
+
+        zip.finish().unwrap();
+
+        let dest_path = temp_dir.join("dest").to_string_lossy().to_string();
+        let res = restore_workspace(zip_path, dest_path.clone(), false);
+        assert!(res.is_ok());
+
+        let dest = Path::new(&dest_path);
+        assert!(!dest.join("../../evil.txt").exists());
+        assert!(!Path::new("/tmp/evil_abs.txt").exists());
+
+        fs::remove_dir_all(&temp_dir).unwrap();
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn test_symlink_escape() {
+        use std::os::unix::fs::symlink;
+        let temp_dir = env::temp_dir().join("scopeflow_test_symlink");
+        if temp_dir.exists() {
+            fs::remove_dir_all(&temp_dir).unwrap();
+        }
+        let workspace_path = temp_dir.join("original").to_string_lossy().to_string();
+        create_workspace(workspace_path.clone(), "Test Symlink".to_string(), "workspace:\n  name: Test\n".to_string()).unwrap();
+
+        let outside_dir = temp_dir.join("outside");
+        fs::create_dir_all(&outside_dir).unwrap();
+        let outside_file = outside_dir.join("secret.txt");
+        fs::write(&outside_file, b"secret").unwrap();
+
+        let symlink_path = temp_dir.join("original").join("link_to_secret.txt");
+        symlink(&outside_file, &symlink_path).unwrap();
+
+        let zip_path = temp_dir.join("backup.zip").to_string_lossy().to_string();
+        backup_workspace(workspace_path.clone(), zip_path.clone()).unwrap();
+
+        let restore_path = temp_dir.join("restored").to_string_lossy().to_string();
+        restore_workspace(zip_path, restore_path.clone(), false).unwrap();
+
+        let restored_secret = Path::new(&restore_path).join("link_to_secret.txt");
+        assert!(!restored_secret.exists());
+
+        fs::remove_dir_all(&temp_dir).unwrap();
+    }
+
+    #[test]
+    fn test_backup_exclusions() {
+        let temp_dir = env::temp_dir().join("scopeflow_test_exclusions");
+        if temp_dir.exists() {
+            fs::remove_dir_all(&temp_dir).unwrap();
+        }
+        let workspace_path = temp_dir.join("original").to_string_lossy().to_string();
+        create_workspace(workspace_path.clone(), "Test Excl".to_string(), "workspace:\n  name: Test\n".to_string()).unwrap();
+
+        fs::create_dir_all(temp_dir.join("original").join("node_modules")).unwrap();
+        fs::write(temp_dir.join("original").join("node_modules").join("evil.txt"), b"evil").unwrap();
+        fs::write(temp_dir.join("original").join(".DS_Store"), b"junk").unwrap();
+        
+        // Add .scopeflow user files that should be included
+        let scopeflow_dir = temp_dir.join("original").join(".scopeflow");
+        fs::write(scopeflow_dir.join("company-profile.yaml"), b"company: My Co").unwrap();
+        fs::write(scopeflow_dir.join("presets.yaml"), b"presets: default").unwrap();
+        
+        // Add .scopeflow cache files that should be excluded
+        fs::create_dir_all(scopeflow_dir.join("cache")).unwrap();
+        fs::write(scopeflow_dir.join("cache").join("app.cache"), b"cache").unwrap();
+        fs::create_dir_all(scopeflow_dir.join("tmp")).unwrap();
+        fs::write(scopeflow_dir.join("tmp").join("temp.txt"), b"temp").unwrap();
+        fs::create_dir_all(scopeflow_dir.join("index")).unwrap();
+        fs::write(scopeflow_dir.join("index").join("idx.bin"), b"idx").unwrap();
+        fs::write(scopeflow_dir.join("app.lock"), b"lock").unwrap();
+
+        let zip_path = temp_dir.join("backup.zip").to_string_lossy().to_string();
+        backup_workspace(workspace_path.clone(), zip_path.clone()).unwrap();
+
+        let restore_path = temp_dir.join("restored").to_string_lossy().to_string();
+        restore_workspace(zip_path, restore_path.clone(), false).unwrap();
+
+        let restore_dir = Path::new(&restore_path);
+        
+        // Standard exclusions
+        assert!(!restore_dir.join("node_modules").exists());
+        assert!(!restore_dir.join(".DS_Store").exists());
+        
+        // Scopeflow exclusions
+        assert!(!restore_dir.join(".scopeflow").join("cache").exists());
+        assert!(!restore_dir.join(".scopeflow").join("tmp").exists());
+        assert!(!restore_dir.join(".scopeflow").join("index").exists());
+        assert!(!restore_dir.join(".scopeflow").join("app.lock").exists());
+
+        // Scopeflow inclusions
+        assert!(restore_dir.join(".scopeflow").join("company-profile.yaml").exists());
+        assert!(restore_dir.join(".scopeflow").join("presets.yaml").exists());
+
+        fs::remove_dir_all(&temp_dir).unwrap();
+    }
+
+    #[test]
+    fn test_restore_overwrite() {
+        let temp_dir = env::temp_dir().join("scopeflow_test_overwrite");
+        if temp_dir.exists() {
+            fs::remove_dir_all(&temp_dir).unwrap();
+        }
+        let workspace_path = temp_dir.join("original").to_string_lossy().to_string();
+        create_workspace(workspace_path.clone(), "Test OW".to_string(), "workspace:\n  name: Test\n".to_string()).unwrap();
+
+        let zip_path = temp_dir.join("backup.zip").to_string_lossy().to_string();
+        backup_workspace(workspace_path.clone(), zip_path.clone()).unwrap();
+
+        let restore_path = temp_dir.join("restored").to_string_lossy().to_string();
+        fs::create_dir_all(&restore_path).unwrap();
+        fs::write(Path::new(&restore_path).join("existing.txt"), b"existing").unwrap();
+
+        let res_fail = restore_workspace(zip_path.clone(), restore_path.clone(), false);
+        assert!(res_fail.is_err());
+        assert_eq!(res_fail.unwrap_err(), "DIR_NOT_EMPTY");
+
+        let res_ok = restore_workspace(zip_path.clone(), restore_path.clone(), true);
+        assert!(res_ok.is_ok());
+
+        fs::remove_dir_all(&temp_dir).unwrap();
     }
 }
 

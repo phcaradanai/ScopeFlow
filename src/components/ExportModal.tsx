@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Check, FileDown, FolderOpen, ExternalLink } from 'lucide-react';
 import { DocumentInfo } from '../lib/tauri-commands';
 import { exportApprovalPack } from '../lib/export';
-import { open } from '@tauri-apps/plugin-opener';
-import { invoke } from '@tauri-apps/api/core';
+import { openPath, revealItemInDir } from '@tauri-apps/plugin-opener';
 
 interface ExportModalProps {
   projectPath: string;
@@ -89,7 +88,7 @@ export default function ExportModal({
   const handleOpenFile = async () => {
     if (exportSuccessPath) {
       try {
-        await open(exportSuccessPath);
+        await openPath(exportSuccessPath);
       } catch (err) {
         console.error("Failed to open file:", err);
       }
@@ -104,7 +103,11 @@ export default function ExportModal({
         // As a fallback, we invoke a custom rust command if we had one, but we don't.
         // So we just extract the directory path and open it.
         const dirPath = exportSuccessPath.substring(0, exportSuccessPath.lastIndexOf('/'));
-        await open(dirPath);
+        try {
+          await revealItemInDir(exportSuccessPath);
+        } catch {
+          await openPath(dirPath);
+        }
       } catch (err) {
         console.error("Failed to reveal folder:", err);
       }
@@ -179,9 +182,9 @@ export default function ExportModal({
                     return (
                       <label
                         key={doc.path}
-                        className={\`flex items-start gap-3 p-3 hover:bg-surface-3 cursor-pointer transition-colors \${
+                        className={`flex items-start gap-3 p-3 hover:bg-surface-3 cursor-pointer transition-colors ${
                           isSelected ? 'bg-primary/5' : ''
-                        }\`}
+                        }`}
                       >
                         <div className="pt-0.5 shrink-0">
                           <input

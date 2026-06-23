@@ -1,92 +1,80 @@
 # ScopeFlow Thai
+ระบบจัดการเอกสารขอบเขตงาน (Scope) สำหรับฟรีแลนซ์และทีมพัฒนาซอฟต์แวร์ไทย ออกแบบมาเพื่อลดปัญหาบานปลาย (Scope Creep) และทำงานแบบ Offline-First อย่างแท้จริง
 
-Offline-first document workspace for Thai freelancers and small agencies.
+## ฟีเจอร์หลัก (MVP Release)
+- **Local-First & Offline-First**: ทุกอย่างทำงานในเครื่องของคุณ ข้อมูลถูกเก็บเป็นไฟล์ Markdown (.md) และ YAML (.yaml) ไม่มีการอัปโหลดขึ้นเซิร์ฟเวอร์ภายนอก (100% Privacy)
+- **File-First Architecture**: เปิดโฟลเดอร์ใดก็ได้เป็น Workspace แฟ้มโปรเจ็กต์จะถูกจัดระเบียบให้อัตโนมัติและสามารถแก้ไขผ่านโปรแกรมอื่นๆ ได้
+- **เอกสารครบวงจร**: จัดการ Scope, Quotation (ใบเสนอราคา), Change Requests (CR), Defect Change Requests (DCR), Support Requests (SUP), Maintenance (MA), และ Acceptance Checklist
+- **ระบบแบบฟอร์ม & คำนวณอัตโนมัติ**: มีฟอร์มกรอกง่ายๆ พร้อมคำนวณ VAT, ส่วนลด, และราคาสุทธิให้อัตโนมัติ
+- **ระบบพิจารณาและบันทึกการอนุมัติ**: รองรับการแนบไฟล์หลักฐาน (.txt, .eml, .png ฯลฯ) ควบคู่กับบันทึกการอนุมัติ (Approval Record)
+- **ล็อกเอกสาร (Document Locking)**: ป้องกันการแก้ไขเอกสารที่ได้รับการอนุมัติแล้ว และรองรับการทำ Revision ใหม่เมื่อมีการเปลี่ยนแปลง
+- **ส่งออกออฟไลน์ (Printable HTML Export)**: สร้างชุดเอกสาร HTML พร้อมพิมพ์ (Print to PDF) ได้ทันที โดยไม่มีการเรียก External Libraries
+- **Health Check & Backup**: ตรวจสอบความสมบูรณ์ของไฟล์และโครงสร้างโฟลเดอร์ พร้อมความสามารถในการแบ็คอัปเป็นไฟล์ ZIP แบบเบ็ดเสร็จ (การแบ็คอัปจะครอบคลุมไฟล์เอกสารและไฟล์การตั้งค่าของผู้ใช้ เช่น .scopeflow/company-profile.yaml แต่จะไม่รวมไฟล์แคชหรือไฟล์ที่ระบบสร้างขึ้นใหม่ได้เพื่อประหยัดพื้นที่)
 
-Manages project scope documents, quotations, change requests, and approval records — all as Markdown/YAML files on disk.
+## ข้อจำกัดที่ตั้งใจไว้ (Non-Goals)
+เพื่อรักษาความเรียบง่าย โปรแกรม **จะไม่มี** ระบบต่อไปนี้:
+- Cloud Sync, ระบบล็อกอิน (Login) และ Client Portal
+- ฐานข้อมูล (Database) อย่าง SQLite หรือ MySQL (ใช้ Filesystem ล้วนๆ)
+- ระบบออกเอกสารใบกำกับภาษีเต็มรูปแบบ (Billing) หรือระบบ CRM ขั้นสูง
+- ปัญญาประดิษฐ์ (AI)
+- ระบบ e-Signature (ใช้การบันทึกหลักฐานแทน)
+- ระบบแปลง PDF โดยตรง (ใช้ความสามารถ Print ของระบบปฏิบัติการแทน)
 
-## Tech Stack
+## ความปลอดภัย (Security Notes)
+- การประมวลผลทั้งหมดทำงานฝั่ง Client 
+- ไฟล์ข้อมูลของคุณทั้งหมดจะอยู่บนโฟลเดอร์ในเครื่องของคุณเอง 
+- โปรแกรมมีการจำกัดการประมวลผล HTML ที่จะถูกสร้างเป็นไฟล์ Export เพื่อป้องกัน XSS
 
-- **Desktop**: Tauri v2 (Rust backend)
-- **Frontend**: React + TypeScript + Vite
-- **Styling**: Tailwind CSS v4
-- **Data**: Markdown with YAML frontmatter (no database required)
+## การติดตั้งและการใช้งาน (สำหรับนักพัฒนา)
 
-## Prerequisites
+### ข้อกำหนดเบื้องต้น
+- Node.js (v18+)
+- Rust (v1.70+)
+- Tauri CLI
 
-- Node.js 18+
-- Rust (via `brew install rust` on macOS)
+### คำสั่งใช้งาน
 
-## Development
-
+1. ติดตั้งไลบรารี
 ```bash
-# Install dependencies
 npm install
-
-# Run in development mode (opens desktop app)
-npm run tauri dev
-
-# Build for production
-npm run tauri build
 ```
 
-## Architecture
-
-```
-src/                    # React frontend
-  components/           # UI components
-  lib/                  # Utilities, types, Tauri command wrappers
-src-tauri/              # Rust backend
-  src/commands.rs       # File system commands
-  src/lib.rs            # Tauri app entry point
-docs/                   # Product planning documents
+2. รันโหมดนักพัฒนา
+```bash
+npm run tauri:dev
 ```
 
-## How It Works
-
-1. **Create a workspace** — picks a folder, creates `scopeflow.yaml` and subdirectories
-2. **Create clients** — each client gets a folder + `_client.yaml`
-3. **Create projects** — each project gets subfolders (baseline, change-requests, etc.) + `_project.yaml`
-4. **Create documents** — scope documents are Markdown with YAML frontmatter
-5. **Edit & save** — built-in Markdown editor with preview
-
-All data lives as files. No database, no cloud, no internet required.
-
-## Workspace Structure
-
-```
-my-workspace/
-├── scopeflow.yaml              # Workspace config
-├── clients/
-│   └── {client-id}/
-│       ├── _client.yaml
-│       └── projects/
-│           └── {project-id}/
-│               ├── _project.yaml
-│               ├── baseline/          # Scope + quotation docs
-│               ├── change-requests/   # CR + DCR docs
-│               ├── support-requests/  # Support + MA docs
-│               ├── approvals/         # Approval records
-│               ├── acceptance/        # Acceptance checklists
-│               ├── exports/           # PDF/MD exports
-│               └── attachments/       # Binary files
-├── templates/                  # User-customizable templates
-└── .scopeflow/                 # App state (safe to delete)
+3. สร้างไฟล์ติดตั้ง (Build)
+```bash
+npm run tauri:build
 ```
 
-## Current Milestone: MVP-A (File Workspace Core)
+4. ทดสอบ (Tests)
+```bash
+# ทดสอบ Frontend
+npm run test
 
-- [x] Workspace create/open
-- [x] Client creation
-- [x] Project creation (with current-system baseline for maintenance projects)
-- [x] Scope document creation from template
-- [x] Markdown editor with preview
-- [x] Sidebar navigation (clients → projects → documents)
-- [x] Thai-first UI
+# ทดสอบ Backend
+cd src-tauri && cargo test
+```
 
-## Not Built Yet
+## Release Candidate Test Checklist
 
-- PDF export (MVP-C)
-- Search (MVP-D)
-- Approval recording (MVP-B)
-- CR/DCR/Support document creation
-- AI, cloud sync, billing, client portal
+ก่อนการทำ Release โปรดทดสอบตามขั้นตอนต่อไปนี้ (Smoke Test):
+
+1. สร้าง Demo Workspace
+2. รัน Health Check
+3. สร้างใบเสนอราคา (Quotation)
+4. บันทึกการอนุมัติ (Approval Record)
+5. ล็อกเอกสาร (Lock Document)
+6. สร้างการแก้ไข (Revision)
+7. ส่งออกชุดเอกสาร (Export Approval Pack)
+8. สำรองข้อมูล Workspace (Backup)
+9. เปิดจากแบ็คอัป (Restore) โดยเลือกโฟลเดอร์ปลายทาง
+10. เปิด Workspace ที่กู้คืนมา
+11. รัน Health Check อีกครั้ง
+
+หมายเหตุการ Build บนแพลตฟอร์มต่างๆ:
+- Windows: ต้องติดตั้ง WebView2
+- macOS: ต้องมี Xcode Command Line Tools
+- Linux: ต้องมีไลบรารี WebKit2GTK

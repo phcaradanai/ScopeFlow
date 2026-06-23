@@ -1,8 +1,9 @@
-import { open } from '@tauri-apps/plugin-dialog';
+import { open, ask } from '@tauri-apps/plugin-dialog';
 import { useWorkspace } from '../lib/workspace-context';
-import { createWorkspace } from '../lib/tauri-commands';
+import { createWorkspace, restoreWorkspace } from '../lib/tauri-commands';
 import { generateWorkspaceConfig } from '../lib/templates';
-import { FolderOpen, Plus, FileText } from 'lucide-react';
+import { generateDemoWorkspace } from '../lib/demo-generator';
+import { FolderOpen, Plus, FileText, PackageOpen, Sparkles } from 'lucide-react';
 
 export default function WelcomeScreen() {
   const { setWorkspacePath } = useWorkspace();
@@ -44,6 +45,69 @@ export default function WelcomeScreen() {
     }
   }
 
+  async function handleCreateDemo() {
+    const selected = await open({
+      directory: true,
+      title: 'เลือกตำแหน่งสร้าง Demo Workspace (จะสร้างในโฟลเดอร์ที่เลือก)',
+    });
+
+    if (!selected) return;
+    const path = typeof selected === 'string' ? selected : selected;
+
+    try {
+      await generateDemoWorkspace(path, "Demo Workspace");
+      setWorkspacePath(path);
+    } catch (err) {
+      alert(`สร้าง Demo ไม่สำเร็จ: ${err}`);
+    }
+  }
+
+  async function handleRestoreBackup() {
+    const selectedZip = await open({
+      directory: false,
+      multiple: false,
+      filters: [{ name: 'ZIP Archives', extensions: ['zip'] }],
+      title: 'เลือกไฟล์ Backup (.zip)',
+    });
+
+    if (!selectedZip) return;
+    const zipPath = typeof selectedZip === 'string' ? selectedZip : selectedZip[0];
+
+    const destDir = await open({
+      directory: true,
+      multiple: false,
+      title: 'เลือกโฟลเดอร์สำหรับแตกไฟล์ Backup (ควรเป็นโฟลเดอร์ว่าง)',
+    });
+
+    if (!destDir) return;
+    const destPath = typeof destDir === 'string' ? destDir : destDir[0];
+
+    try {
+      await restoreWorkspace(zipPath, destPath, false);
+      setWorkspacePath(destPath);
+      // Auto-trigger health check via event
+      setTimeout(() => window.dispatchEvent(new CustomEvent('open-health-check')), 500);
+    } catch (err: any) {
+      if (err === 'DIR_NOT_EMPTY' || (typeof err === 'string' && err.includes('DIR_NOT_EMPTY'))) {
+        const confirm = await ask('โฟลเดอร์ปลายทางไม่ว่าง (มีไฟล์อยู่แล้ว) คุณต้องการเขียนทับไฟล์เดิมหรือไม่?', {
+          title: 'ยืนยันการเขียนทับ',
+          kind: 'warning'
+        });
+        if (confirm) {
+          try {
+            await restoreWorkspace(zipPath, destPath, true);
+            setWorkspacePath(destPath);
+            setTimeout(() => window.dispatchEvent(new CustomEvent('open-health-check')), 500);
+          } catch (e2) {
+            alert(`แตกไฟล์ Backup ไม่สำเร็จ: ${e2}`);
+          }
+        }
+      } else {
+        alert(`แตกไฟล์ Backup ไม่สำเร็จ: ${err}`);
+      }
+    }
+  }
+
   return (
     <div className="h-full flex items-center justify-center bg-surface">
       <div className="max-w-lg w-full px-6 text-center">
@@ -75,6 +139,23 @@ export default function WelcomeScreen() {
             <FolderOpen className="w-5 h-5" />
             เปิด Workspace ที่มีอยู่
           </button>
+
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <button
+              onClick={handleCreateDemo}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-surface-2 hover:bg-surface-3 border border-border text-text-muted hover:text-text text-sm font-medium transition-all"
+            >
+              <Sparkles className="w-4 h-4" />
+              สร้าง Demo Workspace
+            </button>
+            <button
+              onClick={handleRestoreBackup}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-surface-2 hover:bg-surface-3 border border-border text-text-muted hover:text-text text-sm font-medium transition-all"
+            >
+              <PackageOpen className="w-4 h-4" />
+              เปิดจาก Backup
+            </button>
+          </div>
         </div>
 
         {/* Description */}

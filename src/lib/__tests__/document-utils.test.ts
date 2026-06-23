@@ -3,7 +3,7 @@ import { getNextDocumentNumber, getDocumentFilePath } from '../document-utils';
 
 describe('document-utils.ts', () => {
   describe('getNextDocumentNumber', () => {
-    const mockDocuments = [
+    const mockDocuments: any[] = [
       { filename: 'CR-001-some-slug.md', path: '', isDir: false },
       { filename: 'CR-002-another.md', path: '', isDir: false },
       { filename: 'DCR-001-feature.md', path: '', isDir: false },

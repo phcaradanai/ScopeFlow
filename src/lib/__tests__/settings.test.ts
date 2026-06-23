@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getCompanyProfile, saveCompanyProfile, getPresets, savePresets } from '../settings';
+import { getCompanyProfile, saveCompanyProfile, getPresets } from '../settings';
 import * as tauriCommands from '../tauri-commands';
 import YAML from 'yaml';
 

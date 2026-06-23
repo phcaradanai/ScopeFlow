@@ -146,3 +146,11 @@ export async function copyEvidenceFiles(
 ): Promise<string[]> {
   return invoke('copy_evidence_files', { sourcePaths, targetDir });
 }
+
+export async function backupWorkspace(workspacePath: string, destZipPath: string): Promise<void> {
+  return invoke('backup_workspace', { workspacePath, destZipPath });
+}
+
+export async function restoreWorkspace(zipPath: string, destDirPath: string, forceOverwrite: boolean = false): Promise<void> {
+  return invoke('restore_workspace', { zipPath, destDirPath, forceOverwrite });
+}

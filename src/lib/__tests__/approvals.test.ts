@@ -4,8 +4,8 @@ import { getNextDocumentNumber } from '../document-utils';
 
 describe('Approvals (Test-First)', () => {
   const mockDocs = [
-    { filename: 'APR-001-scope-v1.0-approved.md', path: '', isDir: false },
-    { filename: 'CR-001-test.md', path: '', isDir: false }
+    { filename: 'APR-001-scope-v1.0-approved.md', path: '', isDir: false, folder: '' },
+    { filename: 'CR-001-test.md', path: '', isDir: false, folder: '' }
   ];
 
   it('auto-increments APR numbers', () => {
@@ -43,8 +43,7 @@ describe('Approvals (Test-First)', () => {
           approvedDocument: 'doc.md',
           documentType: 'scope',
           approvedBy: 'Name',
-          // @ts-expect-error invalid method test
-          approvalMethod: 'invalid-method',
+          approvalMethod: 'invalid-method' as any,
           evidenceFiles: []
         });
       }).toThrow('Invalid approval method');

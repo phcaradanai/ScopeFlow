@@ -10,6 +10,8 @@ import {
   Briefcase,
   Plus,
   Settings,
+  ShieldCheck,
+  Download
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -18,9 +20,11 @@ interface SidebarProps {
   onCreateDocument: (clientId: string, projectId: string, projectPath: string) => void;
   onExportProject: (clientId: string, projectId: string, projectPath: string) => void;
   onOpenSettings: () => void;
+  onRunHealthCheck: () => void;
+  onBackupWorkspace: () => void;
 }
 
-export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocument, onExportProject, onOpenSettings }: SidebarProps) {
+export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocument, onExportProject, onOpenSettings, onRunHealthCheck, onBackupWorkspace }: SidebarProps) {
   const { workspaceName, tree, selectedFile, setSelectedFile } = useWorkspace();
 
   return (
@@ -31,13 +35,29 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
           <FolderOpen className="w-4 h-4 text-primary-light shrink-0" />
           <h2 className="text-sm font-semibold text-text truncate">{workspaceName}</h2>
         </div>
-        <button
-          onClick={onOpenSettings}
-          className="p-1 rounded hover:bg-surface-3 text-text-dim hover:text-primary-light transition-colors shrink-0"
-          title="ตั้งค่าบริษัท"
-        >
-          <Settings className="w-4 h-4" />
-        </button>
+        <div className="flex shrink-0">
+          <button
+            onClick={onRunHealthCheck}
+            className="p-1 rounded hover:bg-surface-3 text-text-dim hover:text-warning transition-colors"
+            title="ตรวจสอบ Workspace"
+          >
+            <ShieldCheck className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onBackupWorkspace}
+            className="p-1 rounded hover:bg-surface-3 text-text-dim hover:text-success transition-colors"
+            title="สำรอง Workspace (.zip)"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onOpenSettings}
+            className="p-1 rounded hover:bg-surface-3 text-text-dim hover:text-primary-light transition-colors"
+            title="ตั้งค่าบริษัท"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Tree navigation */}
@@ -92,6 +112,7 @@ function ClientNode({
   onSelect,
   onCreateProject,
   onCreateDocument,
+  onExportProject,
 }: {
   node: FileEntry;
   selectedFile: string | null;
@@ -157,6 +178,7 @@ function ProjectNode({
   selectedFile,
   onSelect,
   onCreateDocument,
+  onExportProject,
 }: {
   node: FileEntry;
   clientId: string;
@@ -171,8 +193,11 @@ function ProjectNode({
   return (
     <div>
       <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-surface-3 transition-colors group text-left"
+        onClick={() => {
+          setExpanded(!expanded);
+          onSelect(node.path);
+        }}
+        className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-colors group text-left ${selectedFile === node.path ? 'bg-primary/20 text-primary-light' : 'hover:bg-surface-3'}`}
       >
         {expanded ? (
           <ChevronDown className="w-3.5 h-3.5 text-text-dim" />

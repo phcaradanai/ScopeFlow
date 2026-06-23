@@ -21,6 +21,8 @@ pub fn run() {
             list_project_documents,
             get_workspace_tree,
             copy_evidence_files,
+            backup_workspace,
+            restore_workspace,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

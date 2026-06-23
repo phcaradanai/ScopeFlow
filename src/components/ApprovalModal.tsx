@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { X, Upload, File as FileIcon } from 'lucide-react';
-import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 
 interface ApprovalModalProps {

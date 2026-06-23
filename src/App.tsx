@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { WorkspaceProvider, useWorkspace } from './lib/workspace-context';
 import WelcomeScreen from './components/WelcomeScreen';
 import Sidebar from './components/Sidebar';
@@ -8,12 +8,15 @@ import MarkdownEditor from './components/MarkdownEditor';
 import DocumentCreatorModal from './components/DocumentCreatorModal';
 import ExportModal from './components/ExportModal';
 import CompanySettingsModal from './components/CompanySettingsModal';
-import { listProjectDocuments, DocumentInfo } from './lib/tauri-commands';
+import HealthCheckModal from './components/HealthCheckModal';
+import ProjectOverview from './components/ProjectOverview';
+import { listProjectDocuments, DocumentInfo, backupWorkspace } from './lib/tauri-commands';
 import { FileText } from 'lucide-react';
+import { save } from '@tauri-apps/plugin-dialog';
 import './index.css';
 
 function AppContent() {
-  const { workspacePath, selectedFile, refreshTree, setSelectedFile, tree } = useWorkspace();
+  const { workspaceName, workspacePath, selectedFile, refreshTree, setSelectedFile, tree } = useWorkspace();
   const [showClientForm, setShowClientForm] = useState(false);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [projectFormClientId, setProjectFormClientId] = useState('');
@@ -25,12 +28,40 @@ function AppContent() {
   });
   const [showExportModal, setShowExportModal] = useState(false);
   const [showCompanySettings, setShowCompanySettings] = useState(false);
+  const [showHealthCheck, setShowHealthCheck] = useState(false);
   const [exportModalProps, setExportModalProps] = useState({
     projectPath: '',
     projectName: '',
     clientName: '',
     documents: [] as DocumentInfo[]
   });
+
+  useEffect(() => {
+    const handleOpenHealthCheck = () => setShowHealthCheck(true);
+    window.addEventListener('open-health-check', handleOpenHealthCheck);
+    return () => window.removeEventListener('open-health-check', handleOpenHealthCheck);
+  }, []);
+
+  const handleBackupWorkspace = async () => {
+    if (!workspacePath) return;
+    try {
+      const dateStr = new Date().toISOString().split('T')[0];
+      const defaultName = `scopeflow-backup-${workspaceName.replace(/\s+/g, '-')}-${dateStr}.zip`;
+      
+      const savePath = await save({
+        title: 'บันทึกไฟล์ Backup',
+        defaultPath: defaultName,
+        filters: [{ name: 'ZIP Archives', extensions: ['zip'] }]
+      });
+
+      if (!savePath) return;
+
+      await backupWorkspace(workspacePath, savePath);
+      alert('บันทึกข้อมูลสำรองสำเร็จ!');
+    } catch (err) {
+      alert(`เกิดข้อผิดพลาดในการสำรองข้อมูล: ${err}`);
+    }
+  };
 
   if (!workspacePath) {
     return <WelcomeScreen />;
@@ -63,6 +94,7 @@ function AppContent() {
       }
     }
 
+    if (!workspacePath) return;
     try {
       const docs = await listProjectDocuments(workspacePath, clientId, projectId);
       setExportModalProps({
@@ -79,13 +111,29 @@ function AppContent() {
 
   // Flatten the tree to get all files
   const allFiles: { name: string, path: string, is_dir: boolean }[] = [];
-  function extractFiles(node: any) {
+  let isSelectedProject = false;
+  let selectedProjectName = '';
+
+  function extractFiles(node: any, depth = 0) {
     if (!node) return;
+    
+    // Depth 0: Workspace, Depth 1: Client, Depth 2: Project
+    if (depth === 2 && node.is_dir) {
+      if (node.path === selectedFile) {
+        isSelectedProject = true;
+        selectedProjectName = node.name;
+      }
+    }
+
     if (!node.is_dir) {
-      allFiles.push({ name: node.name, path: node.path, is_dir: node.is_dir });
+      allFiles.push({ 
+        name: node.name, 
+        path: node.path, 
+        is_dir: node.is_dir
+      });
     }
     if (node.children) {
-      node.children.forEach(extractFiles);
+      node.children.forEach((c: any) => extractFiles(c, depth + 1));
     }
   }
   if (tree) {
@@ -100,17 +148,28 @@ function AppContent() {
         onCreateDocument={handleCreateDocument}
         onExportProject={handleExportProject}
         onOpenSettings={() => setShowCompanySettings(true)}
+        onRunHealthCheck={() => setShowHealthCheck(true)}
+        onBackupWorkspace={handleBackupWorkspace}
       />
 
       <main className="flex-1 h-full overflow-hidden">
         {selectedFile ? (
-          <MarkdownEditor
-            filePath={selectedFile}
-            workspacePath={workspacePath}
-            onDocumentChanged={refreshTree}
-            onOpenDocument={(path) => setSelectedFile(path)}
-            allFiles={allFiles}
-          />
+          isSelectedProject ? (
+            <ProjectOverview
+              projectPath={selectedFile}
+              projectName={selectedProjectName}
+              workspaceTree={tree as any}
+              onOpenDocument={(path) => setSelectedFile(path)}
+            />
+          ) : (
+            <MarkdownEditor
+              filePath={selectedFile}
+              workspacePath={workspacePath}
+              onDocumentChanged={refreshTree}
+              onOpenDocument={(path) => setSelectedFile(path)}
+              allFiles={allFiles}
+            />
+          )
         ) : (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
@@ -148,6 +207,9 @@ function AppContent() {
           workspacePath={workspacePath}
           onClose={() => setShowCompanySettings(false)}
         />
+      )}
+      {showHealthCheck && (
+        <HealthCheckModal onClose={() => setShowHealthCheck(false)} />
       )}
     </div>
   );

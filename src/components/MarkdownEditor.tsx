@@ -108,7 +108,13 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
     try {
       const attachmentsDir = projectPath + '/attachments';
       const copiedFiles = await copyEvidenceFiles(data.evidenceFiles, attachmentsDir);
-      const aprNumber = 'APR-' + getNextDocumentNumber(allFiles, 'APR');
+      const docsForNumbering = allFiles.map(f => ({
+        filename: f.name,
+        folder: '',
+        path: f.path,
+        isDir: f.is_dir
+      }));
+      const aprNumber = 'APR-' + getNextDocumentNumber(docsForNumbering, 'APR');
 
       const approvalContent = generateApprovalRecord({
         approvalNumber: aprNumber,
@@ -172,7 +178,7 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-primary-light" />
           <span className="text-sm font-medium text-text">{filename}</span>
-          {isLocked && <Lock className="w-4 h-4 text-warning ml-1" title="ล็อกแล้ว" />}
+          {isLocked && <Lock className="w-4 h-4 text-warning ml-1" />}
           {hasChanges && !isLocked && (
             <span className="w-2 h-2 rounded-full bg-warning" title="มีการเปลี่ยนแปลง" />
           )}
