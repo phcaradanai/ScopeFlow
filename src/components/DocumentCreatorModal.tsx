@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useWorkspace } from '../lib/workspace-context';
-import { listProjectDocuments, createDocument, pathExists, createProject } from '../lib/tauri-commands';
+import { listProjectDocuments, createDocument, pathExists } from '../lib/tauri-commands';
 import { getNextDocumentNumber } from '../lib/document-utils';
-import { generateBriefDocument } from '../lib/brief-builder';
 import {
   generateScopeDocument,
   generateQuotationDocument,
@@ -14,7 +13,6 @@ import {
 import { validateSlug, nameToSlug } from '../lib/validation';
 import { X } from 'lucide-react';
 import SelectField from './ui/SelectField';
-import BriefHelperForm from './BriefHelperForm';
 
 interface DocumentCreatorModalProps {
   clientId: string;
@@ -40,8 +38,6 @@ export default function DocumentCreatorModal({
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
-  // State for brief intake
-  const [briefData, setBriefData] = useState(null as any);
 
   useEffect(() => {
     if (workspacePath) {
@@ -63,7 +59,7 @@ export default function DocumentCreatorModal({
     }
   }, [title, requiresSlug]);
 
-  const handleSubmit = async (e: React.FormEvent, manualBriefData?: any) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -81,51 +77,10 @@ export default function DocumentCreatorModal({
       let filename = '';
       let finalPath = '';
       let finalContent = '';
-      let finalProjectPath = projectPath;
-      let finalProjectId = projectId;
+      const finalProjectPath = projectPath;
+      const finalProjectId = projectId;
 
-      if (type === 'brief') {
-        const data = manualBriefData || briefData;
-        if (!data) {
-          setError('ไม่พบข้อมูลร่าง Brief');
-          return;
-        }
-
-        if (!finalProjectId) {
-          if (!workspacePath) {
-            setError('ไม่พบ workspace path');
-            return;
-          }
-          // Create new project automatically
-          const timestamp = Date.now();
-          const generatedProjId = `project-${timestamp}`;
-          const projName = `โครงการใหม่ (${data.project_type || 'ร่างความต้องการ'})`;
-          
-          const { generateProjectYaml } = await import('../lib/templates');
-          const projYaml = generateProjectYaml({
-            id: generatedProjId,
-            name: projName,
-            client: clientId,
-            type: 'new-project',
-          });
-
-          await createProject(workspacePath, clientId, generatedProjId, projYaml, 'new-project');
-          finalProjectId = generatedProjId;
-          finalProjectPath = `${workspacePath}/clients/${clientId}/projects/${generatedProjId}`;
-        }
-
-        filename = `brief-${nameToSlug(data.projectName || 'project')}-${Date.now()}.md`;
-        finalPath = `${finalProjectPath}/baseline/${filename}`;
-        
-        // Populate brief data fields so the template isn't "undefined"
-        const briefDocData = {
-          ...data,
-          project: finalProjectId,
-          client: clientId,
-          projectName: `โครงการใหม่ (${data.project_type || 'ร่างความต้องการ'})`
-        };
-        finalContent = generateBriefDocument(briefDocData);
-      } else if (type === 'scope') {
+      if (type === 'scope') {
         filename = 'scope-v1.0.md';
         finalPath = `${finalProjectPath}/baseline/${filename}`;
         finalContent = generateScopeDocument({
@@ -237,22 +192,12 @@ export default function DocumentCreatorModal({
         </div>
 
         <form id="document-creator-form" onSubmit={handleSubmit} className="modal-body">
-          {type === 'brief' ? (
-            <BriefHelperForm
-              clientId={clientId}
-              onClose={onClose}
-              onGenerate={(data) => {
-                setBriefData(data);
-                handleSubmit({ preventDefault: () => { } } as any, data);
-              }}
-            />
-          ) : (
-            <>
-              {error && (
-                <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
-                  {error}
-                </div>
-              )}
+          <>
+            {error && (
+              <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
+                {error}
+              </div>
+            )}
               <div className="form-section">
                 <div className="form-field">
                   <label className="form-label">
@@ -262,7 +207,6 @@ export default function DocumentCreatorModal({
                     value={type}
                     onChange={setType}
                     options={[
-                      { value: 'brief', label: 'ร่างความต้องการ (Brief)' },
                       { value: 'scope', label: 'ขอบเขตงาน (Scope)' },
                       { value: 'quotation', label: 'ใบเสนอราคา (Quotation)' },
                       { value: 'cr', label: 'คำขอเปลี่ยนแปลง (CR)' },
@@ -363,19 +307,16 @@ export default function DocumentCreatorModal({
                 </div>
               )}
             </>
-          )}
         </form>
 
-        {type !== 'brief' && (
-          <div className="modal-footer">
-            <button type="button" onClick={onClose} className="btn btn-ghost">
-              ยกเลิก
-            </button>
-            <button type="submit" form="document-creator-form" disabled={saving} className="btn btn-primary">
-              {saving ? 'กำลังสร้าง...' : 'สร้างเอกสาร'}
-            </button>
-          </div>
-        )}
+        <div className="modal-footer">
+          <button type="button" onClick={onClose} className="btn btn-ghost">
+            ยกเลิก
+          </button>
+          <button type="submit" form="document-creator-form" disabled={saving} className="btn btn-primary">
+            {saving ? 'กำลังสร้าง...' : 'สร้างเอกสาร'}
+          </button>
+        </div>
       </div>
     </div>
   );

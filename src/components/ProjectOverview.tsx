@@ -12,9 +12,10 @@ interface ProjectOverviewProps {
   workspaceTree: FileEntry;
   onOpenDocument: (path: string) => void;
   onCreateDocument: (clientId: string, projectId: string, projectPath: string, initialType?: string) => void;
+  onStartBriefIntake?: (clientId: string, projectId: string, projectPath: string) => void;
 }
 
-export default function ProjectOverview({ projectPath, projectName, workspaceTree, onOpenDocument, onCreateDocument }: ProjectOverviewProps) {
+export default function ProjectOverview({ projectPath, projectName, workspaceTree, onOpenDocument, onCreateDocument, onStartBriefIntake }: ProjectOverviewProps) {
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -163,7 +164,7 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
               
               {hasNoBrief && hasNoScope && (
                 <button
-                  onClick={() => onCreateDocument(clientId, projectPath.split('/').pop() || '', projectPath, 'brief')}
+                  onClick={() => onStartBriefIntake && onStartBriefIntake(clientId, projectPath.split('/').pop() || '', projectPath)}
                   className="btn btn-primary mt-5 px-6"
                 >
                   สร้างร่าง Brief <ArrowRight className="w-4 h-4" />
@@ -364,7 +365,11 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
                   onClick={() => {
                     const normalized = projectPath.replace(/\\/g, '/');
                     const projId = normalized.split('/').pop() || '';
-                    onCreateDocument(clientId, projId, projectPath, 'brief');
+                    if (onStartBriefIntake) {
+                      onStartBriefIntake(clientId, projId, projectPath);
+                    } else {
+                      onCreateDocument(clientId, projId, projectPath, 'brief');
+                    }
                   }}
                   className="btn btn-ghost"
                 >

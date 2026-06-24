@@ -11,6 +11,7 @@ import CompanySettingsModal from './components/CompanySettingsModal';
 import HealthCheckModal from './components/HealthCheckModal';
 import ProjectOverview from './components/ProjectOverview';
 import WorkspaceOverview from './components/WorkspaceOverview';
+import BriefIntakeModal from './components/BriefIntakeModal';
 import { listProjectDocuments, DocumentInfo, backupWorkspace } from './lib/tauri-commands';
 import { FolderOpen, Briefcase } from 'lucide-react';
 import { save } from '@tauri-apps/plugin-dialog';
@@ -27,6 +28,12 @@ function AppContent() {
     projectId: '',
     projectPath: '',
     initialType: undefined as string | undefined,
+  });
+  const [showBriefIntakeModal, setShowBriefIntakeModal] = useState(false);
+  const [briefIntakeProps, setBriefIntakeProps] = useState({
+    clientId: '',
+    projectId: undefined as string | undefined,
+    projectPath: undefined as string | undefined,
   });
   const [showExportModal, setShowExportModal] = useState(false);
   const [showCompanySettings, setShowCompanySettings] = useState(false);
@@ -79,16 +86,14 @@ function AppContent() {
     setShowProjectForm(true);
   }
 
+  function handleStartBriefIntake(clientId: string, projectId?: string, projectPath?: string) {
+    setBriefIntakeProps({ clientId, projectId, projectPath });
+    setShowBriefIntakeModal(true);
+  }
+
   // New handler to start from customer request and create a Brief directly
   function handleStartFromCustomerRequest(clientId: string) {
-    // Use clientId as projectPath for now; no specific projectId
-    setDocumentCreatorProps({
-      clientId,
-      projectId: '',
-      projectPath: clientId,
-      initialType: 'brief',
-    });
-    setShowDocumentCreator(true);
+    handleStartBriefIntake(clientId);
   }
 
   async function handleExportProject(clientId: string, projectId: string, projectPath: string) {
@@ -247,6 +252,7 @@ function AppContent() {
         workspaceTree={tree as any}
         onOpenDocument={(path) => setSelectedFile(path)}
         onCreateDocument={handleCreateDocument}
+        onStartBriefIntake={handleStartBriefIntake}
       />
     ) : (
       <MarkdownEditor
@@ -286,6 +292,12 @@ function AppContent() {
         <DocumentCreatorModal
           {...documentCreatorProps}
           onClose={() => setShowDocumentCreator(false)}
+        />
+      )}
+      {showBriefIntakeModal && (
+        <BriefIntakeModal
+          {...briefIntakeProps}
+          onClose={() => setShowBriefIntakeModal(false)}
         />
       )}
       {showExportModal && (

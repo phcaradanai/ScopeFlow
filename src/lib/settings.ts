@@ -64,7 +64,7 @@ export async function getCompanyProfile(workspacePath: string): Promise<CompanyP
     return parsed;
   } catch (err) {
     console.error("Failed to parse company profile:", err);
-    throw new Error('MALFORMED_YAML', { cause: err });
+    throw new Error('MALFORMED_YAML');
   }
 }
 

@@ -1,13 +1,10 @@
 import { useState } from 'react';
 import { BriefFormData, projectPresets } from '../lib/brief-builder';
 import SelectField from './ui/SelectField';
-import { X } from 'lucide-react';
 
 interface BriefHelperFormProps {
   initialData?: BriefFormData | null;
   onGenerate: (data: BriefFormData) => void;
-  clientId: string;
-  onClose: () => void;
 }
 
 const defaultData: BriefFormData = {
@@ -15,7 +12,7 @@ const defaultData: BriefFormData = {
   project_type: 'อื่น ๆ',
 };
 
-export default function BriefHelperForm({ initialData, onGenerate, clientId, onClose }: BriefHelperFormProps) {
+export default function BriefHelperForm({ initialData, onGenerate }: BriefHelperFormProps) {
   const [formData, setFormData] = useState<BriefFormData>(initialData || defaultData);
   const [error, setError] = useState('');
   const handleChange = (field: keyof BriefFormData, value: string) => {
@@ -42,63 +39,59 @@ export default function BriefHelperForm({ initialData, onGenerate, clientId, onC
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container">
-        <div className="modal-header">
-          <div className="modal-header-content">
-            <h2 className="modal-title">เริ่มจากคำขอลูกค้า</h2>
-            <p className="modal-subtitle">ใส่ข้อมูลที่มีมาก่อน เดี๋ยวระบบช่วยจัดกรอบงานและบอกว่าต้องถามอะไรต่อ <span className="font-semibold text-text">{clientId}</span></p>
-          </div>
-          <button onClick={onClose} className="modal-close">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <form id="brief-helper-form" onSubmit={handleSubmit} className="modal-body">
-          {error && (
-            <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
-              {error}
+    <div className="flex flex-col h-full bg-gradient-to-b from-[#121214] to-[#09090b] overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-[920px] mx-auto px-8 py-10 flex flex-col gap-8">
+          
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h2 className="text-2xl font-bold text-text">เริ่มจากคำขอลูกค้า</h2>
+              <p className="text-sm text-text-dim mt-1">ใส่ข้อมูลที่มีมาก่อน เดี๋ยวระบบช่วยจัดกรอบงานและบอกว่าต้องถามอะไรต่อ</p>
             </div>
-          )}
-
-
-          <div className="form-section">
-            <label className="form-label">วางข้อความ/คำพูดจากลูกค้าที่นี่</label>
-            <textarea
-              value={formData.raw_request}
-              onChange={e => handleChange('raw_request', e.target.value)}
-              placeholder="วางข้อความแชท อีเมล หรือโน้ตประชุมที่นี่..."
-              className="form-textarea"
-              style={{ minHeight: '140px' }}
-            />
           </div>
 
-          <div className="form-section mt-5">
-            <label className="form-label">ประเภทโครงการ (เลือกเพื่อให้ระบบแนะนำได้แม่นยำขึ้น)</label>
-            <SelectField
-              value={formData.project_type}
-              onChange={val => handleChange('project_type', val)}
-              options={projectTypes.map(pt => ({ value: pt, label: pt }))}
-            />
-          </div>
-        </form>
+          <form id="brief-helper-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
+            {error && (
+              <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
+                {error}
+              </div>
+            )}
 
-        {/* Bottom action bar */}
-        <div className="modal-footer">
-          <button type="button" onClick={onClose} className="btn btn-ghost">
-            ยกเลิก
-          </button>
-          <button
-            type="submit" form="brief-helper-form"
-            disabled={!formData.raw_request.trim()}
-            className="btn btn-primary px-8"
-            style={{ minHeight: '48px' }}
-          >
-            สร้างร่าง Brief
-          </button>
+            <div className="card">
+              <label className="form-label font-bold text-base mb-3 block">วางข้อความ/คำพูดจากลูกค้าที่นี่</label>
+              <textarea
+                value={formData.raw_request}
+                onChange={e => handleChange('raw_request', e.target.value)}
+                placeholder="วางข้อความแชท อีเมล หรือโน้ตประชุมที่นี่..."
+                className="form-textarea"
+                style={{ minHeight: '200px' }}
+              />
+            </div>
+
+            <div className="card">
+              <label className="form-label font-bold text-base mb-3 block">ประเภทโครงการ</label>
+              <SelectField
+                value={formData.project_type}
+                onChange={val => handleChange('project_type', val)}
+                options={projectTypes.map(pt => ({ value: pt, label: pt }))}
+              />
+            </div>
+          </form>
+
+          {/* Bottom action bar */}
+          <div className="flex items-center justify-end pt-4 border-t border-border mt-auto">
+            <button
+              type="submit" form="brief-helper-form"
+              disabled={!formData.raw_request.trim()}
+              className="btn btn-primary px-8"
+              style={{ minHeight: '48px' }}
+            >
+              สร้าง Markdown
+            </button>
+          </div>
+
         </div>
-
       </div>
-    </div >
+    </div>
   );
 }
