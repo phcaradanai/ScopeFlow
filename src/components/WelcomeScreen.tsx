@@ -109,7 +109,7 @@ export default function WelcomeScreen() {
   }
 
   return (
-    <div className="h-full flex items-center justify-center bg-gradient-to-b from-[#121214] to-[#09090b] relative overflow-hidden">
+    <div className="h-full flex items-center justify-center gap-4 bg-gradient-to-b from-[#121214] to-[#09090b] relative overflow-hidden">
       {/* Decorative background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-gradient-to-br from-primary/30 via-accent/25 to-transparent rounded-full blur-[140px] pointer-events-none animate-pulse-slow opacity-80" />
 
@@ -126,7 +126,7 @@ export default function WelcomeScreen() {
         </div>
 
         {/* Action buttons */}
-        <div className="space-y-4">
+        <div className="space-y-4 flex flex-col gap-4 p-4">
           <button
             onClick={handleCreate}
             className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-primary text-white font-semibold transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-[0_8px_30px_-5px] hover:shadow-primary/40 hover:-translate-y-1 border border-primary-light/20 min-h-[48px]"
