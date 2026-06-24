@@ -146,16 +146,14 @@ export default function WelcomeScreen() {
           <div className="grid grid-cols-2 gap-4 pt-2">
             <button
               onClick={handleCreateDemo}
-              disabled
-              className="btn btn-ghost w-full opacity-40 cursor-not-allowed"
+              className="btn btn-ghost w-full"
             >
               <Sparkles className="w-4 h-4 text-accent" />
               สร้าง Demo
             </button>
             <button
               onClick={handleRestoreBackup}
-              disabled
-              className="btn btn-ghost w-full opacity-40 cursor-not-allowed"
+              className="btn btn-ghost w-full"
             >
               <PackageOpen className="w-4 h-4" />
               เปิดจาก Backup
