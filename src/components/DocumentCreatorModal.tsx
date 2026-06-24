@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useWorkspace } from '../lib/workspace-context';
 import { listProjectDocuments, createDocument, pathExists } from '../lib/tauri-commands';
 import { getNextDocumentNumber } from '../lib/document-utils';
+import { generateBriefDocument } from '../lib/brief-builder';
 import {
   generateScopeDocument,
   generateQuotationDocument,
@@ -77,7 +78,17 @@ export default function DocumentCreatorModal({
         }
       }
 
-      if (type === 'scope') {
+      if (type === 'brief') {
+        filename = 'brief-v1.0.md';
+        finalPath = `${projectPath}/baseline/${filename}`;
+        finalContent = generateBriefDocument({
+          raw_request: '',
+          project_type: 'อื่น ๆ',
+          project: projectId,
+          client: clientId,
+          projectName: projectId,
+        });
+      } else if (type === 'scope') {
         filename = 'scope-v1.0.md';
         finalPath = `${projectPath}/baseline/${filename}`;
         finalContent = generateScopeDocument({
@@ -205,6 +216,7 @@ export default function DocumentCreatorModal({
                 onChange={(e) => setType(e.target.value)}
                 className="form-select"
               >
+                <option value="brief">ร่างความต้องการ (Brief)</option>
                 <option value="scope">ขอบเขตงาน (Scope)</option>
                 <option value="quotation">ใบเสนอราคา (Quotation)</option>
                 <option value="cr">คำขอเปลี่ยนแปลง (CR)</option>

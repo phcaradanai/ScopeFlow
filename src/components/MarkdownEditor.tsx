@@ -5,11 +5,14 @@ import { getNextDocumentNumber } from '../lib/document-utils';
 import { getNextRevisionFilename, generateRevisionDocument } from '../lib/revisions';
 import QuotationForm from './QuotationForm';
 import ScopeHelperForm from './ScopeHelperForm';
+import BriefHelperForm from './BriefHelperForm';
 import { parseQuotationFormData, generateQuotationMarkdown } from '../lib/quotation-builder';
 import { parseScopeFormData, generateScopeMarkdown } from '../lib/scope-builder';
+import { generateBriefDocument, parseBriefToScope } from '../lib/brief-builder';
 import { getCompanyProfile } from '../lib/settings';
 import ReactMarkdown from 'react-markdown';
-import { Save, Eye, Edit3, FileText, CheckCircle, Lock, Copy } from 'lucide-react';
+import remarkGfm from 'remark-gfm';
+import { Save, Eye, Edit3, FileText, CheckCircle, Lock, Copy, ArrowRight } from 'lucide-react';
 import ApprovalModal from './ApprovalModal';
 
 interface MarkdownEditorProps {
@@ -172,6 +175,33 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
     }
   };
 
+  const handleCreateScopeFromBrief = async () => {
+    try {
+      const scopeFilename = 'scope-v1.0.md';
+      const scopePath = `${projectPath}/baseline/${scopeFilename}`;
+      const prefillData = parseBriefToScope(content);
+      const scopeContent = generateScopeMarkdown({
+        title: 'ขอบเขตงาน (Scope of Work)',
+        ...prefillData,
+        acceptance_criteria: '',
+        deliverables: prefillData.deliverables || '',
+      }, scopeFilename);
+      
+      const exists = await readFileContent(scopePath).then(() => true).catch(() => false);
+      if (exists) {
+        if (!window.confirm(`มีไฟล์ ${scopeFilename} อยู่แล้ว ต้องการบันทึกทับหรือไม่?`)) {
+          return;
+        }
+      }
+      
+      await createDocument(scopePath, scopeContent);
+      onDocumentChanged();
+      onOpenDocument(scopePath);
+    } catch (err) {
+      setError(`สร้าง Scope จาก Brief ไม่สำเร็จ: ${err}`);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex flex-wrap items-center justify-between px-6 py-4 border-b border-border bg-surface-2 gap-3 shadow-sm">
@@ -213,13 +243,23 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
                 สร้างเวอร์ชันใหม่
               </button>
             )}
+
+            {docType === 'brief' && mode !== 'form' && (
+              <button
+                onClick={handleCreateScopeFromBrief}
+                className="btn btn-sm btn-primary flex items-center gap-1.5"
+              >
+                นำ Brief ไปสร้าง Scope
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           <div className="w-px h-5 bg-border mx-1"></div>
 
           {/* Mode switcher - segmented */}
           <div className="segmented-control">
-            {(docType === 'quotation' || docType === 'scope') && (
+            {(docType === 'quotation' || docType === 'scope' || docType === 'brief') && (
               <button
                 onClick={() => setMode('form')}
                 className={`segmented-btn ${mode === 'form' ? 'segmented-btn-active' : ''}`}
@@ -321,6 +361,28 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
               setMode('preview');
             }}
           />
+        ) : mode === 'form' && docType === 'brief' ? (
+          <BriefHelperForm
+            initialData={null}
+            onGenerate={(data) => {
+              if (isLocked) {
+                alert('เอกสารนี้ถูกล็อกแล้ว');
+                return;
+              }
+              if (content.trim() && !window.confirm('การสร้างร่าง Brief ใหม่จะแทนที่เนื้อหาเดิม กรุณายืนยัน')) {
+                return;
+              }
+              const md = generateBriefDocument({
+                raw_request: data.raw_request,
+                project_type: data.project_type,
+                project: projId,
+                client: clientId,
+                projectName: projId,
+              });
+              setContent(md);
+              setMode('preview');
+            }}
+          />
         ) : mode === 'edit' ? (
           <textarea
             value={content}
@@ -332,7 +394,7 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
         ) : (
           <div className="h-full overflow-y-auto p-8">
             <div className="max-w-4xl mx-auto markdown-preview">
-              <ReactMarkdown>{bodyForPreview}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{bodyForPreview}</ReactMarkdown>
             </div>
           </div>
         )}

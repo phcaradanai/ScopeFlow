@@ -46,6 +46,7 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
   const clientId = projectPath.split('/').slice(-2, -1)[0] || '';
 
   // Derived Summary Counts
+  const briefDocs = documents.filter(d => d.type === 'brief').length;
   const draftDocs = documents.filter(d => d.status === 'draft').length;
   const approvedDocs = documents.filter(d => d.status === 'approved').length;
   const openCRs = documents.filter(d => (d.folder === 'change-requests' || d.type === 'cr' || d.type === 'dcr') && d.status !== 'approved' && d.status !== 'rejected').length;
@@ -54,19 +55,38 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
   const scopeDocs = documents.filter(d => d.type === 'scope').length;
   const quotationDocs = documents.filter(d => d.type === 'quotation').length;
 
+  // Primary reference document for readiness
+  const primaryScope = documents.find(d => d.type === 'scope' && d.status === 'approved') || 
+                       documents.find(d => d.type === 'scope') || 
+                       documents.find(d => d.type === 'brief');
+  
+  const contentFlags = primaryScope?.content_flags || {
+    hasGoal: false,
+    hasInScope: false,
+    hasOutOfScope: false,
+    hasDeliverables: false,
+    hasAcceptance: false,
+    hasAssumptions: false,
+    hasQuestions: false,
+  };
+
   // Scope readiness checks
   const scopeReady = scopeDocs > 0 && quotationDocs > 0;
 
   // Get next action
+  const hasNoBrief = briefDocs === 0;
   const hasNoScope = scopeDocs === 0;
   const hasNoQuote = quotationDocs === 0;
   const hasOpenItems = openCRs > 0 || openSUPs > 0 || pendingApprovals > 0;
 
   let nextActionLabel = '';
   let nextActionDesc = '';
-  if (hasNoScope) {
+  if (hasNoBrief && hasNoScope) {
+    nextActionLabel = 'สร้างร่าง Brief';
+    nextActionDesc = 'ยังไม่มีเอกสารใดๆ — แปะคำขอลูกค้าเพื่อสร้างโครงร่างแรก';
+  } else if (hasNoScope) {
     nextActionLabel = 'สร้าง Scope';
-    nextActionDesc = 'ยังไม่มีเอกสารขอบเขตงาน — สร้าง Scope เป็นตัวแรก';
+    nextActionDesc = 'มีร่าง Brief แล้ว — สร้าง Scope เพื่อตีกรอบให้ชัดเจน';
   } else if (hasNoQuote) {
     nextActionLabel = 'สร้างใบเสนอราคา';
     nextActionDesc = 'Scope พร้อมแล้ว — เริ่มสร้างใบเสนอราคา';
@@ -140,19 +160,27 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
               <p className="text-2xl font-bold text-primary-light mb-3">{nextActionLabel}</p>
               <p className="text-sm text-text-muted leading-relaxed">{nextActionDesc}</p>
               
-              {hasNoScope && (
+              {hasNoBrief && hasNoScope && (
                 <button
                   onClick={() => onCreateDocument(clientId, projectPath.split('/').pop() || '', projectPath)}
                   className="btn btn-primary mt-5 px-6"
                 >
-                  สร้าง Scope แรก <ArrowRight className="w-4 h-4" />
+                  สร้างร่าง Brief <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
+              {(!hasNoBrief && hasNoScope) && (
+                <button
+                  onClick={() => onCreateDocument(clientId, projectPath.split('/').pop() || '', projectPath)}
+                  className="btn btn-primary mt-5 px-6"
+                >
+                  สร้าง Scope <ArrowRight className="w-4 h-4" />
                 </button>
               )}
             </div>
             <div className="text-right shrink-0">
               <p className="text-xs text-text-dim font-medium uppercase tracking-wider mb-1">Scope Status</p>
-              <p className={`text-sm font-bold ${scopeReady ? 'text-success' : hasNoScope ? 'text-text-dim' : 'text-warning'}`}>
-                {hasNoScope ? 'ยังไม่มี' : scopeReady ? 'พร้อมแล้ว' : 'กำลังดำเนินการ'}
+              <p className={`text-sm font-bold ${scopeReady ? 'text-success' : (hasNoScope && hasNoBrief) ? 'text-text-dim' : 'text-warning'}`}>
+                {(hasNoScope && hasNoBrief) ? 'ยังไม่มี' : scopeReady ? 'พร้อมแล้ว' : 'กำลังดำเนินการ'}
               </p>
             </div>
           </div>
@@ -161,28 +189,80 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
         {/* WARNINGS + ACTION REQUIRED */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Scope Readiness */}
-          <div className="card">
+          <div className="card lg:col-span-3">
             <h3 className="text-sm font-bold text-text-muted flex items-center gap-2.5 mb-4">
               <CheckCircle className="w-4 h-4" />
-              Scope Readiness
+              ความพร้อมของขอบเขตงาน (Scope Readiness)
             </h3>
-            <div className="flex flex-col gap-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-text-dim">Scope</span>
-                <span className={`text-sm font-bold ${scopeDocs > 0 ? 'text-success' : 'text-text-dim'}`}>
-                  {scopeDocs > 0 ? '✓ มี' : 'ยังไม่มี'}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="flex flex-col gap-1 p-3 rounded-lg bg-surface-2 border border-border">
+                <span className="text-xs text-text-dim uppercase tracking-wider">เอกสารตั้งต้น</span>
+                <span className={`text-sm font-bold flex items-center gap-1.5 ${(briefDocs > 0 || scopeDocs > 0) ? 'text-success' : 'text-warning'}`}>
+                  {(briefDocs > 0 || scopeDocs > 0) ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                  Brief / Scope
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-text-dim">Quotation</span>
-                <span className={`text-sm font-bold ${quotationDocs > 0 ? 'text-success' : 'text-text-dim'}`}>
-                  {quotationDocs > 0 ? '✓ มี' : 'ยังไม่มี'}
+              <div className="flex flex-col gap-1 p-3 rounded-lg bg-surface-2 border border-border">
+                <span className="text-xs text-text-dim uppercase tracking-wider">เป้าหมายงาน</span>
+                <span className={`text-sm font-bold flex items-center gap-1.5 ${contentFlags.hasGoal ? 'text-success' : 'text-warning'}`}>
+                  {contentFlags.hasGoal ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                  Goal / Overview
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-text-dim">Approve</span>
-                <span className={`text-sm font-bold ${approvedDocs >= 2 ? 'text-success' : approvedDocs > 0 ? 'text-warning' : 'text-text-dim'}`}>
-                  {approvedDocs} เอกสาร
+              <div className="flex flex-col gap-1 p-3 rounded-lg bg-surface-2 border border-border">
+                <span className="text-xs text-text-dim uppercase tracking-wider">ขอบเขตงาน</span>
+                <span className={`text-sm font-bold flex items-center gap-1.5 ${contentFlags.hasInScope ? 'text-success' : 'text-warning'}`}>
+                  {contentFlags.hasInScope ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                  In-Scope
+                </span>
+              </div>
+              <div className="flex flex-col gap-1 p-3 rounded-lg bg-surface-2 border border-border">
+                <span className="text-xs text-text-dim uppercase tracking-wider">อยู่นอกขอบเขต</span>
+                <span className={`text-sm font-bold flex items-center gap-1.5 ${contentFlags.hasOutOfScope ? 'text-success' : 'text-warning'}`}>
+                  {contentFlags.hasOutOfScope ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                  Out-of-Scope
+                </span>
+              </div>
+              <div className="flex flex-col gap-1 p-3 rounded-lg bg-surface-2 border border-border">
+                <span className="text-xs text-text-dim uppercase tracking-wider">สิ่งที่ส่งมอบ</span>
+                <span className={`text-sm font-bold flex items-center gap-1.5 ${contentFlags.hasDeliverables ? 'text-success' : 'text-warning'}`}>
+                  {contentFlags.hasDeliverables ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                  Deliverables
+                </span>
+              </div>
+              <div className="flex flex-col gap-1 p-3 rounded-lg bg-surface-2 border border-border">
+                <span className="text-xs text-text-dim uppercase tracking-wider">เกณฑ์ตรวจรับ</span>
+                <span className={`text-sm font-bold flex items-center gap-1.5 ${contentFlags.hasAcceptance ? 'text-success' : 'text-warning'}`}>
+                  {contentFlags.hasAcceptance ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                  Acceptance Criteria
+                </span>
+              </div>
+              <div className="flex flex-col gap-1 p-3 rounded-lg bg-surface-2 border border-border">
+                <span className="text-xs text-text-dim uppercase tracking-wider">เงื่อนไขเพิ่มเติม</span>
+                <span className={`text-sm font-bold flex items-center gap-1.5 ${contentFlags.hasAssumptions ? 'text-success' : 'text-warning'}`}>
+                  {contentFlags.hasAssumptions ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                  Assumptions
+                </span>
+              </div>
+              <div className="flex flex-col gap-1 p-3 rounded-lg bg-surface-2 border border-border">
+                <span className="text-xs text-text-dim uppercase tracking-wider">สิ่งที่ยังไม่ชัดเจน</span>
+                <span className={`text-sm font-bold flex items-center gap-1.5 ${contentFlags.hasQuestions ? 'text-warning' : 'text-text-dim'}`}>
+                  {contentFlags.hasQuestions ? <AlertTriangle className="w-3.5 h-3.5" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                  {contentFlags.hasQuestions ? 'มีคำถาม/สมมติฐาน' : 'เคลียร์แล้ว'}
+                </span>
+              </div>
+              <div className="flex flex-col gap-1 p-3 rounded-lg bg-surface-2 border border-border">
+                <span className="text-xs text-text-dim uppercase tracking-wider">ใบเสนอราคา</span>
+                <span className={`text-sm font-bold flex items-center gap-1.5 ${quotationDocs > 0 ? 'text-success' : 'text-warning'}`}>
+                  {quotationDocs > 0 ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                  Quotation
+                </span>
+              </div>
+              <div className="flex flex-col gap-1 p-3 rounded-lg bg-surface-2 border border-border">
+                <span className="text-xs text-text-dim uppercase tracking-wider">อนุมัติแล้ว</span>
+                <span className={`text-sm font-bold flex items-center gap-1.5 ${approvedDocs >= 2 ? 'text-success' : 'text-warning'}`}>
+                  {approvedDocs >= 2 ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                  Approval ({approvedDocs})
                 </span>
               </div>
             </div>

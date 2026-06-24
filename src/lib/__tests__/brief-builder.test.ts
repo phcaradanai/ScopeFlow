@@ -1,0 +1,71 @@
+import { describe, it, expect } from 'vitest';
+import { generateBriefDocument, parseBriefToScope } from '../brief-builder';
+
+describe('brief-builder', () => {
+  it('generates a brief document with frontmatter and sections', () => {
+    const rawRequest = 'อยากได้เว็บขายของ มีระบบตะกร้า จ่ายบัตรเครดิตได้';
+    const md = generateBriefDocument({
+      raw_request: rawRequest,
+      project_type: 'เว็บขายของ',
+      project: 'PROJ-01',
+      client: 'CLI-01',
+      projectName: 'Website E-commerce',
+    });
+
+    expect(md).toContain('type: brief');
+    expect(md).toContain('status: draft');
+    expect(md).toContain('project: PROJ-01');
+    expect(md).toContain('# ร่างความต้องการ: Website E-commerce');
+    expect(md).toContain(`> ${rawRequest}`);
+    
+    // Check preset injections for E-Commerce
+    expect(md).toContain('ควรยืนยันเรื่องระบบชำระเงิน (โอนเงิน, บัตรเครดิต, ตัดผ่าน Gateway อะไร)');
+    expect(md).toContain('อาจต้องรวมระบบตะกร้าสินค้าและการสั่งซื้อ (Cart & Checkout)');
+    expect(md).toContain('หากไม่รวมควรระบุให้ชัดว่า ไม่รวมค่าธรรมเนียมของ Payment Gateway');
+    expect(md).toContain('ความเสี่ยงงานงอก: การเชื่อมต่อ Payment Gateway อาจล่าช้าจากการขอเอกสารฝั่งลูกค้า');
+  });
+
+  it('generates support preset with correct questions', () => {
+    const md = generateBriefDocument({
+      raw_request: 'เข้าระบบไม่ได้ มันหมุนติ้วๆ',
+      project_type: 'Support/Bug fix',
+      project: 'PROJ-02',
+      client: 'CLI-02',
+      projectName: 'Fix Login',
+    });
+
+    expect(md).toContain('ควรยืนยันขั้นตอนการทำซ้ำปัญหา (Steps to reproduce)');
+    expect(md).toContain('ควรยืนยันสิ่งที่คาดหวัง (Expected behavior) และสิ่งที่เกิดขึ้นจริง (Actual behavior)');
+  });
+
+  it('suggestions are phrased as guidance, not confirmed facts', () => {
+    const md = generateBriefDocument({
+      raw_request: 'test',
+      project_type: 'เว็บไซต์บริษัท',
+      project: 'PROJ-03',
+      client: 'CLI-03',
+      projectName: 'Test',
+    });
+
+    // Check wording
+    expect(md).toContain('ควรยืนยัน');
+    expect(md).toContain('อาจต้องรวม');
+    expect(md).toContain('หากไม่รวมควรระบุให้ชัดว่า');
+  });
+
+  it('can parse a generated brief to prefill scope data', () => {
+    const md = generateBriefDocument({
+      raw_request: 'Test request\nLine 2',
+      project_type: 'เว็บไซต์บริษัท',
+      project: 'PROJ-04',
+      client: 'CLI-04',
+      projectName: 'Parse Test',
+    });
+
+    const parsed = parseBriefToScope(md);
+    
+    expect(parsed.project_overview).toBe('Test request\nLine 2');
+    expect(parsed.included_items).toContain('อาจต้องรวมหน้าแรก (Home)');
+    expect(parsed.excluded_items).toContain('ไม่รวมการถ่ายภาพสินค้าหรือถ่ายทำวีดีโอใหม่');
+  });
+});

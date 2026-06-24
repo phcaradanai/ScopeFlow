@@ -21,6 +21,15 @@ export interface ProjectDocument {
   document_number?: string;
   excerpt: string;
   parse_status: 'success' | 'warning';
+  content_flags?: {
+    hasGoal: boolean;
+    hasInScope: boolean;
+    hasOutOfScope: boolean;
+    hasDeliverables: boolean;
+    hasAcceptance: boolean;
+    hasAssumptions: boolean;
+    hasQuestions: boolean;
+  };
 }
 
 const ALLOWED_FOLDERS = [
@@ -153,7 +162,16 @@ export function extractDocumentMetadata(filePath: string, content: string, proje
       updated: yaml.updated,
       document_number: yaml.document_number || yaml.id?.toString(),
       excerpt,
-      parse_status: 'success'
+      parse_status: 'success',
+      content_flags: {
+        hasGoal: /##.*(?:ความเป็นมา|เป้าหมาย|Overview)/.test(content) && content.split(/##.*(?:ความเป็นมา|เป้าหมาย|Overview)/)[1].trim().length > 10,
+        hasInScope: /##.*(?:รวมอยู่|In-Scope|In Scope)/.test(content) && content.split(/##.*(?:รวมอยู่|In-Scope|In Scope)/)[1].trim().length > 10,
+        hasOutOfScope: /##.*(?:อยู่นอกเหนือ|ไม่รวม|Out-of-Scope|Out of Scope)/.test(content) && content.split(/##.*(?:อยู่นอกเหนือ|ไม่รวม|Out-of-Scope|Out of Scope)/)[1].trim().length > 10,
+        hasDeliverables: /##.*(?:ส่งมอบ|Deliverables)/.test(content) && content.split(/##.*(?:ส่งมอบ|Deliverables)/)[1].trim().length > 10,
+        hasAcceptance: /##.*(?:ตรวจรับ|Acceptance)/.test(content) && content.split(/##.*(?:ตรวจรับ|Acceptance)/)[1].trim().length > 10,
+        hasAssumptions: /##.*(?:ข้อตกลง|เงื่อนไข|สมมติฐาน|Assumptions)/.test(content) && content.split(/##.*(?:ข้อตกลง|เงื่อนไข|สมมติฐาน|Assumptions)/)[1].trim().length > 10,
+        hasQuestions: /##.*(?:คำถาม|Questions)/.test(content) && content.split(/##.*(?:คำถาม|Questions)/)[1].trim().length > 10,
+      }
     };
   } catch (err) {
     // Malformed YAML
