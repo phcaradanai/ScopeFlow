@@ -79,6 +79,18 @@ function AppContent() {
     setShowProjectForm(true);
   }
 
+  // New handler to start from customer request and create a Brief directly
+  function handleStartFromCustomerRequest(clientId: string) {
+    // Use clientId as projectPath for now; no specific projectId
+    setDocumentCreatorProps({
+      clientId,
+      projectId: '',
+      projectPath: clientId,
+      initialType: 'brief',
+    });
+    setShowDocumentCreator(true);
+  }
+
   async function handleExportProject(clientId: string, projectId: string, projectPath: string) {
     let clientName = clientId;
     let projectName = projectId;
@@ -203,7 +215,7 @@ function AppContent() {
           </p>
           <div className="flex gap-4 w-full justify-center">
             <button
-              onClick={() => handleCreateProject(clientEmptyStateId)}
+              onClick={() => handleStartFromCustomerRequest(clientEmptyStateId)}
               className="btn btn-ghost"
             >
               เริ่มจากคำขอลูกค้า

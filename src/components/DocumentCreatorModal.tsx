@@ -14,6 +14,7 @@ import {
 import { validateSlug, nameToSlug } from '../lib/validation';
 import { X } from 'lucide-react';
 import SelectField from './ui/SelectField';
+import BriefHelperForm from './BriefHelperForm';
 
 interface DocumentCreatorModalProps {
   clientId: string;
@@ -39,6 +40,8 @@ export default function DocumentCreatorModal({
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
+  // State for brief intake
+  const [briefData, setBriefData] = useState(null as any);
 
   useEffect(() => {
     if (workspacePath) {
@@ -60,37 +63,30 @@ export default function DocumentCreatorModal({
     }
   }, [title, requiresSlug]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent, manualBriefData?: any) => {
     e.preventDefault();
     setError('');
 
-    let finalPath = '';
-    let finalContent = '';
-    let filename = '';
+    if (requiresSlug && !slug) {
+      setError('กรุณาระบุ Slug สำหรับชื่อไฟล์');
+      return;
+    }
+
+    if (requiresSlug && !validateSlug(slug)) {
+      setError('Slug ไม่ถูกต้อง (ใช้ได้เฉพาะ a-z, 0-9, และ -)');
+      return;
+    }
 
     try {
-      if (requiresSlug) {
-        if (!title.trim()) {
-          setError('กรุณากรอกชื่อเอกสาร / หัวข้อ');
-          return;
-        }
-        const validation = validateSlug(slug);
-        if (!validation.valid) {
-          setError('Slug ใช้ได้เฉพาะตัวอักษรอังกฤษพิมพ์เล็ก a-z, ตัวเลข 0-9 และขีดกลาง (-) เช่น add-sales-report');
-          return;
-        }
-      }
+      let filename = '';
+      let finalPath = '';
+      let finalContent = '';
 
       if (type === 'brief') {
-        filename = 'brief-v1.0.md';
-        finalPath = `${projectPath}/baseline/${filename}`;
-        finalContent = generateBriefDocument({
-          raw_request: '',
-          project_type: 'อื่น ๆ',
-          project: projectId,
-          client: clientId,
-          projectName: projectId,
-        });
+        const data = manualBriefData || briefData;
+        filename = `brief-${nameToSlug(data.projectName || 'project')}-${Date.now()}.md`;
+        finalPath = `${projectPath}/briefs/${filename}`;
+        finalContent = generateBriefDocument(data);
       } else if (type === 'scope') {
         filename = 'scope-v1.0.md';
         finalPath = `${projectPath}/baseline/${filename}`;
@@ -203,130 +199,143 @@ export default function DocumentCreatorModal({
         </div>
 
         <form id="document-creator-form" onSubmit={handleSubmit} className="modal-body">
-          {error && (
-            <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
-              {error}
-            </div>
-          )}
-          <div className="form-section">
-            <div className="form-field">
-              <label className="form-label">
-                ประเภทเอกสาร <span className="text-error">*</span>
-              </label>
-              <SelectField
-                value={type}
-                onChange={setType}
-                options={[
-                  { value: 'brief', label: 'ร่างความต้องการ (Brief)' },
-                  { value: 'scope', label: 'ขอบเขตงาน (Scope)' },
-                  { value: 'quotation', label: 'ใบเสนอราคา (Quotation)' },
-                  { value: 'cr', label: 'คำขอเปลี่ยนแปลง (CR)' },
-                  { value: 'dcr', label: 'คำขอเปลี่ยนแปลงการพัฒนา (DCR)' },
-                  { value: 'sup', label: 'แจ้งปัญหา (Support Request)' },
-                  { value: 'ma', label: 'แจ้งซ่อมบำรุง (MA Request)' },
-                  { value: 'acceptance', label: 'รายการตรวจรับ (Acceptance Checklist)' },
-                ]}
-              />
-              <p className="form-helper">เลือกประเภทเอกสารที่ต้องการสร้าง</p>
-            </div>
-          </div>
-
-          {requiresSlug && (
-            <div className="form-section">
-              <div className="form-field">
-                <label className="form-label">
-                  ชื่อเอกสาร / หัวข้อ <span className="text-error">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="เช่น เพิ่มระบบรายงานยอดขาย"
-                  className="form-input"
-                  autoFocus={!title}
-                />
+          {type === 'brief' ? (
+            <BriefHelperForm
+              onGenerate={(data) => {
+                setBriefData(data);
+                handleSubmit({ preventDefault: () => {} } as any, data);
+              }}
+            />
+          ) : (
+            <>
+              {error && (
+                <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
+                  {error}
+                </div>
+              )}
+              <div className="form-section">
+                <div className="form-field">
+                  <label className="form-label">
+                    ประเภทเอกสาร <span className="text-error">*</span>
+                  </label>
+                  <SelectField
+                    value={type}
+                    onChange={setType}
+                    options={[
+                      { value: 'brief', label: 'ร่างความต้องการ (Brief)' },
+                      { value: 'scope', label: 'ขอบเขตงาน (Scope)' },
+                      { value: 'quotation', label: 'ใบเสนอราคา (Quotation)' },
+                      { value: 'cr', label: 'คำขอเปลี่ยนแปลง (CR)' },
+                      { value: 'dcr', label: 'คำขอเปลี่ยนแปลงการพัฒนา (DCR)' },
+                      { value: 'sup', label: 'แจ้งปัญหา (Support Request)' },
+                      { value: 'ma', label: 'แจ้งซ่อมบำรุง (MA Request)' },
+                      { value: 'acceptance', label: 'รายการตรวจรับ (Acceptance Checklist)' },
+                    ]}
+                  />
+                  <p className="form-helper">เลือกประเภทเอกสารที่ต้องการสร้าง</p>
+                </div>
               </div>
 
-              <div className="form-field">
-                <label className="form-label">
-                  Slug (สำหรับตั้งชื่อไฟล์) <span className="text-error">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
-                  placeholder="เช่น add-sales-report"
-                  className="form-input font-mono"
-                />
-                {!slug && title && (
-                  <p className="form-helper text-error">
-                    กรุณากรอก slug ภาษาอังกฤษ เช่น add-sales-report
-                  </p>
-                )}
-                {slug && (
-                  <p className="form-helper">
-                    ไฟล์ที่จะสร้าง: <span className="font-mono text-text-muted">{type.toUpperCase()}-XXX-{slug}.md</span>
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
+              {requiresSlug && (
+                <div className="form-section">
+                  <div className="form-field">
+                    <label className="form-label">
+                      ชื่อเอกสาร / หัวข้อ <span className="text-error">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="เช่น เพิ่มระบบรายงานยอดขาย"
+                      className="form-input"
+                      autoFocus={!title}
+                    />
+                  </div>
 
-          {type === 'dcr' && (
-            <div className="form-section">
-              <div className="form-field">
-                <label className="form-label">
-                  ประเภทการเปลี่ยนแปลง <span className="text-error">*</span>
-                </label>
-                <SelectField
-                  value={changeKind}
-                  onChange={setChangeKind}
-                  options={[
-                    { value: 'behavior', label: 'การทำงาน (Behavior / Logic)' },
-                    { value: 'ui', label: 'หน้าจอ (UI / UX)' },
-                    { value: 'database', label: 'ฐานข้อมูล (Database / Schema)' },
-                    { value: 'report', label: 'รายงาน (Report / Dashboard)' },
-                    { value: 'permission', label: 'สิทธิ์การใช้งาน (Permission / Role)' },
-                    { value: 'integration', label: 'ระบบเชื่อมต่อ (Integration / API)' },
-                    { value: 'technical-design', label: 'สถาปัตยกรรม (Technical Design)' },
-                    { value: 'other', label: 'อื่นๆ (Other)' },
-                  ]}
-                />
-              </div>
-            </div>
-          )}
+                  <div className="form-field">
+                    <label className="form-label">
+                      Slug (สำหรับตั้งชื่อไฟล์) <span className="text-error">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={slug}
+                      onChange={(e) => setSlug(e.target.value)}
+                      placeholder="เช่น add-sales-report"
+                      className="form-input font-mono"
+                    />
+                    {!slug && title && (
+                      <p className="form-helper text-error">
+                        กรุณากรอก slug ภาษาอังกฤษ เช่น add-sales-report
+                      </p>
+                    )}
+                    {slug && (
+                      <p className="form-helper">
+                        ไฟล์ที่จะสร้าง: <span className="font-mono text-text-muted">{type.toUpperCase()}-XXX-{slug}.md</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
-          {(type === 'sup' || type === 'ma') && (
-            <div className="form-section">
-              <div className="form-field">
-                <label className="form-label">
-                  หมวดหมู่ <span className="text-error">*</span>
-                </label>
-                <SelectField
-                  value={category}
-                  onChange={setCategory}
-                  options={[
-                    { value: 'bug', label: 'บั๊ก (Bug)' },
-                    { value: 'feature-request', label: 'ขอเพิ่มฟีเจอร์ (Feature Request)' },
-                    { value: 'update', label: 'อัปเดตข้อมูล (Update)' },
-                    { value: 'maintenance', label: 'บำรุงรักษา (Maintenance)' },
-                    { value: 'security', label: 'ความปลอดภัย (Security)' },
-                    { value: 'other', label: 'อื่นๆ (Other)' },
-                  ]}
-                />
-              </div>
-            </div>
+              {type === 'dcr' && (
+                <div className="form-section">
+                  <div className="form-field">
+                    <label className="form-label">
+                      ประเภทการเปลี่ยนแปลง <span className="text-error">*</span>
+                    </label>
+                    <SelectField
+                      value={changeKind}
+                      onChange={setChangeKind}
+                      options={[
+                        { value: 'behavior', label: 'การทำงาน (Behavior / Logic)' },
+                        { value: 'ui', label: 'หน้าจอ (UI / UX)' },
+                        { value: 'database', label: 'ฐานข้อมูล (Database / Schema)' },
+                        { value: 'report', label: 'รายงาน (Report / Dashboard)' },
+                        { value: 'permission', label: 'สิทธิ์การใช้งาน (Permission / Role)' },
+                        { value: 'integration', label: 'ระบบเชื่อมต่อ (Integration / API)' },
+                        { value: 'technical-design', label: 'สถาปัตยกรรม (Technical Design)' },
+                        { value: 'other', label: 'อื่นๆ (Other)' },
+                      ]}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {(type === 'sup' || type === 'ma') && (
+                <div className="form-section">
+                  <div className="form-field">
+                    <label className="form-label">
+                      หมวดหมู่ <span className="text-error">*</span>
+                    </label>
+                    <SelectField
+                      value={category}
+                      onChange={setCategory}
+                      options={[
+                        { value: 'bug', label: 'บั๊ก (Bug)' },
+                        { value: 'feature-request', label: 'ขอเพิ่มฟีเจอร์ (Feature Request)' },
+                        { value: 'update', label: 'อัปเดตข้อมูล (Update)' },
+                        { value: 'maintenance', label: 'บำรุงรักษา (Maintenance)' },
+                        { value: 'security', label: 'ความปลอดภัย (Security)' },
+                        { value: 'other', label: 'อื่นๆ (Other)' },
+                      ]}
+                    />
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </form>
 
-        <div className="modal-footer">
-          <button type="button" onClick={onClose} className="btn btn-ghost">
-            ยกเลิก
-          </button>
-          <button type="submit" form="document-creator-form" disabled={saving} className="btn btn-primary">
-            {saving ? 'กำลังสร้าง...' : 'สร้างเอกสาร'}
-          </button>
-        </div>
+        {type !== 'brief' && (
+          <div className="modal-footer">
+            <button type="button" onClick={onClose} className="btn btn-ghost">
+              ยกเลิก
+            </button>
+            <button type="submit" form="document-creator-form" disabled={saving} className="btn btn-primary">
+              {saving ? 'กำลังสร้าง...' : 'สร้างเอกสาร'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

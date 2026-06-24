@@ -163,7 +163,7 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
               
               {hasNoBrief && hasNoScope && (
                 <button
-                  onClick={() => onCreateDocument(clientId, projectPath.split('/').pop() || '', projectPath)}
+                  onClick={() => onCreateDocument(clientId, projectPath.split('/').pop() || '', projectPath, 'brief')}
                   className="btn btn-primary mt-5 px-6"
                 >
                   สร้างร่าง Brief <ArrowRight className="w-4 h-4" />
