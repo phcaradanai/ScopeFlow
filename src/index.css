@@ -10,6 +10,9 @@
   --color-surface-3: #27272a;    /* Zinc 800 */
   --color-border: #27272a;       /* Zinc 800 */
   --color-border-light: #3f3f46; /* Zinc 700 */
+  --spacing-sm: 12px;
+  --spacing-md: 20px;
+  --spacing-lg: 28px;
   --color-text: #fafafa;         /* Zinc 50 */
   --color-text-muted: #a1a1aa;   /* Zinc 400 */
   --color-text-dim: #71717a;     /* Zinc 500 */
@@ -120,9 +123,9 @@ main, .main-content {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 28px 32px;
+  padding: var(--spacing-lg) var(--spacing-lg);
   border-bottom: 1px solid var(--color-border);
-  gap: 16px;
+  gap: var(--spacing-md);
 }
 
 .modal-header-content {
@@ -166,27 +169,27 @@ main, .main-content {
 .modal-body {
   flex: 1;
   overflow-y: auto;
-  padding: 32px;
+  padding: var(--spacing-lg);
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: var(--spacing-md);
 }
 
-.modal-footer {
-  padding: 20px 32px;
-  border-top: 1px solid var(--color-border);
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  background: var(--color-surface-2);
-}
+  .modal-footer {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+    background: var(--color-surface-2);
+  }
 
 /* Form sections within modals */
 .form-section {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 24px;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 14px;
@@ -227,7 +230,7 @@ main, .main-content {
 .form-select,
 .form-textarea {
   width: 100%;
-  min-height: 46px;
+  min-height: 48px;
   padding: 12px 16px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.03);
@@ -298,8 +301,8 @@ main, .main-content {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 44px;
-  padding: 10px 20px;
+  min-height: 56px;
+  padding: 12px 24px;
   border-radius: 12px;
   font-family: var(--font-sans);
   font-size: 0.875rem;
@@ -355,10 +358,10 @@ main, .main-content {
 }
 
 .btn-sm {
-  padding: 6px 14px;
+  padding: 8px 16px;
   font-size: 0.8125rem;
   border-radius: 10px;
-  min-height: 36px;
+  min-height: 40px;
 }
 
 .btn-icon {
