@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateBriefDocument, parseBriefToScope } from '../brief-builder';
+import { generateBriefDocument, parseBriefToScope, detectProjectType } from '../brief-builder';
 
 describe('brief-builder', () => {
   it('generates a brief document with frontmatter and sections', () => {
@@ -19,10 +19,19 @@ describe('brief-builder', () => {
     expect(md).toContain(`> ${rawRequest}`);
     
     // Check preset injections for E-Commerce
-    expect(md).toContain('ควรยืนยันเรื่องระบบชำระเงิน (โอนเงิน, บัตรเครดิต, ตัดผ่าน Gateway อะไร)');
+    expect(md).toContain('ลูกค้าต้องการระบบหรือแอปสำหรับขายสินค้าออนไลน์');
     expect(md).toContain('อาจต้องรวมระบบตะกร้าสินค้าและการสั่งซื้อ (Cart & Checkout)');
-    expect(md).toContain('หากไม่รวมควรระบุให้ชัดว่า ไม่รวมค่าธรรมเนียมของ Payment Gateway');
-    expect(md).toContain('ความเสี่ยงงานงอก: การเชื่อมต่อ Payment Gateway อาจล่าช้าจากการขอเอกสารฝั่งลูกค้า');
+    expect(md).toContain('payment gateway fee/setup');
+    expect(md).toContain('payment/shipping requirements unclear');
+  });
+
+  it('auto-detects project type based on keywords', () => {
+    expect(detectProjectType('อยากทำแอปขายของ online', 'อื่น ๆ')).toBe('เว็บขายของ');
+    expect(detectProjectType('ระบบจัดการตะกร้าสินค้า', '')).toBe('เว็บขายของ');
+    expect(detectProjectType('แอปขายของ online', 'อื่น ๆ')).toBe('เว็บขายของ');
+    expect(detectProjectType('ระบบบริษัททั่วไป', 'อื่น ๆ')).toBe('อื่น ๆ');
+    // should not override if user already specified a type other than "อื่น ๆ" or empty
+    expect(detectProjectType('แอปขายของ online', 'เว็บไซต์บริษัท')).toBe('เว็บไซต์บริษัท');
   });
 
   it('generates support preset with correct questions', () => {

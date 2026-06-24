@@ -7,6 +7,9 @@ export interface BriefFormData {
 }
 
 export interface PresetData {
+  understanding?: string[];
+  assumptions?: string[];
+  unclear?: string[];
   questions: string[];
   inScope: string[];
   outOfScope: string[];
@@ -47,10 +50,31 @@ export const projectPresets: Record<string, PresetData> = {
     ]
   },
   'เว็บขายของ': {
+    understanding: [
+      'ลูกค้าต้องการระบบหรือแอปสำหรับขายสินค้าออนไลน์',
+      'งานอาจเกี่ยวข้องกับหน้ารายการสินค้า, รายละเอียดสินค้า, ตะกร้า, การสั่งซื้อ, และหลังบ้านจัดการสินค้า',
+      'ยังไม่ชัดว่าเป็น Web App, Mobile App, หรือทั้งสองแบบ'
+    ],
+    assumptions: [
+      'อาจต้องมีสินค้าและหมวดหมู่สินค้า',
+      'อาจต้องมีระบบสั่งซื้อ',
+      'อาจต้องมีหลังบ้านสำหรับจัดการสินค้าและออเดอร์'
+    ],
+    unclear: [
+      'ต้องการ Web, Mobile App, หรือทั้งสองแบบ',
+      'ต้องมีชำระเงินออนไลน์หรือไม่',
+      'ต้องมีระบบจัดส่งหรือไม่',
+      'ต้องมีสมาชิก/login หรือไม่',
+      'ต้องมีสต็อกหรือไม่',
+      'ต้องเชื่อมต่อระบบเดิมหรือไม่'
+    ],
     questions: [
-      'ควรยืนยันเรื่องระบบชำระเงิน (โอนเงิน, บัตรเครดิต, ตัดผ่าน Gateway อะไร)',
-      'ควรยืนยันเรื่องระบบขนส่ง (คิดค่าส่งอย่างไร, คงที่, ตามน้ำหนัก, หรือเชื่อม API ขนส่ง)',
-      'ควรยืนยันเรื่องระบบสต็อก (จัดการในเว็บเอง หรือต้องเชื่อมกับระบบ ERP/POS เดิม)'
+      'ลูกค้าขายสินค้ากี่ประเภท / กี่รายการโดยประมาณ',
+      'ต้องมีตะกร้าสินค้าหรือแค่ส่งคำสั่งซื้อผ่าน LINE',
+      'ต้องรับชำระเงินแบบใด',
+      'ต้องคิดค่าส่งอย่างไร',
+      'ใครเป็นคนเพิ่ม/แก้ไขสินค้า',
+      'ต้องมีรายงานยอดขายหรือไม่'
     ],
     inScope: [
       'อาจต้องรวมระบบตะกร้าสินค้าและการสั่งซื้อ (Cart & Checkout)',
@@ -58,12 +82,16 @@ export const projectPresets: Record<string, PresetData> = {
       'อาจต้องรวมระบบแจ้งเตือนคำสั่งซื้อผ่านอีเมลหรือ Line'
     ],
     outOfScope: [
-      'หากไม่รวมควรระบุให้ชัดว่า ไม่รวมการถ่ายภาพและลงข้อมูลสินค้าทั้งหมดให้ลูกค้า',
-      'หากไม่รวมควรระบุให้ชัดว่า ไม่รวมค่าธรรมเนียมของ Payment Gateway',
-      'หากไม่รวมควรระบุให้ชัดว่า ไม่รวมการทำ SEO เชิงลึกในแต่ละหน้าสินค้า'
+      'payment gateway fee/setup',
+      'shipping integration',
+      'product data entry',
+      'ERP/POS/accounting integration',
+      'advanced promotion/coupon',
+      'mobile app if not confirmed',
+      'SEO/content writing'
     ],
     deliverables: [
-      'Source Code ของเว็บไซต์ E-Commerce',
+      'Source Code ของระบบ',
       'คู่มือการใช้งานระบบจัดการสินค้าและคำสั่งซื้อ',
       'สิทธิ์การเข้าถึงระดับ Admin'
     ],
@@ -72,8 +100,10 @@ export const projectPresets: Record<string, PresetData> = {
       'ระบบตัดสต็อกถูกต้องเมื่อสั่งซื้อสำเร็จ'
     ],
     risks: [
-      'ความเสี่ยงงานงอก: การเชื่อมต่อ Payment Gateway อาจล่าช้าจากการขอเอกสารฝั่งลูกค้า',
-      'ความเสี่ยงงานงอก: เงื่อนไขค่าส่งของลูกค้ามีความซับซ้อนมากเกินไป'
+      'payment/shipping requirements unclear',
+      'product migration may be larger than expected',
+      'platform unclear: web vs mobile',
+      'customer may expect admin/report/member/promotion later'
     ]
   },
   'ระบบจองคิว': {
@@ -291,6 +321,21 @@ export const projectPresets: Record<string, PresetData> = {
   }
 };
 
+export function detectProjectType(rawRequest: string, currentType: string): string {
+  if (currentType !== 'อื่น ๆ' && currentType !== '') {
+    return currentType;
+  }
+  
+  const text = rawRequest.toLowerCase();
+  const ecomKeywords = ['ขายของ', 'ร้านค้า', 'สินค้า', 'ecommerce', 'e-commerce', 'online shop', 'shopping', 'ตะกร้า', 'ออเดอร์'];
+  
+  if (ecomKeywords.some(kw => text.includes(kw))) {
+    return 'เว็บขายของ';
+  }
+  
+  return currentType || 'อื่น ๆ';
+}
+
 export function generateBriefDocument(data: {
   raw_request: string;
   project_type: string;
@@ -299,7 +344,8 @@ export function generateBriefDocument(data: {
   projectName: string;
 }): string {
   const today = todayISO();
-  const preset = projectPresets[data.project_type] || projectPresets['อื่น ๆ'];
+  const detectedType = detectProjectType(data.raw_request, data.project_type);
+  const preset = projectPresets[detectedType] || projectPresets['อื่น ๆ'];
 
   const frontmatter = {
     type: 'brief',
@@ -322,16 +368,37 @@ export function generateBriefDocument(data: {
   markdown += `> ${data.raw_request.replace(/\n/g, '\n> ')}\n\n`;
 
   markdown += `## 2. สิ่งที่เข้าใจจากคำขอ (Understanding)\n\n`;
-  markdown += `*ยังไม่ได้สรุป (กรอกข้อมูลจากความเข้าใจเบื้องต้น)*\n\n`;
+  if (preset.understanding && preset.understanding.length > 0) {
+    preset.understanding.forEach(item => {
+      markdown += `- ${item}\n`;
+    });
+    markdown += `\n`;
+  } else {
+    markdown += `*ยังไม่ได้สรุป (กรอกข้อมูลจากความเข้าใจเบื้องต้น)*\n\n`;
+  }
 
   markdown += `## 3. สิ่งที่ยืนยันแล้ว (Confirmed)\n\n`;
-  markdown += `- \n\n`;
+  markdown += `- ${data.raw_request.replace(/\n/g, ' ')}\n\n`;
 
   markdown += `## 4. สิ่งที่เป็นสมมติฐาน (Assumptions)\n\n`;
-  markdown += `- \n\n`;
+  if (preset.assumptions && preset.assumptions.length > 0) {
+    preset.assumptions.forEach(item => {
+      markdown += `- ${item}\n`;
+    });
+    markdown += `\n`;
+  } else {
+    markdown += `- \n\n`;
+  }
 
   markdown += `## 5. สิ่งที่ยังไม่ชัด (Unclear Areas)\n\n`;
-  markdown += `- \n\n`;
+  if (preset.unclear && preset.unclear.length > 0) {
+    preset.unclear.forEach(item => {
+      markdown += `- ${item}\n`;
+    });
+    markdown += `\n`;
+  } else {
+    markdown += `- \n\n`;
+  }
 
   markdown += `## 6. คำถามที่ควรถามลูกค้า (Questions to Ask)\n\n`;
   preset.questions.forEach(q => {

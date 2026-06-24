@@ -63,7 +63,7 @@ function extractFiles(node: FileEntry, projectPath: string, files: FileEntry[]) 
   if (!node) return;
   if (!node.is_dir) {
     const relativePath = node.path.substring(projectPath.length + 1);
-    const folder = relativePath.split('/')[0];
+    const folder = relativePath.split(/[/\\]/)[0];
     
     if (ALLOWED_FOLDERS.includes(folder)) {
       if (node.name.endsWith('.md') || (folder === 'exports' && node.name.endsWith('.html'))) {
@@ -100,9 +100,9 @@ function generateExcerpt(content: string, length = 150): string {
 }
 
 export function extractDocumentMetadata(filePath: string, content: string, projectPath: string): ProjectDocument {
-  const fileName = filePath.split('/').pop() || '';
+  const fileName = filePath.split(/[/\\]/).pop() || '';
   const relativePath = filePath.substring(projectPath.length + 1);
-  const folder = relativePath.split('/')[0] || '';
+  const folder = relativePath.split(/[/\\]/)[0] || '';
   
   const excerpt = generateExcerpt(content);
   
