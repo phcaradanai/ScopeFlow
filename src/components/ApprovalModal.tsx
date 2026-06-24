@@ -70,31 +70,31 @@ export default function ApprovalModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-lg font-semibold">บันทึกการอนุมัติ</h2>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-6">
+      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
+          <h2 className="text-lg font-bold text-text">บันทึกการอนุมัติ</h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-surface-3 text-text-dim hover:text-text transition-colors"
+            className="btn btn-icon"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          <div className="px-3 py-2 rounded-lg bg-surface-3/50 text-sm text-text-muted">
-            เอกสาร: <span className="font-medium text-text">{documentFilename}</span>
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-section">
+          <div className="px-4 py-3 rounded-xl bg-surface-3/50 text-sm text-text-muted font-medium">
+            เอกสาร: <span className="font-semibold text-text">{documentFilename}</span>
           </div>
 
           {error && (
-            <div className="p-3 rounded-lg bg-error/10 border border-error/30 text-error text-sm">
+            <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-text-muted mb-2">
+            <label className="form-label">
               ผู้อนุมัติ (ชื่อลูกค้า / ผู้ประสานงาน) <span className="text-error">*</span>
             </label>
             <input
@@ -102,45 +102,45 @@ export default function ApprovalModal({
               value={approvedBy}
               onChange={(e) => setApprovedBy(e.target.value)}
               placeholder="เช่น คุณสมชาย ฝ่ายจัดซื้อ"
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
+              className="form-input"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-text-muted mb-2">
+            <label className="form-label">
               วิธีการอนุมัติ <span className="text-error">*</span>
             </label>
             <select
               value={approvalMethod}
               onChange={(e) => setApprovalMethod(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer text-sm font-medium"
+              className="form-select"
             >
-              <option value="signed-pdf" className="bg-surface-2">เซ็นรับรอง (Signed PDF)</option>
-              <option value="email" className="bg-surface-2">อีเมล (Email Confirmation)</option>
-              <option value="line-chat" className="bg-surface-2">แชท LINE (LINE Chat)</option>
-              <option value="verbal" className="bg-surface-2">วาจา (Verbal / Meeting)</option>
-              <option value="screenshot" className="bg-surface-2">ภาพถ่ายหน้าจอ (Screenshot)</option>
-              <option value="in-person" className="bg-surface-2">พบปะส่วนตัว (In-Person)</option>
-              <option value="other" className="bg-surface-2">อื่นๆ (Other)</option>
+              <option value="signed-pdf">เซ็นรับรอง (Signed PDF)</option>
+              <option value="email">อีเมล (Email Confirmation)</option>
+              <option value="line-chat">แชท LINE (LINE Chat)</option>
+              <option value="verbal">วาจา (Verbal / Meeting)</option>
+              <option value="screenshot">ภาพถ่ายหน้าจอ (Screenshot)</option>
+              <option value="in-person">พบปะส่วนตัว (In-Person)</option>
+              <option value="other">อื่นๆ (Other)</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text-muted mb-1">
+            <label className="form-label">
               ไฟล์หลักฐานอ้างอิง <span className="text-error">*</span>
             </label>
             <div className="space-y-2">
               {evidenceFiles.map((f, i) => (
-                <div key={i} className="flex items-center justify-between p-2 rounded bg-surface border border-border">
-                  <div className="flex items-center gap-2 truncate text-sm">
+                <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-surface border border-border">
+                  <div className="flex items-center gap-3 truncate text-sm">
                     <FileIcon className="w-4 h-4 text-text-dim shrink-0" />
                     <span className="truncate" title={f}>{f.split('/').pop() || f.split('\\').pop()}</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleRemoveFile(f)}
-                    className="p-1 hover:bg-error/10 text-error rounded"
+                    className="btn btn-icon text-error"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -149,28 +149,28 @@ export default function ApprovalModal({
               <button
                 type="button"
                 onClick={handleSelectFiles}
-                className="w-full py-3 border-2 border-dashed border-border rounded-lg text-sm text-text-muted hover:text-text hover:border-primary hover:bg-primary/5 transition-colors flex flex-col items-center justify-center gap-1"
+                className="w-full py-4 border-2 border-dashed border-border rounded-xl text-sm text-text-muted hover:text-text hover:border-primary hover:bg-primary/5 transition-colors flex flex-col items-center justify-center gap-2"
               >
                 <Upload className="w-5 h-5" />
                 <span>เลือกไฟล์หลักฐาน (PDF, รูปภาพ)</span>
               </button>
             </div>
-            <p className="text-xs text-text-dim mt-2">
+            <p className="text-xs text-text-dim mt-2.5 px-1">
               ไฟล์จะถูกคัดลอกไปเก็บไว้ในโฟลเดอร์ attachments ของโครงการนี้โดยอัตโนมัติ (ไฟล์ต้นฉบับจะไม่ถูกลบ)
             </p>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-end gap-2 pt-5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm text-text-muted hover:text-text hover:bg-surface-3 transition-colors"
+              className="btn btn-ghost"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
-              className="px-6 py-2 rounded-lg text-sm font-medium bg-primary hover:bg-primary-hover text-white transition-colors"
+              className="btn btn-primary"
             >
               บันทึกการอนุมัติ
             </button>

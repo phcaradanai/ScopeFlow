@@ -115,50 +115,52 @@ export default function ExportModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-6">
+      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
+          <h2 className="text-lg font-bold text-text flex items-center gap-2.5">
             <FileDown className="w-5 h-5 text-primary" />
             ส่งออกชุดเอกสารขออนุมัติ
           </h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-surface-3 text-text-dim hover:text-text transition-colors"
+            className="btn btn-icon"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-4 overflow-y-auto flex-1">
+        <div className="overflow-y-auto flex-1 p-6 space-section">
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-error/10 border border-error/30 text-error text-sm">
+            <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
               {error}
             </div>
           )}
 
           {exportSuccessPath ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
-              <div className="w-16 h-16 bg-success/20 text-success rounded-full flex items-center justify-center mb-2">
+            <div className="flex flex-col items-center justify-center py-10 text-center space-y-5">
+              <div className="w-16 h-16 bg-success/20 text-success rounded-full flex items-center justify-center">
                 <Check className="w-8 h-8" />
               </div>
-              <h3 className="text-lg font-medium text-text">ส่งออกสำเร็จ!</h3>
-              <p className="text-sm text-text-muted break-all px-4">
-                บันทึกไฟล์ไปที่:<br/>
-                <span className="font-mono text-xs text-text">{exportSuccessPath}</span>
-              </p>
+              <div>
+                <h3 className="text-lg font-bold text-text">ส่งออกสำเร็จ!</h3>
+                <p className="text-sm text-text-muted mt-2 break-all px-2">
+                  บันทึกไฟล์ไปที่:<br/>
+                  <span className="font-mono text-xs text-text">{exportSuccessPath}</span>
+                </p>
+              </div>
               
-              <div className="flex flex-col w-full max-w-xs gap-2 pt-4">
+              <div className="flex flex-col w-full max-w-xs gap-3 pt-2">
                 <button
                   onClick={handleOpenFile}
-                  className="flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors text-sm font-medium"
+                  className="btn btn-primary w-full"
                 >
                   <ExternalLink className="w-4 h-4" />
                   เปิดไฟล์ HTML
                 </button>
                 <button
                   onClick={handleRevealInFolder}
-                  className="flex items-center justify-center gap-2 px-4 py-2 bg-surface hover:bg-surface-3 border border-border text-text rounded-lg transition-colors text-sm font-medium"
+                  className="btn btn-ghost w-full"
                 >
                   <FolderOpen className="w-4 h-4" />
                   เปิดโฟลเดอร์ Exports
@@ -167,13 +169,13 @@ export default function ExportModal({
             </div>
           ) : (
             <>
-              <p className="text-sm text-text-muted mb-4">
+              <p className="text-sm text-text-muted">
                 เลือกเอกสารที่ต้องการรวมไว้ในชุดเอกสารขออนุมัติ ระบบจะสร้างไฟล์ HTML ที่พร้อมสำหรับสั่งพิมพ์ (Print) เป็น PDF
               </p>
               
-              <div className="space-y-2 border border-border rounded-lg overflow-hidden bg-surface">
+              <div className="space-y-2 border border-border rounded-xl overflow-hidden bg-surface">
                 {documents.length === 0 ? (
-                  <div className="p-4 text-center text-sm text-text-dim">
+                  <div className="p-6 text-center text-sm text-text-dim">
                     ไม่มีเอกสารในโครงการนี้
                   </div>
                 ) : (
@@ -182,7 +184,7 @@ export default function ExportModal({
                     return (
                       <label
                         key={doc.path}
-                        className={`flex items-start gap-3 p-3 hover:bg-surface-3 cursor-pointer transition-colors ${
+                        className={`flex items-start gap-3 p-4 hover:bg-surface-3 cursor-pointer transition-colors ${
                           isSelected ? 'bg-primary/5' : ''
                         }`}
                       >
@@ -195,7 +197,7 @@ export default function ExportModal({
                           />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium text-text truncate" title={doc.filename}>
+                          <div className="text-sm font-semibold text-text truncate" title={doc.filename}>
                             {doc.filename}
                           </div>
                           <div className="text-xs text-text-dim capitalize">
@@ -212,24 +214,20 @@ export default function ExportModal({
         </div>
 
         {!exportSuccessPath && (
-          <div className="p-4 border-t border-border shrink-0 flex justify-end gap-2 bg-surface-2">
+          <div className="px-6 py-5 border-t border-border shrink-0 flex justify-end gap-3 bg-surface-2">
             <button
               onClick={onClose}
               disabled={isExporting}
-              className="px-4 py-2 rounded-lg text-sm text-text-muted hover:text-text hover:bg-surface-3 transition-colors disabled:opacity-50"
+              className="btn btn-ghost"
             >
               ยกเลิก
             </button>
             <button
               onClick={handleExport}
               disabled={isExporting || documents.length === 0}
-              className="px-6 py-2 rounded-lg text-sm font-medium bg-primary hover:bg-primary-hover text-white transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="btn btn-primary"
             >
-              {isExporting ? (
-                <>กำลังส่งออก...</>
-              ) : (
-                <>ส่งออก HTML</>
-              )}
+              {isExporting ? 'กำลังส่งออก...' : 'ส่งออก HTML'}
             </button>
           </div>
         )}

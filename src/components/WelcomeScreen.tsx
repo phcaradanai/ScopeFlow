@@ -113,14 +113,14 @@ export default function WelcomeScreen() {
       {/* Decorative background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-gradient-to-br from-primary/30 via-accent/25 to-transparent rounded-full blur-[140px] pointer-events-none animate-pulse-slow opacity-80" />
       
-      <div className="max-w-lg w-full px-6 text-center relative z-10">
+      <div className="max-w-lg w-full px-8 text-center relative z-10">
         {/* Logo area */}
-        <div className="mb-10">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-primary/30 border border-white/10">
+        <div className="mb-16">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mx-auto mb-7 shadow-2xl shadow-primary/30 border border-white/10">
             <FileText className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-text mb-3 tracking-tight">ScopeFlow</h1>
-          <p className="text-text-muted text-lg">
+          <p className="text-text-muted text-lg font-medium">
             ระบบจัดการเอกสารขอบเขตงาน
           </p>
         </div>
@@ -129,7 +129,7 @@ export default function WelcomeScreen() {
         <div className="space-y-5">
           <button
             onClick={handleCreate}
-            className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-primary text-white font-medium transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-[0_0_35px_-5px] hover:shadow-primary/40 hover:-translate-y-1 border border-primary-light/20"
+            className="w-full flex items-center justify-center gap-3 px-8 py-4.5 rounded-2xl bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-primary text-white font-semibold transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-[0_8px_30px_-5px] hover:shadow-primary/40 hover:-translate-y-1 border border-primary-light/20 min-h-[52px]"
           >
             <Plus className="w-5 h-5" />
             สร้าง Workspace ใหม่
@@ -137,23 +137,25 @@ export default function WelcomeScreen() {
 
           <button
             onClick={handleOpen}
-            className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-text font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 backdrop-blur-sm"
+            className="w-full flex items-center justify-center gap-3 px-8 py-4.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-text font-semibold transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 backdrop-blur-sm min-h-[52px]"
           >
             <FolderOpen className="w-5 h-5" />
             เปิด Workspace ที่มีอยู่
           </button>
 
-          <div className="grid grid-cols-2 gap-4 pt-3">
+          <div className="grid grid-cols-2 gap-4 pt-2">
             <button
               onClick={handleCreateDemo}
-              className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 text-text-muted hover:text-text text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 backdrop-blur-sm"
+              disabled
+              className="btn btn-ghost w-full py-3.5 opacity-40 cursor-not-allowed"
             >
               <Sparkles className="w-4 h-4 text-accent" />
               สร้าง Demo
             </button>
             <button
               onClick={handleRestoreBackup}
-              className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 text-text-muted hover:text-text text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 backdrop-blur-sm"
+              disabled
+              className="btn btn-ghost w-full py-3.5 opacity-40 cursor-not-allowed"
             >
               <PackageOpen className="w-4 h-4" />
               เปิดจาก Backup
@@ -161,8 +163,13 @@ export default function WelcomeScreen() {
           </div>
         </div>
 
-        {/* Description */}
-        <div className="mt-12 text-sm text-text-dim/60 space-y-1.5 font-medium tracking-wide">
+        {/* Helper copy */}
+        <p className="mt-16 text-sm text-text-dim font-medium leading-relaxed">
+          ข้อมูลทั้งหมดอยู่ในเครื่องของคุณ<br/>ไม่ต้องสมัครบัญชี
+        </p>
+
+        {/* Footer */}
+        <div className="mt-10 text-sm text-text-dim/50 font-medium tracking-wide">
           <p>Offline-first • File-first</p>
         </div>
       </div>

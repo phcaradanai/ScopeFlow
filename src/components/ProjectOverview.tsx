@@ -85,41 +85,41 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
       {/* Header */}
       <div className="flex-none px-8 py-6 border-b border-white/10 bg-white/[0.01] backdrop-blur-md flex items-center justify-between z-10 shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-text-muted flex items-center gap-3">
-            <Briefcase className="w-6 h-6 text-primary" />
+          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-text-muted flex items-center gap-3">
+            <Briefcase className="w-7 h-7 text-primary" />
             {projectName}
           </h1>
-          <p className="text-sm text-text-muted mt-1.5 font-medium">ภาพรวมโครงการและดัชนีเอกสาร (Project Overview)</p>
+          <p className="text-base text-text-muted mt-2 font-medium">ภาพรวมโครงการและดัชนีเอกสาร</p>
         </div>
         <button
           onClick={loadDocuments}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 hover:border-white/20 rounded-2xl text-sm font-medium hover:bg-white/10 transition-all duration-300 disabled:opacity-50 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+          className="flex items-center gap-2 px-5 py-3 bg-white/5 border border-white/10 hover:border-white/20 rounded-2xl text-base font-medium hover:bg-white/10 transition-all duration-300 disabled:opacity-50 shadow-sm hover:shadow-md hover:-translate-y-0.5 min-h-[44px]"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           รีเฟรชข้อมูล
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-8 space-y-8">
+      <div className="flex-1 overflow-y-auto p-8 space-section-lg">
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <SummaryCard icon={<FileText className="w-5 h-5 text-accent" />} label="เอกสารทั้งหมด" value={totalDocs} />
-          <SummaryCard icon={<CheckCircle className="w-5 h-5 text-success" />} label="อนุมัติแล้ว (Approved)" value={approvedDocs} />
+          <SummaryCard icon={<CheckCircle className="w-5 h-5 text-success" />} label="อนุมัติแล้ว" value={approvedDocs} />
 
           {/* Action Required Card */}
-          <div className="bg-surface-2/50 backdrop-blur-sm border border-white/5 p-6 rounded-2xl flex flex-col justify-between hover:bg-white/[0.04] transition-all duration-300 shadow-sm hover:shadow-md hover:shadow-warning/5 hover:-translate-y-1">
+          <div className="card card-hover flex flex-col justify-between min-h-[140px]">
             <span className="text-sm text-text-muted flex items-center gap-2.5 font-semibold">
               <FileWarning className="w-4 h-4 text-warning" />
-              ต้องดำเนินการ (Action Required)
+              ต้องดำเนินการ
             </span>
             <div className="flex flex-wrap items-center gap-2 mt-4">
-              {openCRs > 0 && <span className="px-2.5 py-1 bg-warning/10 border border-warning/20 text-warning text-xs rounded-lg font-medium">{openCRs} CR</span>}
-              {openSUPs > 0 && <span className="px-2.5 py-1 bg-primary/10 border border-primary/20 text-primary-light text-xs rounded-lg font-medium">{openSUPs} SUP</span>}
-              {pendingApprovals > 0 && <span className="px-2.5 py-1 bg-accent/10 border border-accent/20 text-accent text-xs rounded-lg font-medium">{pendingApprovals} รออนุมัติ</span>}
-              {draftDocs > 0 && <span className="px-2.5 py-1 bg-white/5 border border-white/10 text-text-muted text-xs rounded-lg font-medium">{draftDocs} ฉบับร่าง</span>}
-              {(openCRs === 0 && openSUPs === 0 && pendingApprovals === 0 && draftDocs === 0) && <span className="text-text-dim text-sm">-</span>}
+              {openCRs > 0 && <span className="badge badge-warning">{openCRs} CR</span>}
+              {openSUPs > 0 && <span className="badge badge-primary">{openSUPs} SUP</span>}
+              {pendingApprovals > 0 && <span className="badge badge-accent">{pendingApprovals} รออนุมัติ</span>}
+              {draftDocs > 0 && <span className="badge badge-muted">{draftDocs} ฉบับร่าง</span>}
+              {(openCRs === 0 && openSUPs === 0 && pendingApprovals === 0 && draftDocs === 0) && <span className="text-text-dim text-sm font-medium">-</span>}
             </div>
           </div>
         </div>
@@ -127,141 +127,125 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
         {/* Filter Bar */}
         <div className="flex flex-col sm:flex-row gap-5">
           <div className="flex-1 relative group">
-            <Search className="w-4 h-4 absolute left-4.5 top-1/2 -translate-y-1/2 text-text-dim group-focus-within:text-primary transition-colors duration-300" />
+            <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-text-dim group-focus-within:text-primary transition-colors duration-300" />
             <input
               type="text"
               placeholder="ค้นหาจากชื่อเอกสาร, ประเภท, สถานะ..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-5 py-3 bg-white/[0.02] backdrop-blur-sm border border-white/10 hover:border-white/20 rounded-2xl text-sm text-text focus:border-primary/60 focus:bg-white/[0.04] focus:ring-2 focus:ring-primary/20 transition-all duration-300 outline-none shadow-sm"
+              className="form-input pl-12"
             />
           </div>
-          <div className="relative">
+          <div className="relative sm:w-56">
             <select
               value={filterType}
               onChange={e => setFilterType(e.target.value)}
-              className="w-full sm:w-52 px-5 py-3 bg-white/[0.02] backdrop-blur-sm border border-white/10 hover:border-white/20 rounded-2xl text-sm text-text focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-all duration-300 outline-none appearance-none shadow-sm cursor-pointer"
+              className="form-select"
             >
-              <option value="all" className="bg-surface-2 text-text">ทุกประเภท (All Types)</option>
-              {uniqueTypes.map(t => <option key={t} value={t} className="bg-surface-2 text-text">{t}</option>)}
+              <option value="all">ทุกประเภท</option>
+              {uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-          <div className="relative">
+          <div className="relative sm:w-56">
             <select
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value)}
-              className="w-full sm:w-52 px-5 py-3 bg-white/[0.02] backdrop-blur-sm border border-white/10 hover:border-white/20 rounded-2xl text-sm text-text focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-all duration-300 outline-none appearance-none shadow-sm cursor-pointer"
+              className="form-select"
             >
-              <option value="all" className="bg-surface-2 text-text">ทุกสถานะ (All Statuses)</option>
-              {uniqueStatuses.map(s => <option key={s} value={s} className="bg-surface-2 text-text">{s}</option>)}
+              <option value="all">ทุกสถานะ</option>
+              {uniqueStatuses.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
         </div>
 
-        {/* Document List as Cards */}
+        {/* Document List */}
         <div className="space-y-4 pb-8">
           {filteredDocs.length === 0 ? (
-            <div className="bg-surface-2/30 backdrop-blur-sm border border-white/10 rounded-2xl p-12 text-center shadow-lg shadow-black/20">
-              <div className="flex flex-col items-center justify-center space-y-4">
-                <FileText className="w-12 h-12 text-text-dim/50 animate-pulse" />
-                <div>
-                  <p className="text-text-muted font-semibold text-base">ยังไม่มีเอกสารในโครงการนี้ (No documents found)</p>
-                  <p className="text-sm text-text-dim mt-2">คลิก + ที่ชื่อโครงการในแถบด้านซ้ายเพื่อสร้างเอกสารใหม่</p>
-                </div>
-              </div>
+            <div className="card flex flex-col items-center justify-center py-16 text-center">
+              <FileText className="w-14 h-14 text-text-dim/40 mb-5" />
+              <p className="text-text-muted font-semibold text-lg">ยังไม่มีเอกสารในโครงการนี้</p>
+              <p className="text-sm text-text-dim mt-2 max-w-sm">คลิก + ที่ชื่อโครงการในแถบด้านซ้ายเพื่อสร้างเอกสารใหม่</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-3">
               {filteredDocs.map((doc, idx) => (
-                <div
+                <button
                   key={idx}
                   onClick={() => onOpenDocument(doc.file_path)}
-                  className="bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 hover:border-primary/40 rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-5 transition-all duration-300 group cursor-pointer hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/5 active:translate-y-0 relative overflow-hidden"
+                  className="card card-hover w-full text-left p-5 lg:p-6 group"
                 >
-                  {/* Hover Accent Glow */}
-                  <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  
                   {/* Left Section: Icon and Document Identity */}
                   <div className="flex items-center gap-4 min-w-0 flex-1">
                     <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-text-muted group-hover:text-primary group-hover:bg-primary/5 group-hover:border-primary/20 transition-all duration-300 shrink-0">
                       <FileText className="w-6 h-6" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-text group-hover:text-primary-light transition-colors text-base truncate" title={doc.title}>
+                      <div className="font-semibold text-text group-hover:text-primary-light transition-colors text-base truncate">
                         {doc.title}
                       </div>
-                      <div className="text-xs text-text-dim flex flex-wrap items-center gap-2 mt-2">
+                      <div className="text-sm text-text-dim flex flex-wrap items-center gap-3 mt-2">
                         <span className="font-mono text-text-muted font-medium">{doc.file_name}</span>
-                        <span className="w-1 h-1 rounded-full bg-white/20" />
-                        <span className="px-2.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] uppercase tracking-wider text-text-muted font-semibold">
+                        <span className="px-2.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] uppercase tracking-wider text-text-muted font-semibold">
                           {doc.folder}
                         </span>
                         {doc.parse_status === 'warning' && (
-                          <>
-                            <span className="w-1 h-1 rounded-full bg-white/20" />
-                            <span className="text-xs text-warning flex items-center gap-1 font-semibold">
-                              <FileWarning className="w-3.5 h-3.5" /> YAML Frontmatter ไม่สมบูรณ์
-                            </span>
-                          </>
+                          <span className="text-xs text-warning flex items-center gap-1.5 font-semibold">
+                            <FileWarning className="w-3.5 h-3.5" /> YAML ไม่สมบูรณ์
+                          </span>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Right Section: Badges & Info Columns */}
-                  <div className="flex flex-wrap items-center gap-4 lg:gap-8 shrink-0 border-t border-white/5 lg:border-t-0 pt-4 lg:pt-0">
+                  {/* Right Section: Badges */}
+                  <div className="flex flex-wrap items-center gap-3 lg:gap-5 shrink-0">
                     {/* Document Type Badge */}
-                    <div className="flex flex-col gap-1 w-24">
+                    <div className="hidden sm:flex flex-col items-center gap-1">
                       <span className="text-[10px] text-text-dim font-bold uppercase tracking-wider">ประเภท</span>
-                      <span className="px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 text-xs font-semibold text-primary-light uppercase tracking-wider text-center block w-fit">
+                      <span className="badge badge-primary uppercase">
                         {doc.type}
                       </span>
                     </div>
 
                     {/* Status Badge */}
-                    <div className="flex flex-col gap-1 w-28">
+                    <div className="hidden sm:flex flex-col items-center gap-1">
                       <span className="text-[10px] text-text-dim font-bold uppercase tracking-wider">สถานะ</span>
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border text-center block w-fit uppercase tracking-wider ${
-                        doc.status === 'approved' ? 'bg-success/10 border-success/20 text-success' :
-                        doc.status === 'pending' ? 'bg-warning/10 border-warning/20 text-warning' :
-                        doc.status === 'rejected' ? 'bg-error/10 border-error/20 text-error' :
-                        'bg-white/5 border-white/10 text-text-muted'
-                      }`}>
+                      <span className={`badge ${doc.status === 'approved' ? 'badge-success' : doc.status === 'pending' ? 'badge-warning' : doc.status === 'rejected' ? 'badge-error' : 'badge-muted'}`}>
                         {doc.status}
                       </span>
                     </div>
 
                     {/* Version */}
-                    <div className="flex flex-col gap-1 w-24">
-                      <span className="text-[10px] text-text-dim font-bold uppercase tracking-wider font-sans">เวอร์ชัน/เลขที่</span>
-                      <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2.5 py-1 rounded-lg text-text-muted font-bold text-center block w-fit">
+                    <div className="hidden md:flex flex-col items-center gap-1">
+                      <span className="text-[10px] text-text-dim font-bold uppercase tracking-wider">เลขที่</span>
+                      <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2.5 py-1 rounded-lg text-text-muted font-bold">
                         {doc.document_number || `v${doc.version}`}
                       </span>
                     </div>
 
                     {/* Lock Status */}
-                    <div className="flex flex-col items-center gap-1 w-16">
+                    <div className="hidden lg:flex flex-col items-center gap-1">
                       <span className="text-[10px] text-text-dim font-bold uppercase tracking-wider">ล็อก</span>
                       <div className="flex items-center justify-center h-7">
                         {doc.locked ? (
-                          <div className="p-1 rounded bg-error/10 border border-error/20" title="ถูกล็อก">
+                          <div className="p-1.5 rounded-lg bg-error/10 border border-error/20" title="ถูกล็อก">
                             <Lock className="w-3.5 h-3.5 text-error" />
                           </div>
                         ) : (
-                          <span className="text-text-dim text-xs font-semibold">-</span>
+                          <span className="text-text-dim text-xs font-medium">-</span>
                         )}
                       </div>
                     </div>
 
                     {/* Updated At */}
-                    <div className="flex flex-col gap-1 w-24">
-                      <span className="text-[10px] text-text-dim font-bold uppercase tracking-wider">อัปเดตเมื่อ</span>
-                      <span className="text-xs text-text-muted font-semibold h-7 flex items-center">
+                    <div className="hidden lg:flex flex-col items-center gap-1">
+                      <span className="text-[10px] text-text-dim font-bold uppercase tracking-wider">อัปเดต</span>
+                      <span className="text-xs text-text-muted font-medium whitespace-nowrap">
                         {doc.updated || doc.created || '-'}
                       </span>
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -273,14 +257,12 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
 
 function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
-    <div className="bg-surface-2/50 backdrop-blur-sm border border-white/5 p-6 rounded-2xl flex flex-col justify-between hover:bg-white/[0.04] transition-all duration-300 shadow-sm hover:shadow-md hover:shadow-primary/5 hover:-translate-y-1 relative overflow-hidden group">
-      {/* Decorative gradient glow on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-      <span className="text-sm text-text-muted flex items-center gap-2.5 font-semibold relative z-10">
+    <div className="card card-hover flex flex-col justify-between min-h-[140px]">
+      <span className="text-sm text-text-muted flex items-center gap-2.5 font-semibold">
         {icon}
         {label}
       </span>
-      <span className="text-3xl font-bold text-text mt-5 relative z-10 drop-shadow-sm">{value}</span>
+      <span className="text-4xl font-bold text-text mt-4">{value}</span>
     </div>
   );
 }

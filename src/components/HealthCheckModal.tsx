@@ -49,23 +49,23 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
   const infos = issues.filter(i => i.type === 'info');
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-      <div className="bg-surface-2 w-full max-w-2xl rounded-2xl shadow-2xl border border-border flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-6">
+      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-2xl shadow-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
             <ShieldCheck className="w-6 h-6 text-primary" />
             <h2 className="text-xl font-bold text-text">ตรวจสอบ Workspace</h2>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-surface-3 text-text-dim hover:text-text transition-colors">
+          <button onClick={onClose} className="btn btn-icon">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="overflow-y-auto flex-1 p-6 space-section-lg">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-12 space-y-4">
-              <RefreshCw className="w-8 h-8 text-primary animate-spin" />
-              <p className="text-text-muted">กำลังสแกนไฟล์และดัชนี...</p>
+            <div className="flex flex-col items-center justify-center py-16 space-y-4">
+              <RefreshCw className="w-10 h-10 text-primary animate-spin" />
+              <p className="text-text-muted font-medium">กำลังสแกนไฟล์และดัชนี...</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -73,12 +73,12 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
               {/* Errors */}
               {errors.length > 0 && (
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-error flex items-center gap-2.5">
-                    <XCircle className="w-4 h-4" /> ข้อผิดพลาดร้ายแรง (Errors) ({errors.length})
+                  <h3 className="text-base font-bold text-error flex items-center gap-2.5">
+                    <XCircle className="w-5 h-5" /> ข้อผิดพลาดร้ายแรง ({errors.length})
                   </h3>
                   <div className="space-y-3">
                     {errors.map((err, i) => (
-                      <div key={i} className="p-4 bg-error/10 border border-error/20 rounded-xl text-sm text-text">
+                      <div key={i} className="p-4 bg-error/10 border border-error/20 rounded-xl text-sm text-text font-medium">
                         {err.message}
                       </div>
                     ))}
@@ -89,17 +89,17 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
               {/* Warnings */}
               {warnings.length > 0 && (
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-warning flex items-center gap-2.5">
-                    <AlertTriangle className="w-4 h-4" /> ข้อควรระวัง (Warnings) ({warnings.length})
+                  <h3 className="text-base font-bold text-warning flex items-center gap-2.5">
+                    <AlertTriangle className="w-5 h-5" /> ข้อควรระวัง ({warnings.length})
                   </h3>
                   <div className="space-y-3">
                     {warnings.map((warn, i) => (
                       <div key={i} className="p-4 bg-warning/10 border border-warning/20 rounded-xl text-sm text-text flex items-center justify-between gap-4">
-                        <span>{warn.message}</span>
+                        <span className="font-medium">{warn.message}</span>
                         {warn.fixAction === 'create_project_folders' && (
                           <button 
                             onClick={() => handleFixFolders(warn.payload)}
-                            className="flex items-center gap-1.5 px-4 py-2 bg-warning/20 hover:bg-warning/30 border border-warning/30 text-warning rounded-xl text-xs font-semibold transition-colors shrink-0"
+                            className="btn btn-sm text-warning bg-warning/20 border border-warning/30 hover:bg-warning hover:text-white shrink-0"
                           >
                             <FolderPlus className="w-3.5 h-3.5" /> ซ่อมแซมโฟลเดอร์
                           </button>
@@ -113,7 +113,7 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
               {/* Infos */}
               {infos.length > 0 && errors.length === 0 && warnings.length === 0 && (
                 <div className="space-y-3">
-                  <div className="p-4.5 bg-success/10 border border-success/20 rounded-xl flex items-center gap-3.5 text-success">
+                  <div className="p-5 bg-success/10 border border-success/20 rounded-xl flex items-center gap-3.5 text-success">
                     <ShieldCheck className="w-5 h-5 shrink-0" />
                     <span className="font-semibold">Workspace สมบูรณ์ ไม่มีข้อผิดพลาดใดๆ</span>
                   </div>
@@ -124,7 +124,7 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
           )}
         </div>
 
-        <div className="px-6 py-5 border-t border-border bg-surface-3 rounded-b-2xl flex justify-between items-center gap-4 flex-wrap">
+        <div className="px-6 py-5 border-t border-border bg-surface-3 shrink-0 flex justify-between items-center gap-4 flex-wrap">
           <p className="text-xs text-text-dim flex items-center gap-1.5 font-medium">
             <Info className="w-3.5 h-3.5" /> ไม่มีการแก้ไขอัตโนมัติในส่วนที่อาจทำให้ข้อมูลสูญหาย
           </p>
@@ -132,15 +132,15 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
             <button
               onClick={runCheck}
               disabled={loading}
-              className="px-5 py-2.5 text-sm font-semibold text-text bg-surface border border-border rounded-xl hover:bg-surface-2 transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="btn btn-ghost"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> ตรวจสอบอีกครั้ง
             </button>
             <button
               onClick={onClose}
-              className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent text-white rounded-xl hover:shadow-md hover:shadow-primary/10 transition-all"
+              className="btn btn-primary"
             >
-              ปิด (Close)
+              ปิด
             </button>
           </div>
         </div>

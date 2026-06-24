@@ -72,27 +72,27 @@ export default function ClientForm({ onClose }: ClientFormProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
-          <h2 className="text-lg font-semibold">สร้างลูกค้าใหม่</h2>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-6">
+      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
+          <h2 className="text-lg font-bold text-text">สร้างลูกค้าใหม่</h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl hover:bg-surface-3 text-text-dim hover:text-text transition-colors"
+            className="btn btn-icon"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-section">
           {error && (
-            <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm">
+            <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-text-muted mb-2">
+            <label className="form-label">
               ชื่อลูกค้า / บริษัท <span className="text-error">*</span>
             </label>
             <input
@@ -100,21 +100,19 @@ export default function ClientForm({ onClose }: ClientFormProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="เช่น บริษัท ABC จำกัด"
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
+              className="form-input"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-text-muted mb-2">
-              รหัสลูกค้า (ID)
-            </label>
+            <label className="form-label">รหัสลูกค้า (ID)</label>
             <input
               type="text"
               value={customId}
               onChange={(e) => setCustomId(e.target.value)}
               placeholder={generatedId || 'auto-generated'}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none font-mono text-sm font-medium"
+              className="form-input font-mono"
             />
             <p className="text-xs text-text-dim mt-1.5 px-1">
               ใช้เป็นชื่อโฟลเดอร์ (ตัวพิมพ์เล็ก, ขีดกลาง) → {customId || generatedId || '...'}
@@ -122,7 +120,7 @@ export default function ClientForm({ onClose }: ClientFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-text-muted mb-2">
+            <label className="form-label">
               ชื่อผู้ติดต่อ <span className="text-error">*</span>
             </label>
             <input
@@ -130,70 +128,68 @@ export default function ClientForm({ onClose }: ClientFormProps) {
               value={contactPerson}
               onChange={(e) => setContactPerson(e.target.value)}
               placeholder="เช่น คุณสมหญิง"
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
+              className="form-input"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-text-muted mb-2">อีเมล</label>
+              <label className="form-label">อีเมล</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
+                className="form-input"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-text-muted mb-2">เบอร์โทร</label>
+              <label className="form-label">เบอร์โทร</label>
               <input
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
+                className="form-input"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-text-muted mb-2">LINE ID</label>
+            <label className="form-label">LINE ID</label>
             <input
               type="text"
               value={lineId}
               onChange={(e) => setLineId(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
+              className="form-input"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-text-muted mb-2">ที่อยู่</label>
+            <label className="form-label">ที่อยู่</label>
             <textarea
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               rows={2}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none text-sm font-medium leading-relaxed"
+              className="form-input resize-none leading-relaxed"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-text-muted mb-2">
-              เลขผู้เสียภาษี
-            </label>
+            <label className="form-label">เลขผู้เสียภาษี</label>
             <input
               type="text"
               value={taxId}
               onChange={(e) => setTaxId(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
+              className="form-input"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-text-muted mb-2">หมายเหตุ</label>
+            <label className="form-label">หมายเหตุ</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none text-sm font-medium leading-relaxed"
+              className="form-input resize-none leading-relaxed"
             />
           </div>
 
@@ -201,14 +197,14 @@ export default function ClientForm({ onClose }: ClientFormProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text-muted hover:text-text hover:bg-surface-3 transition-colors"
+              className="btn btn-ghost"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent text-white transition-all shadow-md shadow-primary/25 disabled:opacity-50"
+              className="btn btn-primary"
             >
               {saving ? 'กำลังบันทึก...' : 'สร้างลูกค้า'}
             </button>

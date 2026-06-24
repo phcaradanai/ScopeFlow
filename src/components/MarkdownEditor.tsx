@@ -174,21 +174,28 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex flex-wrap items-center justify-between px-6 py-4.5 border-b border-border bg-surface-2 gap-3 shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <FileText className="w-4 h-4 text-primary-light" />
-          <span className="text-sm font-semibold text-text">{filename}</span>
-          {isLocked && <Lock className="w-4 h-4 text-warning ml-1.5" />}
+      <div className="flex flex-wrap items-center justify-between px-6 py-4 border-b border-border bg-surface-2 gap-3 shadow-sm">
+        {/* Left: filename + status */}
+        <div className="flex items-center gap-3">
+          <FileText className="w-5 h-5 text-primary-light" />
+          <span className="text-base font-semibold text-text">{filename}</span>
+          {isLocked && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-warning/10 border border-warning/20 text-warning text-xs font-semibold">
+              <Lock className="w-3.5 h-3.5" />
+              ถูกล็อก
+            </span>
+          )}
           {hasChanges && !isLocked && (
             <span className="w-2.5 h-2.5 rounded-full bg-warning" title="มีการเปลี่ยนแปลง" />
           )}
         </div>
 
+        {/* Right: actions */}
         <div className="flex flex-wrap items-center gap-3">
           {!isLocked && !isApprovalRecord && !hasChanges && (
             <button
               onClick={() => setShowApprovalModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-success/10 text-success hover:bg-success hover:text-white transition-all shadow-sm"
+              className="btn btn-sm flex items-center gap-1.5 text-success bg-success/10 border border-success/20 hover:bg-success hover:text-white hover:border-success"
             >
               <CheckCircle className="w-3.5 h-3.5" />
               บันทึกการอนุมัติ
@@ -198,7 +205,7 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
           {isLocked && !isApprovalRecord && (
             <button
               onClick={handleCreateRevision}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
+              className="btn btn-sm bg-primary/10 text-primary hover:bg-primary hover:text-white"
             >
               <Copy className="w-3.5 h-3.5" />
               สร้างเวอร์ชันใหม่
@@ -211,7 +218,7 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
             {(docType === 'quotation' || docType === 'scope') && (
               <button
                 onClick={() => setMode('form')}
-                className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold transition-colors ${
+                className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold transition-colors ${
                   mode === 'form' ? 'bg-primary text-white' : 'bg-surface-2 text-text-muted hover:text-text'
                 }`}
               >
@@ -221,7 +228,7 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
             )}
             <button
               onClick={() => setMode('edit')}
-              className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold transition-colors ${
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold transition-colors ${
                 mode === 'edit' ? 'bg-primary text-white' : 'bg-surface-2 text-text-muted hover:text-text'
               }`}
             >
@@ -230,7 +237,7 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
             </button>
             <button
               onClick={() => setMode('preview')}
-              className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold transition-colors ${
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold transition-colors ${
                 mode === 'preview' ? 'bg-primary text-white' : 'bg-surface-2 text-text-muted hover:text-text'
               }`}
             >
@@ -242,15 +249,15 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
           <button
             onClick={handleSave}
             disabled={!hasChanges || saving || isLocked}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm ${
+            className={`btn flex items-center gap-1.5 px-5 py-2.5 min-h-[40px] ${
               saved
-                ? 'bg-success/20 text-success'
+                ? 'bg-success/20 text-success border border-success/30'
                 : (hasChanges && !isLocked)
-                ? 'bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent text-white hover:shadow-md'
-                : 'bg-surface-3 text-text-dim cursor-not-allowed'
+                ? 'btn-primary'
+                : 'bg-surface-3 text-text-dim cursor-not-allowed border border-border'
             }`}
           >
-            <Save className="w-3.5 h-3.5" />
+            <Save className="w-4 h-4" />
             {saving ? 'กำลังบันทึก...' : saved ? 'บันทึกแล้ว ✓' : 'บันทึก'}
           </button>
         </div>

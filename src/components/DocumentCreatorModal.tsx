@@ -176,37 +176,37 @@ export default function DocumentCreatorModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
-          <h2 className="text-lg font-semibold">สร้างเอกสารใหม่</h2>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-6">
+      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
+          <h2 className="text-lg font-bold text-text">สร้างเอกสารใหม่</h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl hover:bg-surface-3 text-text-dim hover:text-text transition-colors"
+            className="btn btn-icon"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          <div className="px-4 py-3 rounded-xl bg-surface-3/50 text-sm text-text-muted">
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-section">
+          <div className="px-4 py-3 rounded-xl bg-surface-3/50 text-sm text-text-muted font-medium">
             โครงการ: <span className="font-semibold text-text">{projectId}</span>
           </div>
 
           {error && (
-            <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm">
+            <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-text-muted mb-2">
+            <label className="form-label">
               ประเภทเอกสาร <span className="text-error">*</span>
             </label>
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer text-sm font-medium"
+              className="form-select"
             >
               <option value="scope">ขอบเขตงาน (Scope)</option>
               <option value="quotation">ใบเสนอราคา (Quotation)</option>
@@ -221,7 +221,7 @@ export default function DocumentCreatorModal({
           {requiresSlug && (
             <>
               <div>
-                <label className="block text-sm font-semibold text-text-muted mb-2">
+                <label className="form-label">
                   ชื่อเอกสาร / หัวข้อ <span className="text-error">*</span>
                 </label>
                 <input
@@ -229,12 +229,12 @@ export default function DocumentCreatorModal({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="เช่น เพิ่มระบบรายงานยอดขาย"
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
+                  className="form-input"
                   autoFocus
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-text-muted mb-2">
+                <label className="form-label">
                   Slug (สำหรับตั้งชื่อไฟล์) <span className="text-error">*</span>
                 </label>
                 <input
@@ -242,7 +242,7 @@ export default function DocumentCreatorModal({
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
                   placeholder="เช่น add-sales-report"
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text placeholder:text-text-dim focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none font-mono text-sm font-medium"
+                  className="form-input font-mono"
                 />
                 {!slug && title && (
                   <p className="text-xs text-error mt-1.5 px-1">
@@ -260,13 +260,13 @@ export default function DocumentCreatorModal({
 
           {type === 'dcr' && (
             <div>
-              <label className="block text-sm font-semibold text-text-muted mb-2">
+              <label className="form-label">
                 ประเภทการเปลี่ยนแปลง <span className="text-error">*</span>
               </label>
               <select
                 value={changeKind}
                 onChange={(e) => setChangeKind(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer text-sm font-medium"
+                className="form-select"
               >
                 <option value="behavior">การทำงาน (Behavior / Logic)</option>
                 <option value="ui">หน้าจอ (UI / UX)</option>
@@ -282,13 +282,13 @@ export default function DocumentCreatorModal({
 
           {(type === 'sup' || type === 'ma') && (
             <div>
-              <label className="block text-sm font-semibold text-text-muted mb-2">
+              <label className="form-label">
                 หมวดหมู่ <span className="text-error">*</span>
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-text focus:border-primary/60 focus:bg-white/[0.05] focus:ring-2 focus:ring-primary/20 transition-all outline-none cursor-pointer text-sm font-medium"
+                className="form-select"
               >
                 <option value="bug">บั๊ก (Bug)</option>
                 <option value="feature-request">ขอเพิ่มฟีเจอร์ (Feature Request)</option>
@@ -304,14 +304,14 @@ export default function DocumentCreatorModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl text-sm font-semibold text-text-muted hover:text-text hover:bg-surface-3 transition-colors"
+              className="btn btn-ghost"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent text-white transition-all shadow-md shadow-primary/25 disabled:opacity-50"
+              className="btn btn-primary"
             >
               {saving ? 'กำลังสร้าง...' : 'สร้างเอกสาร'}
             </button>
