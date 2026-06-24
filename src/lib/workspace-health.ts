@@ -1,10 +1,10 @@
-import { FileEntry } from './tauri-commands';
+import { FileEntry, pathExists } from './tauri-commands';
 import { scanProjectDocuments } from './document-scanner';
 
 export interface HealthIssue {
   type: 'error' | 'warning' | 'info';
   message: string;
-  fixAction?: 'create_project_folders';
+  fixAction?: 'create_project_folders' | 'create_scopeflow_yaml';
   payload?: any;
 }
 
@@ -22,21 +22,26 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
   const issues: HealthIssue[] = [];
 
   // 1. Check scopeflow.yaml
-  const hasConfig = tree.children?.find(c => c.name === 'scopeflow.yaml');
+  const hasConfig = tree.children?.some(c => c.name === 'scopeflow.yaml') || (await pathExists(`${_workspacePath}/scopeflow.yaml`));
   if (!hasConfig) {
-    issues.push({ type: 'error', message: 'ไม่พบไฟล์ scopeflow.yaml (ไม่ใช่ ScopeFlow Workspace)' });
+    issues.push({
+      type: 'error',
+      message: 'ไม่พบไฟล์ scopeflow.yaml (ไม่ใช่ ScopeFlow Workspace)',
+      fixAction: 'create_scopeflow_yaml',
+    });
     return issues; // Critical error, abort
   }
 
   // 2. Check clients folder
   const clientsFolder = tree.children?.find(c => c.name === 'clients' && c.is_dir);
-  if (!clientsFolder) {
+  const hasClientsFolder = clientsFolder || (await pathExists(`${_workspacePath}/clients`));
+  if (!hasClientsFolder) {
     issues.push({ type: 'error', message: 'ไม่พบโฟลเดอร์ clients/ (กรุณาสร้างลูกค้าใหม่)' });
     return issues; 
   }
 
   // 3. Iterate clients
-  const clients = clientsFolder.children || [];
+  const clients = clientsFolder ? (clientsFolder.children || []) : (tree.children || []);
   for (const client of clients) {
     if (!client.is_dir) continue;
 
@@ -46,10 +51,10 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
     }
 
     const projectsFolder = client.children?.find(c => c.name === 'projects' && c.is_dir);
-    if (!projectsFolder) continue;
+    const projects = projectsFolder ? (projectsFolder.children || []) : (client.children || []);
 
     // Iterate projects
-    for (const project of projectsFolder.children || []) {
+    for (const project of projects) {
       if (!project.is_dir) continue;
 
       const hasProjectYaml = project.children?.find(c => c.name === '_project.yaml');
@@ -107,7 +112,10 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
         if (doc.evidence_files && doc.evidence_files.length > 0) {
            const attachmentsFolder = project.children?.find(c => c.name === 'attachments' && c.is_dir);
            for (const evidence of doc.evidence_files) {
-             const exists = attachmentsFolder?.children?.find(c => c.name === evidence);
+             let exists = attachmentsFolder?.children?.some(c => c.name === evidence);
+             if (!exists) {
+                exists = await pathExists(`${project.path}/attachments/${evidence}`);
+             }
              if (!exists) {
                 issues.push({ type: 'error', message: `เอกสาร "${doc.file_name}" แนบไฟล์หลักฐาน "${evidence}" ที่ไม่พบในโฟลเดอร์ attachments/` });
              }

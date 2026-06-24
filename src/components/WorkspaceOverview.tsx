@@ -3,7 +3,7 @@ import { useWorkspace } from '../lib/workspace-context';
 import { scanProjectDocuments } from '../lib/document-scanner';
 import { checkWorkspaceHealth } from '../lib/workspace-health';
 import { getCompanyProfile } from '../lib/settings';
-import { pathExists, readFileContent } from '../lib/tauri-commands';
+import { pathExists, readFileContent, writeFileContent } from '../lib/tauri-commands';
 import { generateDemoWorkspace } from '../lib/demo-generator';
 import { openPath } from '@tauri-apps/plugin-opener';
 import YAML from 'yaml';
@@ -23,7 +23,8 @@ import {
   Play,
   ShieldCheck,
   Download,
-  ExternalLink
+  ExternalLink,
+  AlertTriangle
 } from 'lucide-react';
 
 interface WorkspaceOverviewProps {
@@ -55,6 +56,7 @@ export default function WorkspaceOverview({
   const [companyProfileStatus, setCompanyProfileStatus] = useState<'configured' | 'missing' | 'malformed'>('missing');
   const [presetsStatus, setPresetsStatus] = useState<'configured' | 'missing' | 'malformed'>('missing');
   const [healthStatus, setHealthStatus] = useState<'OK' | 'Warning' | 'Error'>('OK');
+  const [healthIssues, setHealthIssues] = useState<any[]>([]);
   
   // Backup / Export
   const [lastBackup, setLastBackup] = useState('ยังไม่ได้สำรองข้อมูล');
@@ -141,8 +143,9 @@ export default function WorkspaceOverview({
 
         // Health Status Summary using modular scanner helper
         if (tree) {
-          const healthIssues = await checkWorkspaceHealth(currentPath, tree);
-          setHealthStatus(determineHealthStatusSummary(healthIssues));
+          const issues = await checkWorkspaceHealth(currentPath, tree);
+          setHealthIssues(issues);
+          setHealthStatus(determineHealthStatusSummary(issues));
         }
 
         // Load Backup Date
@@ -170,6 +173,21 @@ export default function WorkspaceOverview({
       } catch (err) {
         console.error('Failed to open workspace folder:', err);
       }
+    }
+  };
+
+  const handleFixScopeflowYaml = async () => {
+    try {
+      if (!workspacePath) return;
+      const folderName = workspacePath.split(/[/\\]/).pop() || 'ScopeFlow Workspace';
+      const { generateWorkspaceConfig } = await import('../lib/templates');
+      const config = generateWorkspaceConfig(folderName);
+      const yamlPath = `${workspacePath}/scopeflow.yaml`;
+      await writeFileContent(yamlPath, config);
+      await refreshTree();
+      alert('สร้างไฟล์ scopeflow.yaml และแก้ไขสำเร็จ!');
+    } catch (err) {
+      alert(`สร้างไฟล์ไม่สำเร็จ: ${err}`);
     }
   };
 
@@ -232,6 +250,31 @@ export default function WorkspaceOverview({
             {createdDate && <span className="badge badge-muted font-mono text-xs">วันที่สร้าง: {createdDate}</span>}
           </div>
         </div>
+
+        {/* Error/Warning Banner */}
+        {healthIssues.some(i => i.type === 'error') && (
+          <div className="p-5 bg-error/10 border border-error/20 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-error/15 flex items-center justify-center text-error shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <h4 className="text-sm font-bold text-text">พบข้อผิดพลาดร้ายแรงใน Workspace</h4>
+                <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                  {healthIssues.find(i => i.type === 'error')?.message}
+                </p>
+              </div>
+            </div>
+            {healthIssues.some(i => i.fixAction === 'create_scopeflow_yaml') && (
+              <button
+                onClick={handleFixScopeflowYaml}
+                className="btn btn-sm text-error bg-error/20 hover:bg-error hover:text-white border border-error/30 transition-all font-semibold shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" /> สร้างไฟล์สำหรับ Workspace
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useWorkspace } from '../lib/workspace-context';
-import { listProjectDocuments, createDocument, pathExists } from '../lib/tauri-commands';
+import { listProjectDocuments, createDocument, pathExists, createProject } from '../lib/tauri-commands';
 import { getNextDocumentNumber } from '../lib/document-utils';
 import { generateBriefDocument } from '../lib/brief-builder';
 import {
@@ -81,35 +81,73 @@ export default function DocumentCreatorModal({
       let filename = '';
       let finalPath = '';
       let finalContent = '';
+      let finalProjectPath = projectPath;
+      let finalProjectId = projectId;
 
       if (type === 'brief') {
         const data = manualBriefData || briefData;
+        if (!data) {
+          setError('ไม่พบข้อมูลร่าง Brief');
+          return;
+        }
+
+        if (!finalProjectId) {
+          if (!workspacePath) {
+            setError('ไม่พบ workspace path');
+            return;
+          }
+          // Create new project automatically
+          const timestamp = Date.now();
+          const generatedProjId = `project-${timestamp}`;
+          const projName = `โครงการใหม่ (${data.project_type || 'ร่างความต้องการ'})`;
+          
+          const { generateProjectYaml } = await import('../lib/templates');
+          const projYaml = generateProjectYaml({
+            id: generatedProjId,
+            name: projName,
+            client: clientId,
+            type: 'new-project',
+          });
+
+          await createProject(workspacePath, clientId, generatedProjId, projYaml, 'new-project');
+          finalProjectId = generatedProjId;
+          finalProjectPath = `${workspacePath}/clients/${clientId}/projects/${generatedProjId}`;
+        }
+
         filename = `brief-${nameToSlug(data.projectName || 'project')}-${Date.now()}.md`;
-        finalPath = `${projectPath}/briefs/${filename}`;
-        finalContent = generateBriefDocument(data);
+        finalPath = `${finalProjectPath}/baseline/${filename}`;
+        
+        // Populate brief data fields so the template isn't "undefined"
+        const briefDocData = {
+          ...data,
+          project: finalProjectId,
+          client: clientId,
+          projectName: `โครงการใหม่ (${data.project_type || 'ร่างความต้องการ'})`
+        };
+        finalContent = generateBriefDocument(briefDocData);
       } else if (type === 'scope') {
         filename = 'scope-v1.0.md';
-        finalPath = `${projectPath}/baseline/${filename}`;
+        finalPath = `${finalProjectPath}/baseline/${filename}`;
         finalContent = generateScopeDocument({
-          project: projectId,
+          project: finalProjectId,
           client: clientId,
           author: '',
-          projectName: projectId,
+          projectName: finalProjectId,
         });
       } else if (type === 'quotation') {
         filename = 'quotation-v1.0.md';
-        finalPath = `${projectPath}/baseline/${filename}`;
+        finalPath = `${finalProjectPath}/baseline/${filename}`;
         finalContent = generateQuotationDocument({
-          project: projectId,
+          project: finalProjectId,
           client: clientId,
           author: '',
         });
       } else if (type === 'cr') {
         const crNumber = getNextDocumentNumber(documents, 'CR');
         filename = `CR-${crNumber}-${slug}.md`;
-        finalPath = `${projectPath}/change-requests/${filename}`;
+        finalPath = `${finalProjectPath}/change-requests/${filename}`;
         finalContent = generateCRDocument({
-          project: projectId,
+          project: finalProjectId,
           client: clientId,
           author: '',
           crNumber: `CR-${crNumber}`,
@@ -118,9 +156,9 @@ export default function DocumentCreatorModal({
       } else if (type === 'dcr') {
         const dcrNumber = getNextDocumentNumber(documents, 'DCR');
         filename = `DCR-${dcrNumber}-${slug}.md`;
-        finalPath = `${projectPath}/change-requests/${filename}`;
+        finalPath = `${finalProjectPath}/change-requests/${filename}`;
         finalContent = generateDCRDocument({
-          project: projectId,
+          project: finalProjectId,
           client: clientId,
           author: '',
           dcrNumber: `DCR-${dcrNumber}`,
@@ -130,10 +168,10 @@ export default function DocumentCreatorModal({
       } else if (type === 'sup') {
         const supNumber = getNextDocumentNumber(documents, 'SUP');
         filename = `SUP-${supNumber}-${slug}.md`;
-        finalPath = `${projectPath}/support-requests/${filename}`;
+        finalPath = `${finalProjectPath}/support-requests/${filename}`;
         finalContent = generateSupportRequestDocument({
           type: 'support-request',
-          project: projectId,
+          project: finalProjectId,
           client: clientId,
           author: '',
           requestNumber: `SUP-${supNumber}`,
@@ -143,10 +181,10 @@ export default function DocumentCreatorModal({
       } else if (type === 'ma') {
         const maNumber = getNextDocumentNumber(documents, 'MA');
         filename = `MA-${maNumber}-${slug}.md`;
-        finalPath = `${projectPath}/support-requests/${filename}`;
+        finalPath = `${finalProjectPath}/support-requests/${filename}`;
         finalContent = generateSupportRequestDocument({
           type: 'ma-request',
-          project: projectId,
+          project: finalProjectId,
           client: clientId,
           author: '',
           requestNumber: `MA-${maNumber}`,
@@ -155,16 +193,16 @@ export default function DocumentCreatorModal({
         });
       } else if (type === 'acceptance') {
         filename = 'acceptance-checklist-v1.0.md';
-        finalPath = `${projectPath}/acceptance/${filename}`;
+        finalPath = `${finalProjectPath}/acceptance/${filename}`;
         finalContent = generateAcceptanceChecklist({
-          project: projectId,
+          project: finalProjectId,
           client: clientId,
           author: '',
         });
       }
 
       setSaving(true);
-      
+
       const exists = await pathExists(finalPath);
       if (exists) {
         setError(`ไฟล์ ${filename} มีอยู่แล้ว กรุณาตรวจสอบหรือใช้ชื่ออื่น`);
@@ -174,10 +212,10 @@ export default function DocumentCreatorModal({
 
       await createDocument(finalPath, finalContent);
       await refreshTree();
-      
+
       // Open the newly created document
       setSelectedFile(finalPath);
-      
+
       onClose();
     } catch (err) {
       setError(String(err));
@@ -201,9 +239,11 @@ export default function DocumentCreatorModal({
         <form id="document-creator-form" onSubmit={handleSubmit} className="modal-body">
           {type === 'brief' ? (
             <BriefHelperForm
+              clientId={clientId}
+              onClose={onClose}
               onGenerate={(data) => {
                 setBriefData(data);
-                handleSubmit({ preventDefault: () => {} } as any, data);
+                handleSubmit({ preventDefault: () => { } } as any, data);
               }}
             />
           ) : (

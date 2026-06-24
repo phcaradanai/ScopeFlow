@@ -49,7 +49,7 @@ function AppContent() {
     try {
       const dateStr = new Date().toISOString().split('T')[0];
       const defaultName = `scopeflow-backup-${workspaceName.replace(/\s+/g, '-')}-${dateStr}.zip`;
-      
+
       const savePath = await save({
         title: 'บันทึกไฟล์ Backup',
         defaultPath: defaultName,
@@ -94,7 +94,7 @@ function AppContent() {
   async function handleExportProject(clientId: string, projectId: string, projectPath: string) {
     let clientName = clientId;
     let projectName = projectId;
-    
+
     if (tree?.children) {
       const clientNode = tree.children.find((c: any) => c.path.endsWith(clientId));
       if (clientNode) {
@@ -130,7 +130,7 @@ function AppContent() {
 
   function extractFiles(node: any, depth = 0) {
     if (!node) return;
-    
+
     // Depth 0: Workspace, Depth 1: Client, Depth 2: Project
     if (depth === 2 && node.is_dir) {
       if (node.path === selectedFile) {
@@ -140,9 +140,9 @@ function AppContent() {
     }
 
     if (!node.is_dir) {
-      allFiles.push({ 
-        name: node.name, 
-        path: node.path, 
+      allFiles.push({
+        name: node.name,
+        path: node.path,
         is_dir: node.is_dir
       });
     }
@@ -165,8 +165,8 @@ function AppContent() {
     }
   };
 
-  const clientEmptyStateId = selectedFile?.startsWith('__client__:') 
-    ? selectedFile.substring('__client__:'.length) 
+  const clientEmptyStateId = selectedFile?.startsWith('__client__:')
+    ? selectedFile.substring('__client__:'.length)
     : '';
 
   const hasNoClients = !tree?.children || tree.children.length === 0;
@@ -205,7 +205,7 @@ function AppContent() {
     const clientName = clientNode ? clientNode.name : clientEmptyStateId;
     mainContent = (
       <div className="h-full flex items-center justify-center bg-gradient-to-b from-[#121214] to-[#09090b]">
-        <div className="max-w-md w-full mx-auto px-6 text-center flex flex-col items-center">
+        <div className="w-full px-6 text-center flex flex-col gap-4 items-center">
           <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-6">
             <Briefcase className="w-8 h-8 text-accent" />
           </div>

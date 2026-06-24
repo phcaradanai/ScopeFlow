@@ -115,7 +115,7 @@ export default function WelcomeScreen() {
 
       <div className="max-w-[560px] w-full px-8 text-center relative z-10">
         {/* Logo area */}
-        <div className="mb-10">
+        <div className="flex flex-col items-center gap-4 mb-10">
           <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mx-auto mb-7 shadow-2xl shadow-primary/30 border border-white/10">
             <FileText className="w-10 h-10 text-white" />
           </div>
@@ -126,7 +126,7 @@ export default function WelcomeScreen() {
         </div>
 
         {/* Action buttons */}
-        <div className="space-y-4 flex flex-col gap-4 p-4">
+        <div className="space-y-4 flex flex-col gap-4 p-4!">
           <button
             onClick={handleCreate}
             className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-primary text-white font-semibold transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-[0_8px_30px_-5px] hover:shadow-primary/40 hover:-translate-y-1 border border-primary-light/20 min-h-[48px]"
@@ -162,7 +162,7 @@ export default function WelcomeScreen() {
         </div>
 
         {/* Benefits */}
-        <div className="mt-10 space-y-3">
+        <div className="flex flex-col gap-2 mt-10 space-y-3 p-2">
           <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
             <CheckCircle className="w-4 h-4 text-success" />
             <span>บันทึกหลักฐานอนุมัติ</span>
@@ -178,7 +178,7 @@ export default function WelcomeScreen() {
         </div>
 
         {/* Footer */}
-        <div className="mt-10 text-sm text-text-dim/50 font-medium tracking-wide">
+        <div className="mt-10 text-sm text-text-dim/50 font-medium tracking-wide mt-10!">
           <p>Offline-first • File-first</p>
         </div>
       </div>

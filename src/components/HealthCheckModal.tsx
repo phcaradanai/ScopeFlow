@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { checkWorkspaceHealth, HealthIssue } from '../lib/workspace-health';
 import { useWorkspace } from '../lib/workspace-context';
-import { ShieldCheck, AlertTriangle, XCircle, Info, RefreshCw, X, FolderPlus } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, XCircle, Info, RefreshCw, X, FolderPlus, Plus } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
+import { generateWorkspaceConfig } from '../lib/templates';
 
 interface HealthCheckModalProps {
   onClose: () => void;
@@ -29,6 +30,20 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
   useEffect(() => {
     runCheck();
   }, [runCheck]);
+
+  const handleFixScopeflowYaml = async () => {
+    try {
+      if (!workspacePath) return;
+      const folderName = workspacePath.split(/[/\\]/).pop() || 'ScopeFlow Workspace';
+      const config = generateWorkspaceConfig(folderName);
+      const yamlPath = `${workspacePath}/scopeflow.yaml`;
+      await invoke('write_file_content', { path: yamlPath, content: config });
+      await refreshTree();
+      await runCheck();
+    } catch (err) {
+      alert(`สร้างไฟล์ไม่สำเร็จ: ${err}`);
+    }
+  };
 
   const handleFixFolders = async (payload: any) => {
     try {
@@ -81,8 +96,16 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
                   </h3>
                   <div className="space-y-3">
                     {errors.map((err, i) => (
-                      <div key={i} className="p-4 bg-error/10 border border-error/20 rounded-xl text-sm text-text font-medium">
-                        {err.message}
+                      <div key={i} className="p-4 bg-error/10 border border-error/20 rounded-xl text-sm text-text flex items-center justify-between gap-4">
+                        <span className="font-medium">{err.message}</span>
+                        {err.fixAction === 'create_scopeflow_yaml' && (
+                          <button
+                            onClick={handleFixScopeflowYaml}
+                            className="btn btn-sm text-error bg-error/20 border border-error/30 hover:bg-error hover:text-white shrink-0"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> สร้างไฟล์สำหรับ Workspace
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>

@@ -6,7 +6,8 @@ vi.mock('../tauri-commands', () => ({
   readFileContent: vi.fn(),
   copyEvidenceFiles: vi.fn(),
   backupWorkspace: vi.fn(),
-  restoreWorkspace: vi.fn()
+  restoreWorkspace: vi.fn(),
+  pathExists: vi.fn()
 }));
 
 const MOCK_WORKSPACE_PATH = '/mock/workspace';

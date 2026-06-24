@@ -28,50 +28,49 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
   const { workspaceName, tree, selectedFile, setSelectedFile } = useWorkspace();
 
   return (
-    <aside className="w-72 min-w-[280px] h-full bg-surface/50 backdrop-blur-xl border-r border-white/5 flex flex-col">
+    <aside className="w-72 min-w-[360px] h-full bg-surface/50 backdrop-blur-xl border-r border-white/5 flex flex-col !p-4">
       {/* Workspace header */}
-      <div className="px-5 py-4 flex items-center justify-between border-b border-white/5" style={{ minHeight: '52px' }}>
+      <div className="px-4 py-4 flex items-center justify-between gap-4" style={{ minHeight: '52px' }}>
         <button
           onClick={() => setSelectedFile('__workspace_overview__')}
-          className={`flex items-center gap-3 overflow-hidden text-left transition-all duration-200 flex-1 px-2.5 py-1.5 rounded-xl border border-transparent ${
-            (selectedFile === '__workspace_overview__' || !selectedFile)
-              ? 'bg-primary/10 text-primary-light font-bold border-primary/20 shadow-sm'
-              : 'hover:bg-white/5 text-text hover:text-white'
-          }`}
+          className={`flex items-center gap-3 overflow-hidden text-left transition-all duration-200 flex-1 !px-2.5 !py-2.5 rounded-xl border border-transparent ${(selectedFile === '__workspace_overview__' || !selectedFile)
+            ? 'bg-primary/10 text-primary-light font-bold border-primary/20 shadow-sm'
+            : 'hover:bg-white/5 text-text hover:text-white'
+            }`}
           title="ดูภาพรวม Workspace"
         >
           <FolderOpen className="w-5 h-5 text-primary-light shrink-0" />
           <h2 className="text-sm truncate flex-1">{workspaceName}</h2>
         </button>
-        <div className="flex shrink-0 gap-1 ml-2">
+        <div className="flex justify-center shrink-0 gap-2 p-2">
           <button
             onClick={onRunHealthCheck}
-            className="sidebar-action-btn"
+            className="sidebar-action-btn p-2"
             title="ตรวจสอบ Workspace"
           >
-            <ShieldCheck className="w-4 h-4" />
+            <ShieldCheck className="w-5 h-5" />
           </button>
           <button
             onClick={onBackupWorkspace}
-            className="sidebar-action-btn"
+            className="sidebar-action-btn p-2"
             title="สำรอง Workspace (.zip)"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-5 h-5" />
           </button>
           <button
             onClick={onOpenSettings}
-            className="sidebar-action-btn"
+            className="sidebar-action-btn p-2"
             title="ตั้งค่าบริษัท"
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-5 h-5" />
           </button>
         </div>
       </div>
 
       {/* Tree navigation */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto y-2! pl-4! space-y-4">
         {tree && tree.children && tree.children.length > 0 ? (
-          <div className="space-y-3">
+          <div className="flex flex-col space-y-3">
             {/* Clients header */}
             <div className="flex items-center justify-between px-2 py-2">
               <span className="text-xs font-bold text-text-dim uppercase tracking-wider">
@@ -140,16 +139,26 @@ function ClientNode({
 
   return (
     <div>
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => {
           setExpanded(!expanded);
           if (hasNoProjects) {
             onSelect(`__client__:${clientId}`);
           }
         }}
-        className={`sidebar-row w-full group text-left ${
-          selectedFile === `__client__:${clientId}` ? 'sidebar-row-selected' : ''
-        }`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setExpanded(!expanded);
+            if (hasNoProjects) {
+              onSelect(`__client__:${clientId}`);
+            }
+          }
+        }}
+        className={`sidebar-row w-full group text-left ${selectedFile === `__client__:${clientId}` ? 'sidebar-row-selected' : ''
+          }`}
       >
         {expanded ? (
           <ChevronDown className="w-4 h-4 text-text-dim" />
@@ -168,12 +177,12 @@ function ClientNode({
         >
           <Plus className="w-4 h-4" />
         </button>
-      </button>
+      </div>
 
       {expanded && node.children && (
         <div className="ml-3 pl-3 border-l border-white/5 mt-1 mb-2 space-y-1">
           {node.children.length === 0 ? (
-            <p className="text-xs text-text-dim px-3 py-2">ยังไม่มีโครงการ</p>
+            <p className="text-xs text-text-dim px-3! py-2!">ยังไม่มีโครงการ</p>
           ) : (
             node.children.map((project) => (
               <ProjectNode
@@ -213,16 +222,24 @@ function ProjectNode({
 
   return (
     <div>
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => {
           setExpanded(!expanded);
           onSelect(node.path);
         }}
-        className={`sidebar-row w-full group text-left ${
-          selectedFile === node.path
-            ? 'sidebar-row-selected'
-            : 'hover:bg-white/5 text-text-muted'
-        }`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setExpanded(!expanded);
+            onSelect(node.path);
+          }
+        }}
+        className={`sidebar-row w-full group text-left ${selectedFile === node.path
+          ? 'sidebar-row-selected'
+          : 'hover:bg-white/5 text-text-muted'
+          }`}
       >
         {expanded ? (
           <ChevronDown className="w-4 h-4 text-text-dim" />
@@ -253,7 +270,7 @@ function ProjectNode({
             <Plus className="w-4 h-4" />
           </button>
         </div>
-      </button>
+      </div>
 
       {expanded && node.children && (
         <div className="ml-3 pl-3 border-l border-white/5 mt-1 mb-2 space-y-1">
@@ -264,11 +281,10 @@ function ProjectNode({
               <button
                 key={doc.path}
                 onClick={() => onSelect(doc.path)}
-                className={`sidebar-row w-full text-left ${
-                  selectedFile === doc.path
-                    ? 'sidebar-row-selected'
-                    : 'text-text-muted'
-                }`}
+                className={`sidebar-row w-full text-left ${selectedFile === doc.path
+                  ? 'sidebar-row-selected'
+                  : 'text-text-muted'
+                  }`}
               >
                 <FileText className="sidebar-row-icon" />
                 <span className="sidebar-row-label">{doc.name}</span>
