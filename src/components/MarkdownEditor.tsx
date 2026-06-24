@@ -175,28 +175,59 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
     }
   };
 
+  // State to manage scope creation options
+  const [scopeOption, setScopeOption] = useState<null | 'choose'>(null);
+  const [existingScopePath, setExistingScopePath] = useState<string>('');
+  const [newScopePath, setNewScopePath] = useState<string>('');
+
+  const getNextScopeVersionFilename = (files: { name: string; path: string }[]) => {
+    const baselineFiles = files.filter(f => f.path.includes('/baseline/') && f.name.match(/^scope-v\d+\.\d+\.md$/));
+    let maxMajor = 0;
+    let maxMinor = 0;
+    baselineFiles.forEach(f => {
+      const match = f.name.match(/^scope-v(\d+)\.(\d+)\.md$/);
+      if (match) {
+        const major = parseInt(match[1]);
+        const minor = parseInt(match[2]);
+        if (major > maxMajor || (major === maxMajor && minor > maxMinor)) {
+          maxMajor = major;
+          maxMinor = minor;
+        }
+      }
+    });
+    // Increment minor version
+    const nextMinor = maxMinor + 1;
+    return `scope-v${maxMajor}.${nextMinor}.md`;
+  };
+
   const handleCreateScopeFromBrief = async () => {
     try {
       const scopeFilename = 'scope-v1.0.md';
       const scopePath = `${projectPath}/baseline/${scopeFilename}`;
       const prefillData = parseBriefToScope(content);
-      const scopeContent = generateScopeMarkdown({
+      const baseContent = generateScopeMarkdown({
         title: 'ขอบเขตงาน (Scope of Work)',
         ...prefillData,
         acceptance_criteria: '',
         deliverables: prefillData.deliverables || '',
       }, scopeFilename);
-      
+
       const exists = await readFileContent(scopePath).then(() => true).catch(() => false);
-      if (exists) {
-        if (!window.confirm(`มีไฟล์ ${scopeFilename} อยู่แล้ว ต้องการบันทึกทับหรือไม่?`)) {
-          return;
-        }
+      if (!exists) {
+        // No existing scope, create directly
+        await createDocument(scopePath, baseContent);
+        onDocumentChanged();
+        onOpenDocument(scopePath);
+        return;
       }
-      
-      await createDocument(scopePath, scopeContent);
-      onDocumentChanged();
-      onOpenDocument(scopePath);
+
+      // Existing scope detected, decide action
+      setExistingScopePath(scopePath);
+      // Determine next version filename
+      const nextVersionName = getNextScopeVersionFilename(allFiles);
+      const nextPath = `${projectPath}/baseline/${nextVersionName}`;
+      setNewScopePath(nextPath);
+      setScopeOption('choose'); // trigger modal
     } catch (err) {
       setError(`สร้าง Scope จาก Brief ไม่สำเร็จ: ${err}`);
     }
@@ -408,6 +439,51 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
         </div>
       </div>
 
+      {/* Scope creation options modal */}
+      {scopeOption === 'choose' && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <h2 className="modal-title">Scope already exists</h2>
+            <p className="modal-subtitle">Select an action for the existing Scope file.</p>
+            <div className="modal-footer">
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  onOpenDocument(existingScopePath);
+                  setScopeOption(null);
+                }}
+              >
+                เปิด Scope เดิม
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  const prefill = parseBriefToScope(content);
+                  const newContent = `---\nstatus: draft\nlocked: false\nprevious_version: "${existingScopePath.replace(projectPath + '/', '')}"\n---\n` + generateScopeMarkdown({
+                    title: 'ขอบเขตงาน (Scope of Work)',
+                    ...prefill,
+                    acceptance_criteria: '',
+                    deliverables: prefill.deliverables || '',
+                  }, newScopePath.split('/').pop());
+                  await createDocument(newScopePath, newContent);
+                  onDocumentChanged();
+                  onOpenDocument(newScopePath);
+                  setScopeOption(null);
+                }}
+              >
+                สร้างเวอร์ชันใหม่
+              </button>
+              <button
+                className="btn btn-ghost"
+                onClick={() => setScopeOption(null)}
+              >
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showApprovalModal && (
         <ApprovalModal
           documentPath={filePath}
@@ -419,4 +495,3 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
       )}
     </div>
   );
-}
