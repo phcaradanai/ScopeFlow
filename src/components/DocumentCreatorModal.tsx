@@ -176,51 +176,50 @@ export default function DocumentCreatorModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-6">
-      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
-          <h2 className="text-lg font-bold text-text">สร้างเอกสารใหม่</h2>
-          <button
-            onClick={onClose}
-            className="btn btn-icon"
-          >
+    <div className="modal-overlay">
+      <div className="modal-container">
+        <div className="modal-header">
+          <div className="modal-header-content">
+            <h2 className="modal-title">สร้างเอกสารใหม่</h2>
+            <p className="modal-subtitle">สร้างเอกสารในโครงการ <span className="font-semibold text-text">{projectId}</span></p>
+          </div>
+          <button onClick={onClose} className="modal-close">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-section">
-          <div className="px-4 py-3 rounded-xl bg-surface-3/50 text-sm text-text-muted font-medium">
-            โครงการ: <span className="font-semibold text-text">{projectId}</span>
-          </div>
-
+        <form onSubmit={handleSubmit} className="modal-body">
           {error && (
             <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
               {error}
             </div>
           )}
 
-          <div>
-            <label className="form-label">
-              ประเภทเอกสาร <span className="text-error">*</span>
-            </label>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="form-select"
-            >
-              <option value="scope">ขอบเขตงาน (Scope)</option>
-              <option value="quotation">ใบเสนอราคา (Quotation)</option>
-              <option value="cr">คำขอเปลี่ยนแปลง (CR)</option>
-              <option value="dcr">คำขอเปลี่ยนแปลงการพัฒนา (DCR)</option>
-              <option value="sup">แจ้งปัญหา (Support Request)</option>
-              <option value="ma">แจ้งซ่อมบำรุง (MA Request)</option>
-              <option value="acceptance">รายการตรวจรับ (Acceptance Checklist)</option>
-            </select>
+          <div className="form-section">
+            <div className="form-field">
+              <label className="form-label">
+                ประเภทเอกสาร <span className="text-error">*</span>
+              </label>
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                className="form-select"
+              >
+                <option value="scope">ขอบเขตงาน (Scope)</option>
+                <option value="quotation">ใบเสนอราคา (Quotation)</option>
+                <option value="cr">คำขอเปลี่ยนแปลง (CR)</option>
+                <option value="dcr">คำขอเปลี่ยนแปลงการพัฒนา (DCR)</option>
+                <option value="sup">แจ้งปัญหา (Support Request)</option>
+                <option value="ma">แจ้งซ่อมบำรุง (MA Request)</option>
+                <option value="acceptance">รายการตรวจรับ (Acceptance Checklist)</option>
+              </select>
+              <p className="form-helper">เลือกประเภทเอกสารที่ต้องการสร้าง</p>
+            </div>
           </div>
 
           {requiresSlug && (
-            <>
-              <div>
+            <div className="form-section">
+              <div className="form-field">
                 <label className="form-label">
                   ชื่อเอกสาร / หัวข้อ <span className="text-error">*</span>
                 </label>
@@ -230,10 +229,11 @@ export default function DocumentCreatorModal({
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="เช่น เพิ่มระบบรายงานยอดขาย"
                   className="form-input"
-                  autoFocus
+                  autoFocus={!title}
                 />
               </div>
-              <div>
+
+              <div className="form-field">
                 <label className="form-label">
                   Slug (สำหรับตั้งชื่อไฟล์) <span className="text-error">*</span>
                 </label>
@@ -245,78 +245,74 @@ export default function DocumentCreatorModal({
                   className="form-input font-mono"
                 />
                 {!slug && title && (
-                  <p className="text-xs text-error mt-1.5 px-1">
+                  <p className="form-helper text-error">
                     กรุณากรอก slug ภาษาอังกฤษ เช่น add-sales-report
                   </p>
                 )}
                 {slug && (
-                  <p className="text-xs text-text-dim mt-1.5 px-1 font-mono">
-                    → ไฟล์ที่จะสร้าง: {type.toUpperCase()}-XXX-{slug}.md
+                  <p className="form-helper">
+                    ไฟล์ที่จะสร้าง: <span className="font-mono text-text-muted">{type.toUpperCase()}-XXX-{slug}.md</span>
                   </p>
                 )}
               </div>
-            </>
+            </div>
           )}
 
           {type === 'dcr' && (
-            <div>
-              <label className="form-label">
-                ประเภทการเปลี่ยนแปลง <span className="text-error">*</span>
-              </label>
-              <select
-                value={changeKind}
-                onChange={(e) => setChangeKind(e.target.value)}
-                className="form-select"
-              >
-                <option value="behavior">การทำงาน (Behavior / Logic)</option>
-                <option value="ui">หน้าจอ (UI / UX)</option>
-                <option value="database">ฐานข้อมูล (Database / Schema)</option>
-                <option value="report">รายงาน (Report / Dashboard)</option>
-                <option value="permission">สิทธิ์การใช้งาน (Permission / Role)</option>
-                <option value="integration">ระบบเชื่อมต่อ (Integration / API)</option>
-                <option value="technical-design">สถาปัตยกรรม (Technical Design)</option>
-                <option value="other">อื่นๆ (Other)</option>
-              </select>
+            <div className="form-section">
+              <div className="form-field">
+                <label className="form-label">
+                  ประเภทการเปลี่ยนแปลง <span className="text-error">*</span>
+                </label>
+                <select
+                  value={changeKind}
+                  onChange={(e) => setChangeKind(e.target.value)}
+                  className="form-select"
+                >
+                  <option value="behavior">การทำงาน (Behavior / Logic)</option>
+                  <option value="ui">หน้าจอ (UI / UX)</option>
+                  <option value="database">ฐานข้อมูล (Database / Schema)</option>
+                  <option value="report">รายงาน (Report / Dashboard)</option>
+                  <option value="permission">สิทธิ์การใช้งาน (Permission / Role)</option>
+                  <option value="integration">ระบบเชื่อมต่อ (Integration / API)</option>
+                  <option value="technical-design">สถาปัตยกรรม (Technical Design)</option>
+                  <option value="other">อื่นๆ (Other)</option>
+                </select>
+              </div>
             </div>
           )}
 
           {(type === 'sup' || type === 'ma') && (
-            <div>
-              <label className="form-label">
-                หมวดหมู่ <span className="text-error">*</span>
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="form-select"
-              >
-                <option value="bug">บั๊ก (Bug)</option>
-                <option value="feature-request">ขอเพิ่มฟีเจอร์ (Feature Request)</option>
-                <option value="update">อัปเดตข้อมูล (Update)</option>
-                <option value="maintenance">บำรุงรักษา (Maintenance)</option>
-                <option value="security">ความปลอดภัย (Security)</option>
-                <option value="other">อื่นๆ (Other)</option>
-              </select>
+            <div className="form-section">
+              <div className="form-field">
+                <label className="form-label">
+                  หมวดหมู่ <span className="text-error">*</span>
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="form-select"
+                >
+                  <option value="bug">บั๊ก (Bug)</option>
+                  <option value="feature-request">ขอเพิ่มฟีเจอร์ (Feature Request)</option>
+                  <option value="update">อัปเดตข้อมูล (Update)</option>
+                  <option value="maintenance">บำรุงรักษา (Maintenance)</option>
+                  <option value="security">ความปลอดภัย (Security)</option>
+                  <option value="other">อื่นๆ (Other)</option>
+                </select>
+              </div>
             </div>
           )}
-
-          <div className="flex justify-end gap-3 pt-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn btn-ghost"
-            >
-              ยกเลิก
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="btn btn-primary"
-            >
-              {saving ? 'กำลังสร้าง...' : 'สร้างเอกสาร'}
-            </button>
-          </div>
         </form>
+
+        <div className="modal-footer">
+          <button type="button" onClick={onClose} className="btn btn-ghost">
+            ยกเลิก
+          </button>
+          <button type="submit" disabled={saving} className="btn btn-primary">
+            {saving ? 'กำลังสร้าง...' : 'สร้างเอกสาร'}
+          </button>
+        </div>
       </div>
     </div>
   );

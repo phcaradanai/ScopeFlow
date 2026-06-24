@@ -115,22 +115,22 @@ export default function ExportModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-6">
-      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
-          <h2 className="text-lg font-bold text-text flex items-center gap-2.5">
-            <FileDown className="w-5 h-5 text-primary" />
-            ส่งออกชุดเอกสารขออนุมัติ
-          </h2>
-          <button
-            onClick={onClose}
-            className="btn btn-icon"
-          >
+    <div className="modal-overlay">
+      <div className="modal-container modal-container-sm">
+        <div className="modal-header">
+          <div className="modal-header-content">
+            <h2 className="modal-title flex items-center gap-2.5">
+              <FileDown className="w-5 h-5 text-primary" />
+              ส่งออกชุดเอกสารขออนุมัติ
+            </h2>
+            <p className="modal-subtitle">ส่งออกเป็น HTML พร้อมสั่งพิมพ์เป็น PDF</p>
+          </div>
+          <button onClick={onClose} className="modal-close">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 p-6 space-section">
+        <div className="modal-body">
           {error && (
             <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
               {error}
@@ -214,7 +214,7 @@ export default function ExportModal({
         </div>
 
         {!exportSuccessPath && (
-          <div className="px-6 py-5 border-t border-border shrink-0 flex justify-end gap-3 bg-surface-2">
+          <div className="modal-footer">
             <button
               onClick={onClose}
               disabled={isExporting}

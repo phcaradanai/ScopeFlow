@@ -190,37 +190,39 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
           )}
         </div>
 
-        {/* Right: actions */}
+        {/* Right: actions grouped */}
         <div className="flex flex-wrap items-center gap-3">
-          {!isLocked && !isApprovalRecord && !hasChanges && (
-            <button
-              onClick={() => setShowApprovalModal(true)}
-              className="btn btn-sm flex items-center gap-1.5 text-success bg-success/10 border border-success/20 hover:bg-success hover:text-white hover:border-success"
-            >
-              <CheckCircle className="w-3.5 h-3.5" />
-              บันทึกการอนุมัติ
-            </button>
-          )}
+          {/* Document actions */}
+          <div className="flex items-center gap-2">
+            {!isLocked && !isApprovalRecord && !hasChanges && (
+              <button
+                onClick={() => setShowApprovalModal(true)}
+                className="btn btn-sm flex items-center gap-1.5 text-success bg-success/10 border border-success/20 hover:bg-success hover:text-white hover:border-success"
+              >
+                <CheckCircle className="w-3.5 h-3.5" />
+                บันทึกการอนุมัติ
+              </button>
+            )}
 
-          {isLocked && !isApprovalRecord && (
-            <button
-              onClick={handleCreateRevision}
-              className="btn btn-sm bg-primary/10 text-primary hover:bg-primary hover:text-white"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              สร้างเวอร์ชันใหม่
-            </button>
-          )}
+            {isLocked && !isApprovalRecord && (
+              <button
+                onClick={handleCreateRevision}
+                className="btn btn-sm bg-primary/10 text-primary hover:bg-primary hover:text-white"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                สร้างเวอร์ชันใหม่
+              </button>
+            )}
+          </div>
 
           <div className="w-px h-5 bg-border mx-1"></div>
 
-          <div className="flex rounded-xl border border-border overflow-hidden shadow-sm">
+          {/* Mode switcher - segmented */}
+          <div className="segmented-control">
             {(docType === 'quotation' || docType === 'scope') && (
               <button
                 onClick={() => setMode('form')}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold transition-colors ${
-                  mode === 'form' ? 'bg-primary text-white' : 'bg-surface-2 text-text-muted hover:text-text'
-                }`}
+                className={`segmented-btn ${mode === 'form' ? 'segmented-btn-active' : ''}`}
               >
                 <FileText className="w-3.5 h-3.5" />
                 ฟอร์ม
@@ -228,28 +230,27 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
             )}
             <button
               onClick={() => setMode('edit')}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold transition-colors ${
-                mode === 'edit' ? 'bg-primary text-white' : 'bg-surface-2 text-text-muted hover:text-text'
-              }`}
+              className={`segmented-btn ${mode === 'edit' ? 'segmented-btn-active' : ''}`}
             >
               <Edit3 className="w-3.5 h-3.5" />
               แก้ไข
             </button>
             <button
               onClick={() => setMode('preview')}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold transition-colors ${
-                mode === 'preview' ? 'bg-primary text-white' : 'bg-surface-2 text-text-muted hover:text-text'
-              }`}
+              className={`segmented-btn ${mode === 'preview' ? 'segmented-btn-active' : ''}`}
             >
               <Eye className="w-3.5 h-3.5" />
               ดูตัวอย่าง
             </button>
           </div>
 
+          <div className="w-px h-5 bg-border mx-1"></div>
+
+          {/* Save */}
           <button
             onClick={handleSave}
             disabled={!hasChanges || saving || isLocked}
-            className={`btn flex items-center gap-1.5 px-5 py-2.5 min-h-[40px] ${
+            className={`btn flex items-center gap-1.5 px-5 min-h-[44px] ${
               saved
                 ? 'bg-success/20 text-success border border-success/30'
                 : (hasChanges && !isLocked)

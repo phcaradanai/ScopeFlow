@@ -74,43 +74,46 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-surface-2 p-6 rounded-2xl flex items-center gap-3">
-          <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-text-muted font-medium">กำลังโหลดข้อมูล...</span>
+      <div className="modal-overlay">
+        <div className="modal-container modal-container-sm">
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-text-muted font-medium">กำลังโหลดข้อมูล...</span>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-6">
-      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-2xl shadow-2xl max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
-          <h2 className="text-lg font-bold text-text flex items-center gap-2.5">
-            <Building2 className="w-5 h-5 text-primary" />
-            ข้อมูลผู้ให้บริการ
-          </h2>
-          <button
-            onClick={onClose}
-            className="btn btn-icon"
-          >
+    <div className="modal-overlay">
+      <div className="modal-container modal-container-sm">
+        <div className="modal-header">
+          <div className="modal-header-content">
+            <h2 className="modal-title flex items-center gap-2.5">
+              <Building2 className="w-5 h-5 text-primary" />
+              ข้อมูลผู้ให้บริการ
+            </h2>
+            <p className="modal-subtitle">จัดการข้อมูลบริษัท/ฟรีแลนซ์สำหรับเอกสาร</p>
+          </div>
+          <button onClick={onClose} className="modal-close">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSave} className="overflow-y-auto flex-1 p-6 space-section-lg">
+        <form onSubmit={handleSave} className="modal-body">
           {error && (
             <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
               {error}
             </div>
           )}
 
-          <div className="space-y-5">
-            <h3 className="text-base font-bold text-text">ข้อมูลทั่วไป</h3>
+          <div className="form-section">
+            <h3 className="form-section-title">ข้อมูลทั่วไป</h3>
+            <p className="form-section-helper">ชื่อ บริษัท/ผู้ให้บริการ และข้อมูลหลักๆ</p>
             
-            <div className="grid grid-cols-2 gap-5">
-              <div className="col-span-2 sm:col-span-1">
+            <div className="form-field-row">
+              <div className="form-field">
                 <label className="form-label">
                   ชื่อบริษัท / ผู้ให้บริการ <span className="text-error">*</span>
                 </label>
@@ -122,7 +125,7 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                   placeholder="เช่น บริษัท สโคปโฟลว์ จำกัด"
                 />
               </div>
-              <div className="col-span-2 sm:col-span-1">
+              <div className="form-field">
                 <label className="form-label">ประเภท</label>
                 <select
                   value={profile.provider_type}
@@ -134,34 +137,36 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                   <option value="freelancer">ฟรีแลนซ์ (Freelancer)</option>
                 </select>
               </div>
+            </div>
 
-              <div className="col-span-2">
-                <label className="form-label">ที่อยู่ (Address)</label>
-                <textarea
-                  value={profile.address || ''}
-                  onChange={e => handleChange('address', e.target.value)}
-                  rows={2}
-                  className="form-input resize-none leading-relaxed"
-                  placeholder="ที่อยู่สำหรับออกเอกสาร"
-                />
-              </div>
+            <div className="form-field">
+              <label className="form-label">ที่อยู่ (Address)</label>
+              <textarea
+                value={profile.address || ''}
+                onChange={e => handleChange('address', e.target.value)}
+                rows={3}
+                className="form-textarea"
+                placeholder="ที่อยู่สำหรับออกเอกสาร"
+              />
+            </div>
 
-              <div className="col-span-2 sm:col-span-1">
-                <label className="form-label">เลขประจำตัวผู้เสียภาษี (Tax ID)</label>
-                <input
-                  type="text"
-                  value={profile.tax_id || ''}
-                  onChange={e => handleChange('tax_id', e.target.value)}
-                  className="form-input"
-                />
-              </div>
+            <div className="form-field">
+              <label className="form-label">เลขประจำตัวผู้เสียภาษี (Tax ID)</label>
+              <input
+                type="text"
+                value={profile.tax_id || ''}
+                onChange={e => handleChange('tax_id', e.target.value)}
+                className="form-input"
+              />
             </div>
           </div>
 
-          <div className="space-y-5">
-            <h3 className="text-base font-bold text-text">ข้อมูลติดต่อ</h3>
-            <div className="grid grid-cols-2 gap-5">
-              <div className="col-span-2 sm:col-span-1">
+          <div className="form-section">
+            <h3 className="form-section-title">ข้อมูลติดต่อ</h3>
+            <p className="form-section-helper">ช่องทางการติดต่อ</p>
+            
+            <div className="form-field-row">
+              <div className="form-field">
                 <label className="form-label">ชื่อผู้ติดต่อ (Contact Name)</label>
                 <input
                   type="text"
@@ -170,7 +175,7 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                   className="form-input"
                 />
               </div>
-              <div className="col-span-2 sm:col-span-1">
+              <div className="form-field">
                 <label className="form-label">เบอร์โทรศัพท์ (Phone)</label>
                 <input
                   type="text"
@@ -179,7 +184,10 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                   className="form-input"
                 />
               </div>
-              <div className="col-span-2 sm:col-span-1">
+            </div>
+
+            <div className="form-field-row">
+              <div className="form-field">
                 <label className="form-label">อีเมล (Email)</label>
                 <input
                   type="email"
@@ -188,7 +196,7 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                   className="form-input"
                 />
               </div>
-              <div className="col-span-2 sm:col-span-1">
+              <div className="form-field">
                 <label className="form-label">เว็บไซต์ (Website)</label>
                 <input
                   type="text"
@@ -198,12 +206,24 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                 />
               </div>
             </div>
+
+            <div className="form-field">
+              <label className="form-label">LINE ID</label>
+              <input
+                type="text"
+                value={profile.line_id || ''}
+                onChange={e => handleChange('line_id', e.target.value)}
+                className="form-input"
+              />
+            </div>
           </div>
 
-          <div className="space-y-5">
-            <h3 className="text-base font-bold text-text">ค่าเริ่มต้นเอกสาร</h3>
-            <div className="grid grid-cols-2 gap-5">
-              <div className="col-span-2 sm:col-span-1">
+          <div className="form-section">
+            <h3 className="form-section-title">ค่าเริ่มต้นเอกสาร</h3>
+            <p className="form-section-helper">ตั้งค่าเริ่มต้นสำหรับใบเสนอราคาและเอกสาร</p>
+            
+            <div className="form-field-row">
+              <div className="form-field">
                 <label className="form-label">สกุลเงินเริ่มต้น (Currency)</label>
                 <input
                   type="text"
@@ -212,7 +232,7 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                   className="form-input"
                 />
               </div>
-              <div className="col-span-2 sm:col-span-1">
+              <div className="form-field">
                 <label className="form-label">VAT เริ่มต้น (%)</label>
                 <input
                   type="number"
@@ -224,24 +244,47 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                 />
               </div>
             </div>
-          </div>
 
+            <div className="form-field">
+              <label className="form-label">เงื่อนไขการชำระเงิน</label>
+              <textarea
+                value={profile.default_payment_terms || ''}
+                onChange={e => handleChange('default_payment_terms', e.target.value)}
+                rows={2}
+                className="form-textarea"
+                placeholder="เช่น ชำระ 30% ล่วงหน้า, 70% หลังส่งมอบ"
+              />
+            </div>
+
+            <div className="form-field">
+              <label className="form-label">เงื่อนไขประกัน</label>
+              <textarea
+                value={profile.default_warranty_terms || ''}
+                onChange={e => handleChange('default_warranty_terms', e.target.value)}
+                rows={2}
+                className="form-textarea"
+                placeholder="เช่น รับประกันระบบ 90 วันนับจากวันที่ส่งมอบ"
+              />
+            </div>
+
+            <div className="form-field">
+              <label className="form-label">เงื่อนไขการซัพพอร์ต</label>
+              <textarea
+                value={profile.default_support_terms || ''}
+                onChange={e => handleChange('default_support_terms', e.target.value)}
+                rows={2}
+                className="form-textarea"
+                placeholder="เช่น ซัพพอร์ตฟรี 30 วัน, thereafter บาท/ครั้ง"
+              />
+            </div>
+          </div>
         </form>
 
-        <div className="px-6 py-5 border-t border-border shrink-0 flex justify-end gap-3 bg-surface-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="btn btn-ghost"
-          >
+        <div className="modal-footer">
+          <button type="button" onClick={onClose} disabled={saving} className="btn btn-ghost">
             ยกเลิก
           </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="btn btn-primary"
-          >
+          <button onClick={handleSave} disabled={saving} className="btn btn-primary">
             {saving ? 'กำลังบันทึก...' : (
               <>
                 <Save className="w-4 h-4" />

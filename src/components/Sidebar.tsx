@@ -30,7 +30,7 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
   return (
     <aside className="w-72 min-w-[280px] h-full bg-surface/50 backdrop-blur-xl border-r border-white/5 flex flex-col">
       {/* Workspace header */}
-      <div className="px-6 py-4 flex items-center justify-between border-b border-white/5">
+      <div className="px-5 py-4 flex items-center justify-between border-b border-white/5" style={{ minHeight: '52px' }}>
         <div className="flex items-center gap-3 overflow-hidden">
           <FolderOpen className="w-5 h-5 text-primary-light shrink-0" />
           <h2 className="text-sm font-bold text-text truncate">{workspaceName}</h2>
@@ -38,21 +38,21 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
         <div className="flex shrink-0 gap-1">
           <button
             onClick={onRunHealthCheck}
-            className="p-2 rounded-lg hover:bg-white/5 text-text-dim hover:text-warning transition-all duration-200"
+            className="sidebar-action-btn"
             title="ตรวจสอบ Workspace"
           >
             <ShieldCheck className="w-4 h-4" />
           </button>
           <button
             onClick={onBackupWorkspace}
-            className="p-2 rounded-lg hover:bg-white/5 text-text-dim hover:text-success transition-all duration-200"
+            className="sidebar-action-btn"
             title="สำรอง Workspace (.zip)"
           >
             <Download className="w-4 h-4" />
           </button>
           <button
             onClick={onOpenSettings}
-            className="p-2 rounded-lg hover:bg-white/5 text-text-dim hover:text-primary-light transition-all duration-200"
+            className="sidebar-action-btn"
             title="ตั้งค่าบริษัท"
           >
             <Settings className="w-4 h-4" />
@@ -61,17 +61,17 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
       </div>
 
       {/* Tree navigation */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {tree && tree.children && tree.children.length > 0 ? (
           <div className="space-y-3">
             {/* Clients header */}
-            <div className="flex items-center justify-between px-2 py-1.5">
-              <span className="text-xs font-semibold text-text-dim uppercase tracking-wider">
+            <div className="flex items-center justify-between px-2 py-2">
+              <span className="text-xs font-bold text-text-dim uppercase tracking-wider">
                 ลูกค้า
               </span>
               <button
                 onClick={onCreateClient}
-                className="p-1.5 rounded-lg hover:bg-white/5 text-text-dim hover:text-primary-light transition-all duration-200"
+                className="sidebar-action-btn"
                 title="สร้างลูกค้าใหม่"
               >
                 <Plus className="w-4 h-4" />
@@ -128,7 +128,7 @@ function ClientNode({
     <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-all duration-200 group text-left"
+        className="sidebar-row w-full group text-left"
       >
         {expanded ? (
           <ChevronDown className="w-4 h-4 text-text-dim" />
@@ -142,7 +142,7 @@ function ClientNode({
             e.stopPropagation();
             onCreateProject(clientId);
           }}
-          className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-white/10 text-text-dim hover:text-primary-light transition-all duration-200"
+          className="sidebar-action-btn opacity-0 group-hover:opacity-100"
           title="สร้างโครงการใหม่"
         >
           <Plus className="w-4 h-4" />
@@ -150,7 +150,7 @@ function ClientNode({
       </button>
 
       {expanded && node.children && (
-        <div className="ml-4 pl-3 border-l border-white/5 mt-1 space-y-2">
+        <div className="ml-3 pl-3 border-l border-white/5 mt-1 mb-2 space-y-1">
           {node.children.length === 0 ? (
             <p className="text-xs text-text-dim px-3 py-2">ยังไม่มีโครงการ</p>
           ) : (
@@ -197,7 +197,7 @@ function ProjectNode({
           setExpanded(!expanded);
           onSelect(node.path);
         }}
-        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group text-left ${
+        className={`sidebar-row w-full group text-left ${
           selectedFile === node.path
             ? 'bg-primary/10 text-primary-light font-medium shadow-sm'
             : 'hover:bg-white/5 text-text-muted'
@@ -210,13 +210,13 @@ function ProjectNode({
         )}
         <Briefcase className="w-4 h-4 text-primary-light" />
         <span className="text-sm font-medium text-text truncate flex-1">{node.name}</span>
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+        <div className="sidebar-row-actions">
           <button
             onClick={(e) => {
               e.stopPropagation();
               onExportProject(clientId, projectId, node.path);
             }}
-            className="p-1.5 rounded-lg hover:bg-white/10 text-text-dim hover:text-primary-light transition-all duration-200"
+            className="sidebar-action-btn"
             title="ส่งออกชุดเอกสาร"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -226,7 +226,7 @@ function ProjectNode({
               e.stopPropagation();
               onCreateDocument(clientId, projectId, node.path);
             }}
-            className="p-1.5 rounded-lg hover:bg-white/10 text-text-dim hover:text-primary-light transition-all duration-200"
+            className="sidebar-action-btn"
             title="สร้างเอกสารใหม่"
           >
             <Plus className="w-4 h-4" />
@@ -235,7 +235,7 @@ function ProjectNode({
       </button>
 
       {expanded && node.children && (
-        <div className="ml-4 pl-3 border-l border-white/5 mt-1 space-y-2">
+        <div className="ml-3 pl-3 border-l border-white/5 mt-1 mb-2 space-y-1">
           {node.children.length === 0 ? (
             <p className="text-xs text-text-dim px-3 py-2">ยังไม่มีเอกสาร</p>
           ) : (
@@ -243,14 +243,14 @@ function ProjectNode({
               <button
                 key={doc.path}
                 onClick={() => onSelect(doc.path)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-left ${
+                className={`sidebar-row w-full text-left ${
                   selectedFile === doc.path
-                    ? 'bg-primary/10 text-primary-light font-medium shadow-sm'
-                    : 'hover:bg-white/5 text-text-muted'
+                    ? 'sidebar-row-selected'
+                    : 'text-text-muted'
                 }`}
               >
-                <FileText className="w-4 h-4" />
-                <span className="text-sm truncate">{doc.name}</span>
+                <FileText className="sidebar-row-icon" />
+                <span className="sidebar-row-label">{doc.name}</span>
               </button>
             ))
           )}

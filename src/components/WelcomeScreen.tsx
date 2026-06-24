@@ -3,7 +3,7 @@ import { useWorkspace } from '../lib/workspace-context';
 import { createWorkspace, restoreWorkspace } from '../lib/tauri-commands';
 import { generateWorkspaceConfig } from '../lib/templates';
 import { generateDemoWorkspace } from '../lib/demo-generator';
-import { FolderOpen, Plus, FileText, PackageOpen, Sparkles } from 'lucide-react';
+import { FolderOpen, Plus, FileText, PackageOpen, Sparkles, CheckCircle } from 'lucide-react';
 
 export default function WelcomeScreen() {
   const { setWorkspacePath } = useWorkspace();
@@ -112,24 +112,24 @@ export default function WelcomeScreen() {
     <div className="h-full flex items-center justify-center bg-gradient-to-b from-[#121214] to-[#09090b] relative overflow-hidden">
       {/* Decorative background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-gradient-to-br from-primary/30 via-accent/25 to-transparent rounded-full blur-[140px] pointer-events-none animate-pulse-slow opacity-80" />
-      
-      <div className="max-w-lg w-full px-8 text-center relative z-10">
+
+      <div className="max-w-[560px] w-full px-8 text-center relative z-10">
         {/* Logo area */}
-        <div className="mb-16">
+        <div className="mb-10">
           <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mx-auto mb-7 shadow-2xl shadow-primary/30 border border-white/10">
             <FileText className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-text mb-3 tracking-tight">ScopeFlow</h1>
           <p className="text-text-muted text-lg font-medium">
-            ระบบจัดการเอกสารขอบเขตงาน
+            เปลี่ยนคำขอลูกค้าให้เป็น Scope และใบเสนอราคา
           </p>
         </div>
 
         {/* Action buttons */}
-        <div className="space-y-5">
+        <div className="space-y-4">
           <button
             onClick={handleCreate}
-            className="w-full flex items-center justify-center gap-3 px-8 py-4.5 rounded-2xl bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-primary text-white font-semibold transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-[0_8px_30px_-5px] hover:shadow-primary/40 hover:-translate-y-1 border border-primary-light/20 min-h-[52px]"
+            className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-primary text-white font-semibold transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-[0_8px_30px_-5px] hover:shadow-primary/40 hover:-translate-y-1 border border-primary-light/20 min-h-[48px]"
           >
             <Plus className="w-5 h-5" />
             สร้าง Workspace ใหม่
@@ -137,7 +137,7 @@ export default function WelcomeScreen() {
 
           <button
             onClick={handleOpen}
-            className="w-full flex items-center justify-center gap-3 px-8 py-4.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-text font-semibold transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 backdrop-blur-sm min-h-[52px]"
+            className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-text font-semibold transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 backdrop-blur-sm min-h-[48px]"
           >
             <FolderOpen className="w-5 h-5" />
             เปิด Workspace ที่มีอยู่
@@ -147,7 +147,7 @@ export default function WelcomeScreen() {
             <button
               onClick={handleCreateDemo}
               disabled
-              className="btn btn-ghost w-full py-3.5 opacity-40 cursor-not-allowed"
+              className="btn btn-ghost w-full opacity-40 cursor-not-allowed"
             >
               <Sparkles className="w-4 h-4 text-accent" />
               สร้าง Demo
@@ -155,7 +155,7 @@ export default function WelcomeScreen() {
             <button
               onClick={handleRestoreBackup}
               disabled
-              className="btn btn-ghost w-full py-3.5 opacity-40 cursor-not-allowed"
+              className="btn btn-ghost w-full opacity-40 cursor-not-allowed"
             >
               <PackageOpen className="w-4 h-4" />
               เปิดจาก Backup
@@ -163,10 +163,21 @@ export default function WelcomeScreen() {
           </div>
         </div>
 
-        {/* Helper copy */}
-        <p className="mt-16 text-sm text-text-dim font-medium leading-relaxed">
-          ข้อมูลทั้งหมดอยู่ในเครื่องของคุณ<br/>ไม่ต้องสมัครบัญชี
-        </p>
+        {/* Benefits */}
+        <div className="mt-10 space-y-3">
+          <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
+            <CheckCircle className="w-4 h-4 text-success" />
+            <span>บันทึกหลักฐานอนุมัติ</span>
+          </div>
+          <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
+            <CheckCircle className="w-4 h-4 text-success" />
+            <span>กันงานงอกด้วย CR/DCR</span>
+          </div>
+          <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
+            <CheckCircle className="w-4 h-4 text-success" />
+            <span>ข้อมูลอยู่ในเครื่องคุณ</span>
+          </div>
+        </div>
 
         {/* Footer */}
         <div className="mt-10 text-sm text-text-dim/50 font-medium tracking-wide">

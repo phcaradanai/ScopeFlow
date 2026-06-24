@@ -49,19 +49,22 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
   const infos = issues.filter(i => i.type === 'info');
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-6">
-      <div className="bg-surface-2 border border-border rounded-2xl w-full max-w-2xl shadow-2xl max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="w-6 h-6 text-primary" />
-            <h2 className="text-xl font-bold text-text">ตรวจสอบ Workspace</h2>
+    <div className="modal-overlay">
+      <div className="modal-container">
+        <div className="modal-header">
+          <div className="modal-header-content">
+            <h2 className="modal-title flex items-center gap-2.5">
+              <ShieldCheck className="w-6 h-6 text-primary" />
+              ตรวจสอบ Workspace
+            </h2>
+            <p className="modal-subtitle">สแกนและตรวจสอบโครงสร้างไฟล์ใน workspace</p>
           </div>
-          <button onClick={onClose} className="btn btn-icon">
+          <button onClick={onClose} className="modal-close">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 p-6 space-section-lg">
+        <div className="modal-body">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 space-y-4">
               <RefreshCw className="w-10 h-10 text-primary animate-spin" />
@@ -124,7 +127,7 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
           )}
         </div>
 
-        <div className="px-6 py-5 border-t border-border bg-surface-3 shrink-0 flex justify-between items-center gap-4 flex-wrap">
+        <div className="modal-footer flex-wrap">
           <p className="text-xs text-text-dim flex items-center gap-1.5 font-medium">
             <Info className="w-3.5 h-3.5" /> ไม่มีการแก้ไขอัตโนมัติในส่วนที่อาจทำให้ข้อมูลสูญหาย
           </p>

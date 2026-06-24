@@ -160,6 +160,7 @@ function AppContent() {
               projectName={selectedProjectName}
               workspaceTree={tree as any}
               onOpenDocument={(path) => setSelectedFile(path)}
+              onCreateDocument={handleCreateDocument}
             />
           ) : (
             <MarkdownEditor
