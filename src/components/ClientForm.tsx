@@ -84,7 +84,7 @@ export default function ClientForm({ onClose }: ClientFormProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-body">
+        <form id="client-form" onSubmit={handleSubmit} className="modal-body">
           {error && (
             <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
               {error}
@@ -204,7 +204,7 @@ export default function ClientForm({ onClose }: ClientFormProps) {
           <button type="button" onClick={onClose} className="btn btn-ghost">
             ยกเลิก
           </button>
-          <button type="submit" disabled={saving} className="btn btn-primary">
+          <button type="submit" form="client-form" disabled={saving} className="btn btn-primary">
             {saving ? 'กำลังบันทึก...' : 'สร้างลูกค้า'}
           </button>
         </div>

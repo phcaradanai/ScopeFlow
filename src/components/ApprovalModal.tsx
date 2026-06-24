@@ -82,7 +82,7 @@ export default function ApprovalModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-body">
+        <form id="approval-form" onSubmit={handleSubmit} className="modal-body">
           {error && (
             <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
               {error}
@@ -166,7 +166,7 @@ export default function ApprovalModal({
           <button type="button" onClick={onClose} className="btn btn-ghost">
             ยกเลิก
           </button>
-          <button type="submit" className="btn btn-primary">
+          <button type="submit" form="approval-form" className="btn btn-primary">
             บันทึกการอนุมัติ
           </button>
         </div>

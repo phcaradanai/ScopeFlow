@@ -199,7 +199,7 @@ export default function DocumentCreatorModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-body">
+        <form id="document-creator-form" onSubmit={handleSubmit} className="modal-body">
           {error && (
             <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
               {error}
@@ -321,7 +321,7 @@ export default function DocumentCreatorModal({
           <button type="button" onClick={onClose} className="btn btn-ghost">
             ยกเลิก
           </button>
-          <button type="submit" disabled={saving} className="btn btn-primary">
+          <button type="submit" form="document-creator-form" disabled={saving} className="btn btn-primary">
             {saving ? 'กำลังสร้าง...' : 'สร้างเอกสาร'}
           </button>
         </div>

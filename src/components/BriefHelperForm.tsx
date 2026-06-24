@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, AlertTriangle, HelpCircle } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { BriefFormData, projectPresets } from '../lib/brief-builder';
 
 interface BriefHelperFormProps {

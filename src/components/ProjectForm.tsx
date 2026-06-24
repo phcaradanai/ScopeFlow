@@ -101,7 +101,7 @@ export default function ProjectForm({ clientId, onClose }: ProjectFormProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-body">
+        <form id="project-form" onSubmit={handleSubmit} className="modal-body">
           {error && (
             <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
               {error}
@@ -208,7 +208,7 @@ export default function ProjectForm({ clientId, onClose }: ProjectFormProps) {
           <button type="button" onClick={onClose} className="btn btn-ghost">
             ยกเลิก
           </button>
-          <button type="submit" disabled={saving} className="btn btn-primary">
+          <button type="submit" form="project-form" disabled={saving} className="btn btn-primary">
             {saving ? 'กำลังบันทึก...' : 'สร้างโครงการ'}
           </button>
         </div>
