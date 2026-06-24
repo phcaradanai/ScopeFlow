@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { checkWorkspaceHealth, HealthIssue } from '../lib/workspace-health';
 import { useWorkspace } from '../lib/workspace-context';
 import { ShieldCheck, AlertTriangle, XCircle, Info, RefreshCw, X, FolderPlus } from 'lucide-react';
@@ -13,7 +13,7 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
   const [issues, setIssues] = useState<HealthIssue[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const runCheck = async () => {
+  const runCheck = useCallback(async () => {
     if (!workspacePath || !tree) return;
     setLoading(true);
     try {
@@ -24,11 +24,11 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [workspacePath, tree]);
 
   useEffect(() => {
     runCheck();
-  }, [workspacePath, tree]);
+  }, [runCheck]);
 
   const handleFixFolders = async (payload: any) => {
     try {

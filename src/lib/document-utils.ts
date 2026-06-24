@@ -34,8 +34,8 @@ export function getDocumentFilePath(
   slug: string,
   numberStr: string
 ): { filename: string; fullPath: string } {
-  let filename = '';
-  let folder = '';
+  let filename: string;
+  let folder: string;
 
   switch (type) {
     case 'scope':

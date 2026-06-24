@@ -255,7 +255,7 @@ export async function exportApprovalPack(
   // Generate safe file name
   const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   const exportsDir = `${projectPath}/exports`;
-  let baseFilename = `approval-pack-${dateStr}`;
+  const baseFilename = `approval-pack-${dateStr}`;
   let suffix = '';
   let counter = 1;
   let finalPath = `${exportsDir}/${baseFilename}${suffix}.html`;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ProjectDocument, scanProjectDocuments } from '../lib/document-scanner';
 import { FileEntry } from '../lib/tauri-commands';
 import {
@@ -21,7 +21,7 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  const loadDocuments = async () => {
+  const loadDocuments = useCallback(async () => {
     setLoading(true);
     try {
       const docs = await scanProjectDocuments(projectPath, workspaceTree);
@@ -37,11 +37,11 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectPath, workspaceTree]);
 
   useEffect(() => {
     loadDocuments();
-  }, [projectPath, workspaceTree]);
+  }, [loadDocuments]);
 
   // Extract clientId from path
   const clientId = projectPath.split('/').slice(-2, -1)[0] || '';
@@ -80,8 +80,8 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
   const hasNoQuote = quotationDocs === 0;
   const hasOpenItems = openCRs > 0 || openSUPs > 0 || pendingApprovals > 0;
 
-  let nextActionLabel = '';
-  let nextActionDesc = '';
+  let nextActionLabel: string;
+  let nextActionDesc: string;
   if (hasNoBrief && hasNoScope) {
     nextActionLabel = 'สร้างร่าง Brief';
     nextActionDesc = 'ยังไม่มีเอกสารใดๆ — แปะคำขอลูกค้าเพื่อสร้างโครงร่างแรก';

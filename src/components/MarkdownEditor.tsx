@@ -38,24 +38,23 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
   const projectPath = filePath.split('/projects/')[0] + '/projects/' + filePath.split('/projects/')[1]?.split('/')[0];
 
   useEffect(() => {
+    async function loadFile() {
+      try {
+        const text = await readFileContent(filePath);
+        setContent(text);
+        setOriginalContent(text);
+        setError('');
+        if (text.includes('locked: true')) {
+          setMode('preview');
+        } else {
+          setMode('edit');
+        }
+      } catch (err) {
+        setError(`โหลดไฟล์ไม่สำเร็จ: ${err}`);
+      }
+    }
     loadFile();
   }, [filePath]);
-
-  async function loadFile() {
-    try {
-      const text = await readFileContent(filePath);
-      setContent(text);
-      setOriginalContent(text);
-      setError('');
-      if (text.includes('locked: true')) {
-        setMode('preview');
-      } else {
-        setMode('edit');
-      }
-    } catch (err) {
-      setError(`โหลดไฟล์ไม่สำเร็จ: ${err}`);
-    }
-  }
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -73,6 +72,10 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
     }
   }, [filePath, content, onDocumentChanged]);
 
+  const isLocked = content.includes('locked: true');
+  const isApproved = content.includes('status: "approved"');
+  const isApprovalRecord = content.includes('type: "approval-record"') || content.includes('type: approval-record');
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -82,12 +85,8 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSave, hasChanges]);
+  }, [handleSave, hasChanges, isLocked]);
 
-  const isLocked = content.includes('locked: true');
-  const isApproved = content.includes('status: "approved"');
-  const isApprovalRecord = content.includes('type: "approval-record"') || content.includes('type: approval-record');
-  
   const typeMatch = content.match(/type:\s*"?([^"\n]+)"?/);
   const docType = typeMatch ? typeMatch[1] : 'document';
   
@@ -464,7 +463,7 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
                     ...prefill,
                     acceptance_criteria: '',
                     deliverables: prefill.deliverables || '',
-                  }, newScopePath.split('/').pop());
+                  }, newScopePath.split('/').pop() || '');
                   await createDocument(newScopePath, newContent);
                   onDocumentChanged();
                   onOpenDocument(newScopePath);
@@ -495,3 +494,5 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
       )}
     </div>
   );
+}
+

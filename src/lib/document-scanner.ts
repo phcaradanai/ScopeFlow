@@ -173,7 +173,7 @@ export function extractDocumentMetadata(filePath: string, content: string, proje
         hasQuestions: /##.*(?:คำถาม|Questions)/.test(content) && content.split(/##.*(?:คำถาม|Questions)/)[1].trim().length > 10,
       }
     };
-  } catch (err) {
+  } catch {
     // Malformed YAML
     return defaultDoc;
   }

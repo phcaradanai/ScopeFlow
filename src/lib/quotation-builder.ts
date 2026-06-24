@@ -102,7 +102,7 @@ export function generateQuotationMarkdown(
     markdown += `**ผู้ให้บริการ (Provider):** ${companyProfile.provider_name}\n`;
     if (companyProfile.address) markdown += `${companyProfile.address}\n`;
     if (companyProfile.tax_id) markdown += `เลขประจำตัวผู้เสียภาษี: ${companyProfile.tax_id}\n`;
-    let contacts = [];
+    const contacts = [];
     if (companyProfile.contact_name) contacts.push(`ติดต่อ: ${companyProfile.contact_name}`);
     if (companyProfile.phone) contacts.push(`โทร: ${companyProfile.phone}`);
     if (companyProfile.email) contacts.push(`อีเมล: ${companyProfile.email}`);

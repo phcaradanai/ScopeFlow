@@ -15,7 +15,7 @@ export function getProjectPaths(tree: FileEntry | null): ProjectPathInfo[] {
   const projects: ProjectPathInfo[] = [];
   
   // Find clients folder or scan direct children if tree represents the clients folder itself
-  let clients: FileEntry[] = [];
+  let clients: FileEntry[];
   if (tree.name === 'clients' || tree.path.replace(/\\/g, '/').endsWith('/clients')) {
     clients = tree.children || [];
   } else {

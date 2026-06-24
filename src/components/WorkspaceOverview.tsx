@@ -119,7 +119,7 @@ export default function WorkspaceOverview({
         try {
           const profile = await getCompanyProfile(currentPath);
           profileExists = !!profile;
-        } catch (err: any) {
+        } catch {
           profileExists = true;
           profileParseError = true;
         }

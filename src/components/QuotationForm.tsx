@@ -32,16 +32,19 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
     async function loadPresets() {
       const p = await getPresets(workspacePath);
       setPresets(p);
-      if (!formData.payment_terms_preset && p.payment_terms.length > 0) {
-        handleChange('payment_terms_preset', p.payment_terms[0]);
-      }
+      setFormData(prev => {
+        if (!prev.payment_terms_preset && p.payment_terms.length > 0) {
+          return { ...prev, payment_terms_preset: p.payment_terms[0] };
+        }
+        return prev;
+      });
     }
     loadPresets();
   }, [workspacePath]);
 
-  const handleChange = (field: keyof QuotationFormData, value: any) => {
+  function handleChange(field: keyof QuotationFormData, value: any) {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  }
 
   const handleLineItemChange = (id: string, field: keyof LineItem, value: any) => {
     setFormData(prev => ({
