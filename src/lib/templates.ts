@@ -719,7 +719,7 @@ export function generateApprovalRecord(data: {
 - วิธีการอนุมัติ: ${data.approvalMethod}
 
 ## หลักฐานอ้างอิง
-${data.evidenceFiles.map(f => `- [${f}](../../attachments/${f})`).join('\n')}
+${data.evidenceFiles.length === 0 ? 'ยังไม่มีไฟล์หลักฐานแนบ' : data.evidenceFiles.map(f => `- [${f}](../../attachments/${f})`).join('\n')}
 
 ## หมายเหตุ
 `;

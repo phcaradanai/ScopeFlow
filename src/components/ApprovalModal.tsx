@@ -58,11 +58,6 @@ export default function ApprovalModal({
       return;
     }
 
-    if (evidenceFiles.length === 0) {
-      setError('กรุณาแนบไฟล์หลักฐานอย่างน้อย 1 ไฟล์');
-      return;
-    }
-
     onSubmit({
       approvedBy,
       approvalMethod,
@@ -129,7 +124,7 @@ export default function ApprovalModal({
           <div className="form-section">
             <div className="form-field">
               <label className="form-label">
-                ไฟล์หลักฐานอ้างอิง <span className="text-error">*</span>
+                ไฟล์หลักฐานอ้างอิง
               </label>
               <div className="space-y-3">
                 {evidenceFiles.map((f, i) => (
@@ -158,6 +153,11 @@ export default function ApprovalModal({
               </div>
               <p className="form-helper">
                 ไฟล์จะถูกคัดลอกไปเก็บไว้ในโฟลเดอร์ attachments ของโครงการนี้โดยอัตโนมัติ
+                {evidenceFiles.length === 0 && (
+                  <span className="block mt-1 text-warning">
+                    ไม่มีไฟล์หลักฐานแนบ ควรบันทึกหมายเหตุหรือแนบหลักฐานภายหลังถ้ามี
+                  </span>
+                )}
               </p>
             </div>
           </div>
