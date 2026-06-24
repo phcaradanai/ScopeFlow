@@ -368,9 +368,12 @@ pub fn list_project_documents(
 
     let doc_folders = [
         "baseline",
+        "current-system",
         "change-requests",
         "support-requests",
+        "approvals",
         "acceptance",
+        "exports",
     ];
 
     let mut docs = Vec::new();
@@ -383,7 +386,7 @@ pub fn list_project_documents(
                     let path = entry.path();
                     if path.is_file() {
                         if let Some(ext) = path.extension() {
-                            if ext == "md" {
+                            if ext == "md" || ext == "yaml" || ext == "yml" || ext == "html" {
                                 docs.push(DocumentInfo {
                                     path: path.to_string_lossy().to_string(),
                                     filename: path
@@ -484,10 +487,13 @@ pub fn get_workspace_tree(workspace_path: String) -> Result<FileEntry, String> {
                                     // List documents in this project
                                     let mut doc_nodes: Vec<FileEntry> = Vec::new();
                                     for folder in &[
-                                        "baseline",
-                                        "change-requests",
-                                        "support-requests",
-                                        "acceptance",
+                                         "baseline",
+                                         "current-system",
+                                         "change-requests",
+                                         "support-requests",
+                                         "approvals",
+                                         "acceptance",
+                                         "exports",
                                     ] {
                                         let folder_path = proj_path.join(folder);
                                         if folder_path.exists() {
@@ -499,7 +505,7 @@ pub fn get_workspace_tree(workspace_path: String) -> Result<FileEntry, String> {
                                                     if doc_path.is_file() {
                                                         if let Some(ext) = doc_path.extension()
                                                         {
-                                                            if ext == "md" || ext == "yaml" {
+                                                            if ext == "md" || ext == "yaml" || ext == "yml" || ext == "html" {
                                                                 let fname = doc_path
                                                                     .file_name()
                                                                     .unwrap_or_default()
