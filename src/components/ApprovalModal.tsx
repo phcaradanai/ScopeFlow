@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Upload, File as FileIcon } from 'lucide-react';
 import { open } from '@tauri-apps/plugin-dialog';
+import SelectField from './ui/SelectField';
 
 interface ApprovalModalProps {
   documentPath: string;
@@ -108,19 +109,19 @@ export default function ApprovalModal({
               <label className="form-label">
                 วิธีการอนุมัติ <span className="text-error">*</span>
               </label>
-              <select
+              <SelectField
                 value={approvalMethod}
-                onChange={(e) => setApprovalMethod(e.target.value)}
-                className="form-select"
-              >
-                <option value="signed-pdf">เซ็นรับรอง (Signed PDF)</option>
-                <option value="email">อีเมล (Email Confirmation)</option>
-                <option value="line-chat">แชท LINE (LINE Chat)</option>
-                <option value="verbal">วาจา (Verbal / Meeting)</option>
-                <option value="screenshot">ภาพถ่ายหน้าจอ (Screenshot)</option>
-                <option value="in-person">พบปะส่วนตัว (In-Person)</option>
-                <option value="other">อื่นๆ (Other)</option>
-              </select>
+                onChange={setApprovalMethod}
+                options={[
+                  { value: 'signed-pdf', label: 'เซ็นรับรอง (Signed PDF)' },
+                  { value: 'email', label: 'อีเมล (Email Confirmation)' },
+                  { value: 'line-chat', label: 'แชท LINE (LINE Chat)' },
+                  { value: 'verbal', label: 'วาจา (Verbal / Meeting)' },
+                  { value: 'screenshot', label: 'ภาพถ่ายหน้าจอ (Screenshot)' },
+                  { value: 'in-person', label: 'พบปะส่วนตัว (In-Person)' },
+                  { value: 'other', label: 'อื่นๆ (Other)' },
+                ]}
+              />
               <p className="form-helper">วิธีการที่ลูกค้าใช้ยืนยันการอนุมัติ</p>
             </div>
           </div>

@@ -10,8 +10,9 @@ import ExportModal from './components/ExportModal';
 import CompanySettingsModal from './components/CompanySettingsModal';
 import HealthCheckModal from './components/HealthCheckModal';
 import ProjectOverview from './components/ProjectOverview';
+import WorkspaceOverview from './components/WorkspaceOverview';
 import { listProjectDocuments, DocumentInfo, backupWorkspace } from './lib/tauri-commands';
-import { FileText } from 'lucide-react';
+import { FolderOpen, Briefcase } from 'lucide-react';
 import { save } from '@tauri-apps/plugin-dialog';
 import './index.css';
 
@@ -25,6 +26,7 @@ function AppContent() {
     clientId: '',
     projectId: '',
     projectPath: '',
+    initialType: undefined as string | undefined,
   });
   const [showExportModal, setShowExportModal] = useState(false);
   const [showCompanySettings, setShowCompanySettings] = useState(false);
@@ -67,8 +69,8 @@ function AppContent() {
     return <WelcomeScreen />;
   }
 
-  function handleCreateDocument(clientId: string, projectId: string, projectPath: string) {
-    setDocumentCreatorProps({ clientId, projectId, projectPath });
+  function handleCreateDocument(clientId: string, projectId: string, projectPath: string, initialType?: string) {
+    setDocumentCreatorProps({ clientId, projectId, projectPath, initialType });
     setShowDocumentCreator(true);
   }
 
@@ -139,6 +141,111 @@ function AppContent() {
   if (tree) {
     extractFiles(tree);
   }
+  const handleCreateDemoDirectly = async () => {
+    if (!workspacePath) return;
+    try {
+      const { generateDemoWorkspace } = await import('./lib/demo-generator');
+      await generateDemoWorkspace(workspacePath, workspaceName);
+      await refreshTree();
+      alert('สร้าง Demo Workspace สำเร็จ!');
+    } catch (err) {
+      alert(`สร้าง Demo ไม่สำเร็จ: ${err}`);
+    }
+  };
+
+  const clientEmptyStateId = selectedFile?.startsWith('__client__:') 
+    ? selectedFile.substring('__client__:'.length) 
+    : '';
+
+  const hasNoClients = !tree?.children || tree.children.length === 0;
+
+  let mainContent;
+  if ((selectedFile === '__workspace_overview__' || !selectedFile) && hasNoClients) {
+    mainContent = (
+      <div className="h-full flex items-center justify-center bg-gradient-to-b from-[#121214] to-[#09090b]">
+        <div className="max-w-md w-full mx-auto px-6 text-center flex flex-col items-center">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
+            <FolderOpen className="w-8 h-8 text-primary-light" />
+          </div>
+          <h2 className="text-2xl font-bold text-text mb-2">ยังไม่มีลูกค้า</h2>
+          <p className="text-sm text-text-dim mb-8">
+            สร้างลูกค้ารายแรก หรือใช้ Demo Workspace เพื่อทดลอง workflow
+          </p>
+          <div className="flex gap-4 w-full justify-center">
+            <button
+              onClick={handleCreateDemoDirectly}
+              className="btn btn-ghost"
+            >
+              สร้าง Demo
+            </button>
+            <button
+              onClick={() => setShowClientForm(true)}
+              className="btn btn-primary"
+            >
+              สร้างลูกค้าใหม่
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  } else if (clientEmptyStateId) {
+    const clientNode = tree?.children?.find(c => c.path.endsWith(clientEmptyStateId) || c.path.split('/').pop() === clientEmptyStateId);
+    const clientName = clientNode ? clientNode.name : clientEmptyStateId;
+    mainContent = (
+      <div className="h-full flex items-center justify-center bg-gradient-to-b from-[#121214] to-[#09090b]">
+        <div className="max-w-md w-full mx-auto px-6 text-center flex flex-col items-center">
+          <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-6">
+            <Briefcase className="w-8 h-8 text-accent" />
+          </div>
+          <h2 className="text-2xl font-bold text-text mb-2">ยังไม่มีงานของลูกค้ารายนี้ ({clientName})</h2>
+          <p className="text-sm text-text-dim mb-8">
+            เริ่มจากสร้างโปรเจกต์ หรือวางคำขอลูกค้าเพื่อสร้าง Brief แรก
+          </p>
+          <div className="flex gap-4 w-full justify-center">
+            <button
+              onClick={() => handleCreateProject(clientEmptyStateId)}
+              className="btn btn-ghost"
+            >
+              เริ่มจากคำขอลูกค้า
+            </button>
+            <button
+              onClick={() => handleCreateProject(clientEmptyStateId)}
+              className="btn btn-primary"
+            >
+              สร้างโปรเจกต์
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  } else if (selectedFile === '__workspace_overview__' || !selectedFile) {
+    mainContent = (
+      <WorkspaceOverview
+        onCreateClient={() => setShowClientForm(true)}
+        onRunHealthCheck={() => setShowHealthCheck(true)}
+        onBackupWorkspace={handleBackupWorkspace}
+        onCreateProject={handleCreateProject}
+      />
+    );
+  } else {
+    mainContent = isSelectedProject ? (
+      <ProjectOverview
+        projectPath={selectedFile}
+        projectName={selectedProjectName}
+        workspaceTree={tree as any}
+        onOpenDocument={(path) => setSelectedFile(path)}
+        onCreateDocument={handleCreateDocument}
+      />
+    ) : (
+      <MarkdownEditor
+        filePath={selectedFile}
+        workspacePath={workspacePath}
+        onDocumentChanged={refreshTree}
+        onOpenDocument={(path) => setSelectedFile(path)}
+        allFiles={allFiles}
+      />
+    );
+  }
 
   return (
     <div className="h-screen flex">
@@ -153,35 +260,7 @@ function AppContent() {
       />
 
       <main className="flex-1 h-full overflow-hidden">
-        {selectedFile ? (
-          isSelectedProject ? (
-            <ProjectOverview
-              projectPath={selectedFile}
-              projectName={selectedProjectName}
-              workspaceTree={tree as any}
-              onOpenDocument={(path) => setSelectedFile(path)}
-              onCreateDocument={handleCreateDocument}
-            />
-          ) : (
-            <MarkdownEditor
-              filePath={selectedFile}
-              workspacePath={workspacePath}
-              onDocumentChanged={refreshTree}
-              onOpenDocument={(path) => setSelectedFile(path)}
-              allFiles={allFiles}
-            />
-          )
-        ) : (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center">
-              <FileText className="w-12 h-12 text-text-dim mx-auto mb-3" />
-              <p className="text-text-muted">เลือกเอกสารจากแถบด้านซ้าย</p>
-              <p className="text-sm text-text-dim mt-1">
-                หรือสร้างลูกค้า → โครงการ → สร้างเอกสารใหม่
-              </p>
-            </div>
-          </div>
-        )}
+        {mainContent}
       </main>
 
       {showClientForm && <ClientForm onClose={() => setShowClientForm(false)} />}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Trash2, Calculator, Settings, FileText } from 'lucide-react';
 import { QuotationFormData, LineItem, calculateQuotationTotals } from '../lib/quotation-builder';
 import { getPresets, Presets } from '../lib/settings';
+import SelectField from './ui/SelectField';
 
 interface QuotationFormProps {
   workspacePath: string;
@@ -236,15 +237,16 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 w-full max-w-sm">
                 <div className="flex items-center gap-3">
                   <label className="text-sm text-text-muted whitespace-nowrap font-medium">หักส่วนลด:</label>
-                  <select
+                  <SelectField
                     value={formData.discount_type || 'none'}
-                    onChange={e => handleChange('discount_type', e.target.value)}
-                    className="form-select sm:w-44"
-                  >
-                    <option value="none">ไม่มี</option>
-                    <option value="amount">จำนวนเงิน (บาท)</option>
-                    <option value="percent">เปอร์เซ็นต์ (%)</option>
-                  </select>
+                    onChange={val => handleChange('discount_type', val)}
+                    options={[
+                      { value: 'none', label: 'ไม่มี' },
+                      { value: 'amount', label: 'จำนวนเงิน (บาท)' },
+                      { value: 'percent', label: 'เปอร์เซ็นต์ (%)' },
+                    ]}
+                    className="sm:w-44"
+                  />
                 </div>
                 {(formData.discount_type === 'amount' || formData.discount_type === 'percent') && (
                   <input
@@ -289,20 +291,19 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
             <div className="grid grid-cols-1 gap-6">
               <div>
                 <label className="form-label">เงื่อนไขการชำระเงิน (Payment Terms)</label>
-                {presets?.payment_terms && presets.payment_terms.length > 0 && (
                   <div className="mb-4">
-                    <select 
-                      onChange={e => handleChange('payment_terms_preset', e.target.value)}
-                      value={formData.payment_terms_preset}
-                      className="form-select"
-                    >
-                      <option value="">-- เลือกแบบฟอร์มเงื่อนไขการชำระเงิน --</option>
-                      {presets.payment_terms.map((preset, idx) => (
-                        <option key={idx} value={preset}>{preset}</option>
-                      ))}
-                    </select>
+                    <SelectField 
+                      onChange={val => handleChange('payment_terms_preset', val)}
+                      value={formData.payment_terms_preset || ''}
+                      options={[
+                        { value: '', label: '-- เลือกแบบฟอร์มเงื่อนไขการชำระเงิน --' },
+                        ...(presets?.payment_terms || []).map((preset) => ({
+                          value: preset,
+                          label: preset
+                        }))
+                      ]}
+                    />
                   </div>
-                )}
                 <textarea
                   value={formData.payment_terms_preset}
                   onChange={e => handleChange('payment_terms_preset', e.target.value)}

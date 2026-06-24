@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Building2, Save } from 'lucide-react';
 import { CompanyProfile, getCompanyProfile, saveCompanyProfile } from '../lib/settings';
+import SelectField from './ui/SelectField';
 
 interface CompanySettingsModalProps {
   workspacePath: string;
@@ -127,15 +128,15 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
               </div>
               <div className="form-field">
                 <label className="form-label">ประเภท</label>
-                <select
-                  value={profile.provider_type}
-                  onChange={e => handleChange('provider_type', e.target.value)}
-                  className="form-select"
-                >
-                  <option value="company">บริษัท (Company)</option>
-                  <option value="agency">เอเจนซี่ (Agency)</option>
-                  <option value="freelancer">ฟรีแลนซ์ (Freelancer)</option>
-                </select>
+                <SelectField
+                  value={profile.provider_type || 'company'}
+                  onChange={val => handleChange('provider_type', val)}
+                  options={[
+                    { value: 'company', label: 'บริษัท (Company)' },
+                    { value: 'agency', label: 'เอเจนซี่ (Agency)' },
+                    { value: 'freelancer', label: 'ฟรีแลนซ์ (Freelancer)' },
+                  ]}
+                />
               </div>
             </div>
 

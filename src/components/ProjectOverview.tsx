@@ -4,13 +4,14 @@ import { FileEntry } from '../lib/tauri-commands';
 import {
   RefreshCw, FileText, Search, Lock, CheckCircle, Briefcase, ArrowRight, AlertTriangle, Target, Plus
 } from 'lucide-react';
+import SelectField from './ui/SelectField';
 
 interface ProjectOverviewProps {
   projectPath: string;
   projectName: string;
   workspaceTree: FileEntry;
   onOpenDocument: (path: string) => void;
-  onCreateDocument: (clientId: string, projectId: string, projectPath: string) => void;
+  onCreateDocument: (clientId: string, projectId: string, projectPath: string, initialType?: string) => void;
 }
 
 export default function ProjectOverview({ projectPath, projectName, workspaceTree, onOpenDocument, onCreateDocument }: ProjectOverviewProps) {
@@ -329,24 +330,24 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
             />
           </div>
           <div className="relative sm:w-48">
-            <select
+            <SelectField
               value={filterType}
-              onChange={e => setFilterType(e.target.value)}
-              className="form-select"
-            >
-              <option value="all">ทุกประเภท</option>
-              {uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
+              onChange={setFilterType}
+              options={[
+                { value: 'all', label: 'ทุกประเภท' },
+                ...uniqueTypes.map(t => ({ value: t, label: t }))
+              ]}
+            />
           </div>
           <div className="relative sm:w-48">
-            <select
+            <SelectField
               value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              className="form-select"
-            >
-              <option value="all">ทุกสถานะ</option>
-              {uniqueStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+              onChange={setFilterStatus}
+              options={[
+                { value: 'all', label: 'ทุกสถานะ' },
+                ...uniqueStatuses.map(s => ({ value: s, label: s }))
+              ]}
+            />
           </div>
         </div>
 
@@ -355,8 +356,32 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
           {filteredDocs.length === 0 ? (
             <div className="card flex flex-col items-center justify-center py-16 text-center">
               <FileText className="w-14 h-14 text-text-dim/40 mb-5" />
-              <p className="text-text-muted font-semibold text-lg">ยังไม่มีเอกสารในโครงการนี้</p>
-              <p className="text-sm text-text-dim mt-2 max-w-sm">คลิก + ที่ชื่อโครงการในแถบด้านซ้ายเพื่อสร้างเอกสารใหม่</p>
+              <p className="text-text-muted font-semibold text-lg">ยังไม่มีเอกสารในโปรเจกต์นี้</p>
+              <p className="text-sm text-text-dim mt-2 max-w-sm mb-6">เริ่มจากคำขอลูกค้าเพื่อสร้าง Brief หรือสร้าง Scope โดยตรง</p>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const normalized = projectPath.replace(/\\/g, '/');
+                    const projId = normalized.split('/').pop() || '';
+                    onCreateDocument(clientId, projId, projectPath, 'brief');
+                  }}
+                  className="btn btn-ghost"
+                >
+                  เริ่มจากคำขอลูกค้า
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const normalized = projectPath.replace(/\\/g, '/');
+                    const projId = normalized.split('/').pop() || '';
+                    onCreateDocument(clientId, projId, projectPath, 'scope');
+                  }}
+                  className="btn btn-primary"
+                >
+                  สร้าง Scope
+                </button>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col">

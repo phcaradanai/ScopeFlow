@@ -17,7 +17,7 @@ import {
 interface SidebarProps {
   onCreateClient: () => void;
   onCreateProject: (clientId: string) => void;
-  onCreateDocument: (clientId: string, projectId: string, projectPath: string) => void;
+  onCreateDocument: (clientId: string, projectId: string, projectPath: string, initialType?: string) => void;
   onExportProject: (clientId: string, projectId: string, projectPath: string) => void;
   onOpenSettings: () => void;
   onRunHealthCheck: () => void;
@@ -31,11 +31,19 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
     <aside className="w-72 min-w-[280px] h-full bg-surface/50 backdrop-blur-xl border-r border-white/5 flex flex-col">
       {/* Workspace header */}
       <div className="px-5 py-4 flex items-center justify-between border-b border-white/5" style={{ minHeight: '52px' }}>
-        <div className="flex items-center gap-3 overflow-hidden">
+        <button
+          onClick={() => setSelectedFile('__workspace_overview__')}
+          className={`flex items-center gap-3 overflow-hidden text-left transition-all duration-200 flex-1 px-2.5 py-1.5 rounded-xl border border-transparent ${
+            (selectedFile === '__workspace_overview__' || !selectedFile)
+              ? 'bg-primary/10 text-primary-light font-bold border-primary/20 shadow-sm'
+              : 'hover:bg-white/5 text-text hover:text-white'
+          }`}
+          title="ดูภาพรวม Workspace"
+        >
           <FolderOpen className="w-5 h-5 text-primary-light shrink-0" />
-          <h2 className="text-sm font-bold text-text truncate">{workspaceName}</h2>
-        </div>
-        <div className="flex shrink-0 gap-1">
+          <h2 className="text-sm truncate flex-1">{workspaceName}</h2>
+        </button>
+        <div className="flex shrink-0 gap-1 ml-2">
           <button
             onClick={onRunHealthCheck}
             className="sidebar-action-btn"
@@ -122,13 +130,26 @@ function ClientNode({
   onExportProject: (clientId: string, projectId: string, projectPath: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const clientId = node.path.split('/').pop() || '';
+  const normalizedPath = node.path.replace(/\\/g, '/');
+  const clientId = normalizedPath.split('/').pop() || '';
+
+  const projectsFolder = node.children?.find(
+    c => c.name === 'projects' || c.path.replace(/\\/g, '/').endsWith('/projects')
+  );
+  const hasNoProjects = !projectsFolder || !projectsFolder.children || projectsFolder.children.length === 0;
 
   return (
     <div>
       <button
-        onClick={() => setExpanded(!expanded)}
-        className="sidebar-row w-full group text-left"
+        onClick={() => {
+          setExpanded(!expanded);
+          if (hasNoProjects) {
+            onSelect(`__client__:${clientId}`);
+          }
+        }}
+        className={`sidebar-row w-full group text-left ${
+          selectedFile === `__client__:${clientId}` ? 'sidebar-row-selected' : ''
+        }`}
       >
         {expanded ? (
           <ChevronDown className="w-4 h-4 text-text-dim" />
@@ -184,7 +205,7 @@ function ProjectNode({
   clientId: string;
   selectedFile: string | null;
   onSelect: (path: string | null) => void;
-  onCreateDocument: (clientId: string, projectId: string, projectPath: string) => void;
+  onCreateDocument: (clientId: string, projectId: string, projectPath: string, initialType?: string) => void;
   onExportProject: (clientId: string, projectId: string, projectPath: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -199,7 +220,7 @@ function ProjectNode({
         }}
         className={`sidebar-row w-full group text-left ${
           selectedFile === node.path
-            ? 'bg-primary/10 text-primary-light font-medium shadow-sm'
+            ? 'sidebar-row-selected'
             : 'hover:bg-white/5 text-text-muted'
         }`}
       >

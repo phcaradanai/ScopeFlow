@@ -13,12 +13,14 @@ import {
 } from '../lib/templates';
 import { validateSlug, nameToSlug } from '../lib/validation';
 import { X } from 'lucide-react';
+import SelectField from './ui/SelectField';
 
 interface DocumentCreatorModalProps {
   clientId: string;
   projectId: string;
   projectPath: string;
   onClose: () => void;
+  initialType?: string;
 }
 
 export default function DocumentCreatorModal({
@@ -26,9 +28,10 @@ export default function DocumentCreatorModal({
   projectId,
   projectPath,
   onClose,
+  initialType,
 }: DocumentCreatorModalProps) {
   const { workspacePath, refreshTree, setSelectedFile } = useWorkspace();
-  const [type, setType] = useState('scope');
+  const [type, setType] = useState(initialType || 'scope');
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [changeKind, setChangeKind] = useState('behavior');
@@ -205,26 +208,25 @@ export default function DocumentCreatorModal({
               {error}
             </div>
           )}
-
           <div className="form-section">
             <div className="form-field">
               <label className="form-label">
                 ประเภทเอกสาร <span className="text-error">*</span>
               </label>
-              <select
+              <SelectField
                 value={type}
-                onChange={(e) => setType(e.target.value)}
-                className="form-select"
-              >
-                <option value="brief">ร่างความต้องการ (Brief)</option>
-                <option value="scope">ขอบเขตงาน (Scope)</option>
-                <option value="quotation">ใบเสนอราคา (Quotation)</option>
-                <option value="cr">คำขอเปลี่ยนแปลง (CR)</option>
-                <option value="dcr">คำขอเปลี่ยนแปลงการพัฒนา (DCR)</option>
-                <option value="sup">แจ้งปัญหา (Support Request)</option>
-                <option value="ma">แจ้งซ่อมบำรุง (MA Request)</option>
-                <option value="acceptance">รายการตรวจรับ (Acceptance Checklist)</option>
-              </select>
+                onChange={setType}
+                options={[
+                  { value: 'brief', label: 'ร่างความต้องการ (Brief)' },
+                  { value: 'scope', label: 'ขอบเขตงาน (Scope)' },
+                  { value: 'quotation', label: 'ใบเสนอราคา (Quotation)' },
+                  { value: 'cr', label: 'คำขอเปลี่ยนแปลง (CR)' },
+                  { value: 'dcr', label: 'คำขอเปลี่ยนแปลงการพัฒนา (DCR)' },
+                  { value: 'sup', label: 'แจ้งปัญหา (Support Request)' },
+                  { value: 'ma', label: 'แจ้งซ่อมบำรุง (MA Request)' },
+                  { value: 'acceptance', label: 'รายการตรวจรับ (Acceptance Checklist)' },
+                ]}
+              />
               <p className="form-helper">เลือกประเภทเอกสารที่ต้องการสร้าง</p>
             </div>
           </div>
@@ -276,20 +278,20 @@ export default function DocumentCreatorModal({
                 <label className="form-label">
                   ประเภทการเปลี่ยนแปลง <span className="text-error">*</span>
                 </label>
-                <select
+                <SelectField
                   value={changeKind}
-                  onChange={(e) => setChangeKind(e.target.value)}
-                  className="form-select"
-                >
-                  <option value="behavior">การทำงาน (Behavior / Logic)</option>
-                  <option value="ui">หน้าจอ (UI / UX)</option>
-                  <option value="database">ฐานข้อมูล (Database / Schema)</option>
-                  <option value="report">รายงาน (Report / Dashboard)</option>
-                  <option value="permission">สิทธิ์การใช้งาน (Permission / Role)</option>
-                  <option value="integration">ระบบเชื่อมต่อ (Integration / API)</option>
-                  <option value="technical-design">สถาปัตยกรรม (Technical Design)</option>
-                  <option value="other">อื่นๆ (Other)</option>
-                </select>
+                  onChange={setChangeKind}
+                  options={[
+                    { value: 'behavior', label: 'การทำงาน (Behavior / Logic)' },
+                    { value: 'ui', label: 'หน้าจอ (UI / UX)' },
+                    { value: 'database', label: 'ฐานข้อมูล (Database / Schema)' },
+                    { value: 'report', label: 'รายงาน (Report / Dashboard)' },
+                    { value: 'permission', label: 'สิทธิ์การใช้งาน (Permission / Role)' },
+                    { value: 'integration', label: 'ระบบเชื่อมต่อ (Integration / API)' },
+                    { value: 'technical-design', label: 'สถาปัตยกรรม (Technical Design)' },
+                    { value: 'other', label: 'อื่นๆ (Other)' },
+                  ]}
+                />
               </div>
             </div>
           )}
@@ -300,18 +302,18 @@ export default function DocumentCreatorModal({
                 <label className="form-label">
                   หมวดหมู่ <span className="text-error">*</span>
                 </label>
-                <select
+                <SelectField
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="form-select"
-                >
-                  <option value="bug">บั๊ก (Bug)</option>
-                  <option value="feature-request">ขอเพิ่มฟีเจอร์ (Feature Request)</option>
-                  <option value="update">อัปเดตข้อมูล (Update)</option>
-                  <option value="maintenance">บำรุงรักษา (Maintenance)</option>
-                  <option value="security">ความปลอดภัย (Security)</option>
-                  <option value="other">อื่นๆ (Other)</option>
-                </select>
+                  onChange={setCategory}
+                  options={[
+                    { value: 'bug', label: 'บั๊ก (Bug)' },
+                    { value: 'feature-request', label: 'ขอเพิ่มฟีเจอร์ (Feature Request)' },
+                    { value: 'update', label: 'อัปเดตข้อมูล (Update)' },
+                    { value: 'maintenance', label: 'บำรุงรักษา (Maintenance)' },
+                    { value: 'security', label: 'ความปลอดภัย (Security)' },
+                    { value: 'other', label: 'อื่นๆ (Other)' },
+                  ]}
+                />
               </div>
             </div>
           )}

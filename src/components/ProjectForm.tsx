@@ -12,6 +12,7 @@ import {
 } from '../lib/templates';
 import { validateProjectData, validateSlug, nameToSlug } from '../lib/validation';
 import { X } from 'lucide-react';
+import SelectField from './ui/SelectField';
 
 interface ProjectFormProps {
   clientId: string;
@@ -144,15 +145,15 @@ export default function ProjectForm({ clientId, onClose }: ProjectFormProps) {
               <label className="form-label">
                 ประเภทโครงการ <span className="text-error">*</span>
               </label>
-              <select
+              <SelectField
                 value={type}
-                onChange={(e) => setType(e.target.value)}
-                className="form-select"
-              >
-                <option value="new-project">โครงการใหม่</option>
-                <option value="maintenance">ดูแลระบบ (MA)</option>
-                <option value="support-contract">สัญญาซัพพอร์ต</option>
-              </select>
+                onChange={setType}
+                options={[
+                  { value: 'new-project', label: 'โครงการใหม่' },
+                  { value: 'maintenance', label: 'ดูแลระบบ (MA)' },
+                  { value: 'support-contract', label: 'สัญญาซัพพอร์ต' },
+                ]}
+              />
               {(type === 'maintenance' || type === 'support-contract') && (
                 <p className="form-helper text-primary-light">
                   📁 จะสร้างโฟลเดอร์ current-system/ สำหรับบันทึกข้อมูลระบบปัจจุบัน

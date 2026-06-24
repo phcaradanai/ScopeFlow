@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FileText } from 'lucide-react';
 import { BriefFormData, projectPresets } from '../lib/brief-builder';
+import SelectField from './ui/SelectField';
 
 interface BriefHelperFormProps {
   initialData?: BriefFormData | null;
@@ -48,16 +49,11 @@ export default function BriefHelperForm({ initialData, onGenerate }: BriefHelper
 
             <div className="form-section mt-5">
               <label className="form-label">ประเภทโครงการ (เลือกเพื่อให้ระบบแนะนำได้แม่นยำขึ้น)</label>
-              <select
+              <SelectField
                 value={formData.project_type}
-                onChange={e => handleChange('project_type', e.target.value)}
-                className="form-select"
-                style={{ height: '48px' }}
-              >
-                {projectTypes.map(pt => (
-                  <option key={pt} value={pt}>{pt}</option>
-                ))}
-              </select>
+                onChange={val => handleChange('project_type', val)}
+                options={projectTypes.map(pt => ({ value: pt, label: pt }))}
+              />
             </div>
           </div>
 
