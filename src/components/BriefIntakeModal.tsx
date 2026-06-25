@@ -2,8 +2,21 @@ import { useState } from 'react';
 import { useWorkspace } from '../lib/workspace-context';
 import { createDocument, pathExists, createProject } from '../lib/tauri-commands';
 import { generateBriefDocument, BriefFormData, projectPresets } from '../lib/brief-builder';
-import { X, AlertTriangle, FileText } from 'lucide-react';
+import { X, AlertTriangle, FileText, CheckCircle2, ChevronRight, Lightbulb } from 'lucide-react';
 import SelectField from './ui/SelectField';
+
+const EXAMPLES = [
+  {
+    title: 'E-Commerce (เว็บขายของ)',
+    content: 'ต้องการระบบร้านค้าออนไลน์ขายเสื้อผ้า มีระบบตะกร้าสินค้า ชำระเงินผ่านบัตรเครดิต/พร้อมเพย์ และระบบหลังบ้านสำหรับจัดการสต๊อกและดูรายงานยอดขาย',
+    project_type: 'เว็บขายของ'
+  },
+  {
+    title: 'Corporate Website (เว็บไซต์บริษัท)',
+    content: 'อยากทำเว็บไซต์บริษัทใหม่ เน้นดีไซน์ทันสมัย (Modern Dark Theme) มีหน้า Home, About Us, Services, และฟอร์ม Contact Us ที่ส่งเข้าอีเมล',
+    project_type: 'เว็บไซต์บริษัท'
+  }
+];
 
 interface BriefIntakeModalProps {
   clientId: string;
@@ -207,7 +220,7 @@ export default function BriefIntakeModal({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-container">
+      <div className="modal-container !max-w-5xl">
         <div className="modal-header">
           <div className="modal-header-content">
             <h2 className="modal-title">เริ่มจากคำขอลูกค้า</h2>
@@ -218,34 +231,81 @@ export default function BriefIntakeModal({
           </button>
         </div>
 
-        <form id="brief-intake-form" onSubmit={handleSubmit} className="modal-body">
+        <div className="modal-body !p-0 overflow-hidden flex flex-col">
           {error && (
-            <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
+            <div className="m-6 mb-0 p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
               {error}
             </div>
           )}
+          
+          <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] flex-1 overflow-hidden">
+            {/* Left Column: Form */}
+            <form id="brief-intake-form" onSubmit={handleSubmit} className="p-6 flex flex-col gap-5 overflow-y-auto">
+              <div className="form-section !bg-transparent !border-transparent !p-0">
+                <label className="form-label mb-2 block">วางข้อความ/คำพูดจากลูกค้าที่นี่</label>
+                <textarea
+                  value={formData.raw_request}
+                  onChange={(e) => handleChange('raw_request', e.target.value)}
+                  placeholder="วางข้อความแชท อีเมล หรือโน้ตประชุมที่นี่..."
+                  className="form-textarea shadow-inner focus:shadow-primary/10 transition-shadow"
+                  style={{ minHeight: '280px' }}
+                  autoFocus
+                />
+              </div>
 
-          <div className="form-section">
-            <label className="form-label">วางข้อความ/คำพูดจากลูกค้าที่นี่</label>
-            <textarea
-              value={formData.raw_request}
-              onChange={(e) => handleChange('raw_request', e.target.value)}
-              placeholder="วางข้อความแชท อีเมล หรือโน้ตประชุมที่นี่..."
-              className="form-textarea"
-              style={{ minHeight: '140px' }}
-              autoFocus
-            />
-          </div>
+              <div className="form-section !bg-transparent !border-transparent !p-0 mt-auto">
+                <label className="form-label mb-2 block">ประเภทโครงการ (เลือกเพื่อให้ระบบแนะนำได้แม่นยำขึ้น)</label>
+                <SelectField
+                  value={formData.project_type}
+                  onChange={(val) => handleChange('project_type', val)}
+                  options={projectTypes.map((pt) => ({ value: pt, label: pt }))}
+                />
+              </div>
+            </form>
 
-          <div className="form-section mt-5">
-            <label className="form-label">ประเภทโครงการ (เลือกเพื่อให้ระบบแนะนำได้แม่นยำขึ้น)</label>
-            <SelectField
-              value={formData.project_type}
-              onChange={(val) => handleChange('project_type', val)}
-              options={projectTypes.map((pt) => ({ value: pt, label: pt }))}
-            />
+            {/* Right Column: Tips & Examples */}
+            <div className="bg-surface-2/80 border-l border-border p-6 flex flex-col gap-6 overflow-y-auto">
+              <div>
+                <h3 className="flex items-center gap-2 font-semibold text-text mb-4">
+                  <Lightbulb className="w-5 h-5 text-warning" />
+                  คำแนะนำในการเขียน
+                </h3>
+                <ul className="space-y-3 text-sm text-text-muted">
+                  <li className="flex gap-3 items-start"><CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" /> <span>ระบุเป้าหมายหลักของโครงการให้ชัดเจน</span></li>
+                  <li className="flex gap-3 items-start"><CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" /> <span>ระบุกลุ่มผู้ใช้งานเป้าหมาย</span></li>
+                  <li className="flex gap-3 items-start"><CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" /> <span>บอกฟีเจอร์สำคัญที่ต้องมี (Must-have)</span></li>
+                </ul>
+              </div>
+
+              <div className="mt-2">
+                <h3 className="font-semibold text-text mb-3">ตัวอย่างข้อความ</h3>
+                <div className="flex flex-col gap-3">
+                  {EXAMPLES.map((ex, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        handleChange('raw_request', ex.content);
+                        if (ex.project_type && projectTypes.includes(ex.project_type)) {
+                          handleChange('project_type', ex.project_type);
+                        }
+                      }}
+                      className="text-left p-4 rounded-xl border border-border bg-surface hover:bg-surface-3 hover:border-text-dim transition-all group"
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-semibold text-sm text-primary-light">{ex.title}</span>
+                        <ChevronRight className="w-4 h-4 text-text-dim group-hover:text-text transition-colors" />
+                      </div>
+                      <p className="text-xs text-text-muted line-clamp-3 leading-relaxed">
+                        "{ex.content}"
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-        </form>
+        </div>
 
         <div className="modal-footer">
           <button type="button" onClick={onClose} className="btn btn-ghost">

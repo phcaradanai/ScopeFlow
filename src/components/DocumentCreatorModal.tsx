@@ -11,8 +11,81 @@ import {
   generateAcceptanceChecklist,
 } from '../lib/templates';
 import { validateSlug, nameToSlug } from '../lib/validation';
-import { X } from 'lucide-react';
+import { X, Target, Receipt, GitPullRequest, Code, LifeBuoy, Wrench, CheckSquare } from 'lucide-react';
 import SelectField from './ui/SelectField';
+
+const DOCUMENT_TYPES = [
+  {
+    value: 'scope',
+    label: 'ขอบเขตงาน (Scope)',
+    description: 'เอกสารระบุขอบเขตความต้องการเบื้องต้น',
+    icon: Target,
+    colorClass: 'text-blue-500',
+    bgClass: 'bg-blue-500/10',
+    borderClass: 'border-blue-500/30',
+    ringClass: 'ring-blue-500/50',
+  },
+  {
+    value: 'quotation',
+    label: 'ใบเสนอราคา (Quotation)',
+    description: 'เอกสารเสนอราคาสำหรับโครงการ',
+    icon: Receipt,
+    colorClass: 'text-emerald-500',
+    bgClass: 'bg-emerald-500/10',
+    borderClass: 'border-emerald-500/30',
+    ringClass: 'ring-emerald-500/50',
+  },
+  {
+    value: 'cr',
+    label: 'คำขอเปลี่ยนแปลง (CR)',
+    description: 'คำขอเปลี่ยนแปลงขอบเขตงานหรือฟีเจอร์ใหม่',
+    icon: GitPullRequest,
+    colorClass: 'text-amber-500',
+    bgClass: 'bg-amber-500/10',
+    borderClass: 'border-amber-500/30',
+    ringClass: 'ring-amber-500/50',
+  },
+  {
+    value: 'dcr',
+    label: 'คำขอเปลี่ยนแปลงการพัฒนา (DCR)',
+    description: 'คำขอเปลี่ยนแปลงเชิงเทคนิคหรือการออกแบบ',
+    icon: Code,
+    colorClass: 'text-purple-500',
+    bgClass: 'bg-purple-500/10',
+    borderClass: 'border-purple-500/30',
+    ringClass: 'ring-purple-500/50',
+  },
+  {
+    value: 'sup',
+    label: 'แจ้งปัญหา (Support Request)',
+    description: 'แจ้งปัญหาการใช้งานหรือบั๊กของระบบ',
+    icon: LifeBuoy,
+    colorClass: 'text-rose-500',
+    bgClass: 'bg-rose-500/10',
+    borderClass: 'border-rose-500/30',
+    ringClass: 'ring-rose-500/50',
+  },
+  {
+    value: 'ma',
+    label: 'แจ้งซ่อมบำรุง (MA Request)',
+    description: 'แจ้งซ่อมบำรุงตามรอบ MA',
+    icon: Wrench,
+    colorClass: 'text-orange-500',
+    bgClass: 'bg-orange-500/10',
+    borderClass: 'border-orange-500/30',
+    ringClass: 'ring-orange-500/50',
+  },
+  {
+    value: 'acceptance',
+    label: 'รายการตรวจรับ (Acceptance Checklist)',
+    description: 'รายการตรวจสอบสำหรับส่งมอบงาน',
+    icon: CheckSquare,
+    colorClass: 'text-teal-500',
+    bgClass: 'bg-teal-500/10',
+    borderClass: 'border-teal-500/30',
+    ringClass: 'ring-teal-500/50',
+  },
+];
 
 interface DocumentCreatorModalProps {
   clientId: string;
@@ -198,25 +271,41 @@ export default function DocumentCreatorModal({
                 {error}
               </div>
             )}
-              <div className="form-section">
-                <div className="form-field">
-                  <label className="form-label">
-                    ประเภทเอกสาร <span className="text-error">*</span>
-                  </label>
-                  <SelectField
-                    value={type}
-                    onChange={setType}
-                    options={[
-                      { value: 'scope', label: 'ขอบเขตงาน (Scope)' },
-                      { value: 'quotation', label: 'ใบเสนอราคา (Quotation)' },
-                      { value: 'cr', label: 'คำขอเปลี่ยนแปลง (CR)' },
-                      { value: 'dcr', label: 'คำขอเปลี่ยนแปลงการพัฒนา (DCR)' },
-                      { value: 'sup', label: 'แจ้งปัญหา (Support Request)' },
-                      { value: 'ma', label: 'แจ้งซ่อมบำรุง (MA Request)' },
-                      { value: 'acceptance', label: 'รายการตรวจรับ (Acceptance Checklist)' },
-                    ]}
-                  />
-                  <p className="form-helper">เลือกประเภทเอกสารที่ต้องการสร้าง</p>
+              <div className="form-section !bg-transparent !border-transparent !p-0">
+                <label className="form-label mb-2 block">
+                  ประเภทเอกสาร <span className="text-error">*</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-2">
+                  {DOCUMENT_TYPES.map((docType) => {
+                    const Icon = docType.icon;
+                    const isSelected = type === docType.value;
+                    return (
+                      <button
+                        key={docType.value}
+                        type="button"
+                        onClick={() => setType(docType.value)}
+                        className={`text-left p-4 rounded-xl border transition-all duration-200 flex flex-col gap-3 group outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+                          isSelected 
+                            ? `${docType.bgClass} border-transparent ring-2 ring-offset-2 ring-offset-surface ${docType.ringClass}` 
+                            : 'bg-surface-2 border-border hover:border-text-dim hover:bg-surface-3'
+                        }`}
+                      >
+                        <div className={`p-2 rounded-lg w-fit transition-colors duration-200 ${
+                          isSelected ? `${docType.colorClass} bg-surface` : `${docType.bgClass} ${docType.colorClass}`
+                        }`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className={`font-semibold text-sm mb-1 transition-colors duration-200 ${isSelected ? 'text-text' : 'text-text'}`}>
+                            {docType.label}
+                          </div>
+                          <div className="text-xs text-text-muted line-clamp-2 leading-relaxed">
+                            {docType.description}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
