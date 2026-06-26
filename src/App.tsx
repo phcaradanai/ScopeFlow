@@ -13,6 +13,7 @@ import ProjectOverview from './components/ProjectOverview';
 import WorkspaceOverview from './components/WorkspaceOverview';
 import BriefIntakeModal from './components/BriefIntakeModal';
 import ClientOverview from './components/ClientOverview';
+import DemoFlowGuideModal from './components/demo/DemoFlowGuideModal';
 import { listProjectDocuments, DocumentInfo, backupWorkspace, FileEntry } from './lib/tauri-commands';
 import { FolderOpen, Briefcase } from 'lucide-react';
 import { save } from '@tauri-apps/plugin-dialog';
@@ -48,6 +49,7 @@ function AppContent() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showCompanySettings, setShowCompanySettings] = useState(false);
   const [showHealthCheck, setShowHealthCheck] = useState(false);
+  const [demoGuideProjectPath, setDemoGuideProjectPath] = useState('');
   const [exportModalProps, setExportModalProps] = useState({
     projectPath: '',
     projectName: '',
@@ -213,6 +215,7 @@ function AppContent() {
         onRunHealthCheck={() => setShowHealthCheck(true)}
         onBackupWorkspace={handleBackupWorkspace}
         onCreateProject={handleCreateProject}
+        onDemoFlowCreated={setDemoGuideProjectPath}
       />
     );
   } else {
@@ -269,6 +272,13 @@ function AppContent() {
         <CompanySettingsModal workspacePath={workspacePath} onClose={() => setShowCompanySettings(false)} />
       )}
       {showHealthCheck && <HealthCheckModal onClose={() => setShowHealthCheck(false)} />}
+      {demoGuideProjectPath && (
+        <DemoFlowGuideModal
+          projectPath={demoGuideProjectPath}
+          onOpenProject={setSelectedFile}
+          onClose={() => setDemoGuideProjectPath('')}
+        />
+      )}
     </AppShell>
   );
 }
