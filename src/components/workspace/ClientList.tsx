@@ -1,7 +1,8 @@
 import { Users, Briefcase, Plus } from 'lucide-react';
+import type { ClientPathInfo } from '../../lib/workspace-scanner';
 
 interface ClientListProps {
-  clientsWithProjects: any[];
+  clientsWithProjects: ClientPathInfo[];
   onCreateClient: () => void;
   onCreateProject: (clientId: string) => void;
   onSelectClient: (path: string) => void;
@@ -30,41 +31,37 @@ export default function ClientList({ clientsWithProjects, onCreateClient, onCrea
             </button>
           </div>
         ) : (
-          clientsWithProjects.map(client => {
-            const clientProjCount = client.children?.find((c: any) => c.name === 'projects')?.children?.length || 0;
-            const clientId = client.path.split('/').pop() || client.name;
-            return (
-              <div key={client.path} className="group relative flex flex-col p-5 rounded-2xl bg-surface border border-border hover:border-primary/50 hover:bg-surface-2/80 hover:shadow-lg transition-all duration-300">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                    <Users className="w-5 h-5 text-accent" />
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onCreateProject(clientId); }}
-                    className="w-8 h-8 rounded-full bg-surface-3 flex items-center justify-center text-text-muted hover:bg-primary hover:text-white transition-colors border border-border/50"
-                    title="สร้างโครงการใหม่ให้ลูกค้านี้"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+          clientsWithProjects.map(client => (
+            <div key={client.path} className="group relative flex flex-col p-5 rounded-2xl bg-surface border border-border hover:border-primary/50 hover:bg-surface-2/80 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <Users className="w-5 h-5 text-accent" />
                 </div>
-                
                 <button
-                  onClick={() => onSelectClient(`__client__:${clientId}`)}
-                  className="flex flex-col items-start text-left flex-1"
+                  onClick={(e) => { e.stopPropagation(); onCreateProject(client.clientId); }}
+                  className="w-8 h-8 rounded-full bg-surface-3 flex items-center justify-center text-text-muted hover:bg-primary hover:text-white transition-colors border border-border/50"
+                  title="สร้างโครงการใหม่ให้ลูกค้านี้"
                 >
-                  <h4 className="font-bold text-base text-text group-hover:text-primary-light transition-colors line-clamp-1 w-full">
-                    {client.name}
-                  </h4>
-                  <div className="mt-3 flex items-center">
-                    <span className="badge badge-muted px-2.5 py-1 flex items-center gap-1.5">
-                      <Briefcase className="w-3 h-3 opacity-70" />
-                      {clientProjCount} โครงการ
-                    </span>
-                  </div>
+                  <Plus className="w-4 h-4" />
                 </button>
               </div>
-            );
-          })
+
+              <button
+                onClick={() => onSelectClient(`__client__:${client.clientId}`)}
+                className="flex flex-col items-start text-left flex-1"
+              >
+                <h4 className="font-bold text-base text-text group-hover:text-primary-light transition-colors line-clamp-1 w-full">
+                  {client.clientName}
+                </h4>
+                <div className="mt-3 flex items-center">
+                  <span className="badge badge-muted px-2.5 py-1 flex items-center gap-1.5">
+                    <Briefcase className="w-3 h-3 opacity-70" />
+                    {client.projects.length} โครงการ
+                  </span>
+                </div>
+              </button>
+            </div>
+          ))
         )}
       </div>
     </div>
