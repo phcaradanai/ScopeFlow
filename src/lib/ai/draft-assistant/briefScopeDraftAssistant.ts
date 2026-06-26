@@ -1,6 +1,8 @@
 import YAML from 'yaml';
 import { todayISO } from '../../validation';
 import type { ScopeDigestOutput } from '../scope-digest/scopeDigestSchema';
+import { getRuleBasedScopeControl } from '../scope-control/scopeControlFallback';
+import { injectScopeControlMarkdown } from '../scope-control/scopeControlMarkdown';
 
 export interface BriefScopeDraftInput {
   rawRequest: string;
@@ -135,9 +137,11 @@ export function buildScopeDraftFromDigest(input: BriefScopeDraftInput): string {
 }
 
 export function buildBriefScopeDraftPack(input: BriefScopeDraftInput): BriefScopeDraftPack {
+  const scopeControl = getRuleBasedScopeControl(input.rawRequest, input.digest);
+
   return {
     briefMarkdown: buildBriefDraftFromDigest(input),
-    scopeMarkdown: buildScopeDraftFromDigest(input),
+    scopeMarkdown: injectScopeControlMarkdown(buildScopeDraftFromDigest(input), scopeControl),
     suggestedBriefPath: 'baseline/brief-v1.0.md',
     suggestedScopePath: 'baseline/scope-v1.0.md',
     missingInformation: cleanItems(input.digest.unclear_points),
