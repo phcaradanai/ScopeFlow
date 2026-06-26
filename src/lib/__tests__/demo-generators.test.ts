@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
 import { generateCompletedDemoFlow } from '../demo-flow-generator';
 import { generateDemoWorkspace } from '../demo-generator';
@@ -15,6 +15,11 @@ describe('demo generators', () => {
     vi.setSystemTime(new Date('2026-06-26T08:30:45.000Z'));
     mockedInvoke.mockClear();
     mockedInvoke.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('standard demo creates unique ids and returns real artifact paths', async () => {
