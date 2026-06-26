@@ -414,17 +414,23 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
             }}
           />
         ) : mode === 'edit' ? (
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            disabled={isLocked}
-            className={`editor-textarea w-full h-full p-8 bg-surface text-text border-none outline-none resize-none leading-relaxed text-sm ${isLocked ? 'opacity-70' : ''}`}
-            spellCheck={false}
-          />
+          <div className="h-full overflow-y-auto w-full flex justify-center bg-surface-2/30 py-8 px-4 custom-scrollbar">
+            <div className="w-full max-w-[850px] min-h-full bg-surface shadow-2xl border border-white/5 rounded-xl p-10 md:p-16 flex flex-col transition-all duration-300">
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                disabled={isLocked}
+                className={`editor-textarea w-full flex-1 bg-transparent text-text border-none outline-none resize-none leading-loose text-base ${isLocked ? 'opacity-70' : ''}`}
+                spellCheck={false}
+              />
+            </div>
+          </div>
         ) : (
-          <div className="h-full overflow-y-auto p-8">
-            <div className="max-w-4xl mx-auto markdown-preview">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{bodyForPreview}</ReactMarkdown>
+          <div className="h-full overflow-y-auto w-full flex justify-center bg-surface-2/30 py-8 px-4 custom-scrollbar">
+            <div className="w-full max-w-[850px] min-h-full bg-surface shadow-2xl border border-white/5 rounded-xl p-10 md:p-16 transition-all duration-300">
+              <div className="markdown-preview">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{bodyForPreview}</ReactMarkdown>
+              </div>
             </div>
           </div>
         )}
