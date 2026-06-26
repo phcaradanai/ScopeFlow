@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ProjectDocument, scanProjectDocuments } from '../lib/document-scanner';
 import { FileEntry } from '../lib/tauri-commands';
+import { computeProjectWorkflow } from '../lib/project-workflow';
 
 export function useProjectDocuments(projectPath: string, workspaceTree: FileEntry) {
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
@@ -76,6 +77,8 @@ export function useProjectDocuments(projectPath: string, workspaceTree: FileEntr
   const uniqueTypes = Array.from(new Set(documents.map(d => d.type))).filter(Boolean);
   const uniqueStatuses = Array.from(new Set(documents.map(d => d.status))).filter(Boolean);
 
+  const workflowState = useMemo(() => computeProjectWorkflow(documents), [documents]);
+
   return {
     documents,
     loading,
@@ -100,6 +103,7 @@ export function useProjectDocuments(projectPath: string, workspaceTree: FileEntr
     hasNoBrief,
     hasNoScope,
     hasNoQuote,
+    workflowState,
     filteredDocs,
     uniqueTypes,
     uniqueStatuses

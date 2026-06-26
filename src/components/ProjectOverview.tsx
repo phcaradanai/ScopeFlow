@@ -45,9 +45,9 @@ export default function ProjectOverview({
     quotationDocs,
     invoiceDocs,
     contentFlags,
-    hasNoBrief,
     hasNoScope,
     hasNoQuote,
+    workflowState,
     filteredDocs,
     uniqueTypes,
     uniqueStatuses,
@@ -87,10 +87,7 @@ export default function ProjectOverview({
   return (
     <PageShell header={Header}>
       <ProjectWorkflowStepper
-        hasNoBrief={hasNoBrief}
-        hasNoScope={hasNoScope}
-        hasNoQuote={hasNoQuote}
-        approvedDocs={approvedDocs}
+        workflowState={workflowState}
         clientId={clientId}
         projectPath={projectPath}
         onCreateDocument={onCreateDocument}
