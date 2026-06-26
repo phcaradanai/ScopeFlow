@@ -1,0 +1,152 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getAiProviders } from './providerSettings';
+import { generateOpenAi } from './openAiCompatibleProvider';
+import { generateOllama } from './ollamaProvider';
+import { AiProvider } from './types';
+import * as tauriCommands from '../../tauri-commands';
+import * as settings from '../../settings';
+
+// Mock dependencies
+vi.mock('../../tauri-commands', () => ({
+  pathExists: vi.fn(),
+  readFileContent: vi.fn(),
+  writeFileContent: vi.fn(),
+}));
+
+vi.mock('../../settings', () => ({
+  getAiSettings: vi.fn(),
+}));
+
+// Mock fetch globally
+const globalFetch = vi.fn();
+global.fetch = globalFetch;
+
+describe('AI Provider Manager', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('Migration from old settings', () => {
+    it('should migrate from ai-settings.yaml if ai-providers.yaml does not exist', async () => {
+      // Setup mocks
+      vi.mocked(tauriCommands.pathExists).mockImplementation(async (path: string) => {
+        if (path.includes('ai-providers.yaml')) return false;
+        if (path.includes('ai-settings.yaml')) return true;
+        return false;
+      });
+
+      vi.mocked(settings.getAiSettings).mockResolvedValue({
+        enabled: true,
+        mode: 'ollama',
+        baseUrl: 'http://custom-host:11434',
+        model: 'custom-model'
+      });
+
+      const providersData = await getAiProviders('/mock/workspace');
+      
+      expect(providersData.enabled).toBe(true);
+      expect(providersData.providers[0].baseUrl).toBe('http://custom-host:11434');
+      expect(providersData.providers[0].model).toBe('custom-model');
+      expect(tauriCommands.writeFileContent).toHaveBeenCalledWith(
+        '/mock/workspace/.scopeflow/ai-providers.yaml',
+        expect.any(String)
+      );
+    });
+
+    it('should use default providers if neither exists', async () => {
+      vi.mocked(tauriCommands.pathExists).mockResolvedValue(false);
+
+      const providersData = await getAiProviders('/mock/workspace');
+      
+      expect(providersData.enabled).toBe(false);
+      expect(providersData.providers.length).toBe(2);
+      expect(providersData.providers[0].type).toBe('ollama');
+      expect(providersData.providers[1].type).toBe('openai-compatible');
+    });
+  });
+
+  describe('OpenAI-compatible Provider', () => {
+    it('should send correct payload and parse JSON response', async () => {
+      const provider: AiProvider = {
+        id: 'test',
+        name: 'test',
+        type: 'openai-compatible',
+        baseUrl: 'https://api.test.com/v1',
+        model: 'test-model'
+      };
+
+      const mockResponse = {
+        choices: [
+          { message: { content: '{"status": "success", "result": 123}' } }
+        ]
+      };
+
+      globalFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse
+      });
+
+      const result = await generateOpenAi(provider, 'Hello', 'test-api-key');
+
+      // Verify fetch arguments
+      expect(globalFetch).toHaveBeenCalledWith('https://api.test.com/v1/chat/completions', expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Authorization': 'Bearer test-api-key'
+        }),
+        body: expect.stringContaining('"model":"test-model"')
+      }));
+
+      // Verify result parsing
+      expect(result).toEqual({ status: 'success', result: 123 });
+    });
+
+    it('should throw error if API fails', async () => {
+      const provider: AiProvider = {
+        id: 'test',
+        name: 'test',
+        type: 'openai-compatible',
+        baseUrl: 'https://api.test.com/v1',
+        model: 'test-model'
+      };
+
+      globalFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized'
+      });
+
+      await expect(generateOpenAi(provider, 'Hello', 'wrong-key')).rejects.toThrow('OpenAI-compatible API error: 401 Unauthorized');
+    });
+  });
+
+  describe('Ollama Provider', () => {
+    it('should parse embedded JSON from Ollama response', async () => {
+      const provider: AiProvider = {
+        id: 'test',
+        name: 'test',
+        type: 'ollama',
+        baseUrl: 'http://localhost:11434',
+        model: 'llama3'
+      };
+
+      const mockResponse = {
+        response: '{"key": "value"}'
+      };
+
+      globalFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse
+      });
+
+      const result = await generateOllama(provider, 'Hello');
+
+      expect(globalFetch).toHaveBeenCalledWith('http://localhost:11434/api/generate', expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"prompt":"Hello"')
+      }));
+
+      expect(result).toEqual({ key: 'value' });
+    });
+  });
+});

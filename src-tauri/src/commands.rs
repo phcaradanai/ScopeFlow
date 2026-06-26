@@ -632,6 +632,13 @@ pub fn backup_workspace(workspace_path: String, dest_zip_path: String) -> Result
             continue;
         }
 
+        // Exclude secrets from backup
+        if name_str.ends_with("secrets.local.yaml") ||
+           name_str.contains(".secret") ||
+           name_str.ends_with(".local-secret.yaml") {
+            continue;
+        }
+
         if path.is_file() {
             zip.start_file(&name_str, options).map_err(|e| format!("เพิ่มไฟล์ลง ZIP ไม่สำเร็จ: {}", e))?;
             let mut f = File::open(path).map_err(|e| format!("เปิดไฟล์ไม่สำเร็จ: {}", e))?;
@@ -1021,6 +1028,11 @@ mod tests {
         fs::create_dir_all(scopeflow_dir.join("index")).unwrap();
         fs::write(scopeflow_dir.join("index").join("idx.bin"), b"idx").unwrap();
         fs::write(scopeflow_dir.join("app.lock"), b"lock").unwrap();
+        
+        // Add secret files that should be excluded
+        fs::write(scopeflow_dir.join("secrets.local.yaml"), b"secret").unwrap();
+        fs::write(scopeflow_dir.join("api.secret.yaml"), b"secret").unwrap();
+        fs::write(scopeflow_dir.join("test.local-secret.yaml"), b"secret").unwrap();
 
         let zip_path = temp_dir.join("backup.zip").to_string_lossy().to_string();
         backup_workspace(workspace_path.clone(), zip_path.clone()).unwrap();
@@ -1039,6 +1051,11 @@ mod tests {
         assert!(!restore_dir.join(".scopeflow").join("tmp").exists());
         assert!(!restore_dir.join(".scopeflow").join("index").exists());
         assert!(!restore_dir.join(".scopeflow").join("app.lock").exists());
+        
+        // Secret exclusions
+        assert!(!restore_dir.join(".scopeflow").join("secrets.local.yaml").exists());
+        assert!(!restore_dir.join(".scopeflow").join("api.secret.yaml").exists());
+        assert!(!restore_dir.join(".scopeflow").join("test.local-secret.yaml").exists());
 
         // Scopeflow inclusions
         assert!(restore_dir.join(".scopeflow").join("company-profile.yaml").exists());

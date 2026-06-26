@@ -2,7 +2,7 @@ import { ScopeDigestOutput } from './scopeDigestSchema';
 import { buildScopeDigestPrompt } from './scopeDigestPrompt';
 import { validateScopeDigest } from './scopeDigestValidator';
 import { getRuleBasedFallback } from './scopeDigestFallback';
-import { getAiSettings } from '../../settings';
+import { generateJson } from '../providers/aiProviderRouter';
 
 export async function processScopeDigest(
   workspacePath: string,
@@ -10,50 +10,22 @@ export async function processScopeDigest(
   projectType?: string,
   existingContext?: string
 ): Promise<ScopeDigestOutput> {
-  const settings = await getAiSettings(workspacePath);
-
-  // If AI is disabled or mode is 'off', use rule-based fallback
-  if (!settings.enabled || settings.mode === 'off') {
-    return getRuleBasedFallback(rawRequest, projectType);
-  }
-
   try {
     const prompt = buildScopeDigestPrompt(rawRequest, projectType, existingContext);
     
-    // Ensure baseUrl doesn't have trailing slash for clean URL building
-    const baseUrl = settings.baseUrl.replace(/\/$/, '');
-    const apiUrl = `${baseUrl}/api/generate`;
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: settings.model || 'llama3', // default if empty
-        prompt: prompt,
-        stream: false,
-        format: 'json',
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    // Attempt AI Generation via Provider Router
+    const rawResponse = await generateJson(workspacePath, prompt);
     
-    if (!data.response) {
-      throw new Error('No response from Ollama API');
-    }
+    // validateScopeDigest expects a string to clean up any markdown blocks
+    const jsonString = typeof rawResponse === 'string' ? rawResponse : JSON.stringify(rawResponse);
 
-    const validatedResult = validateScopeDigest(data.response);
+    const validatedResult = validateScopeDigest(jsonString);
     validatedResult.is_fallback = false;
     return validatedResult;
 
   } catch (error) {
     console.error("AI Scope Digest failed, falling back to rule-based:", error);
-    // On error (network, validation), fallback
+    // On error (disabled, network, validation), fallback
     const fallback = getRuleBasedFallback(rawRequest, projectType);
     return fallback;
   }

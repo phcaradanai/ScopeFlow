@@ -4,12 +4,10 @@ import { validateScopeDigest } from '../scope-digest/scopeDigestValidator';
 import { getRuleBasedFallback } from '../scope-digest/scopeDigestFallback';
 import { processScopeDigest } from '../scope-digest/scopeDigestSkill';
 import { generateBriefDocument } from '../../brief-builder';
-import * as settings from '../../settings';
+import * as aiRouter from '../providers/aiProviderRouter';
 
-// Mock settings to return enabled/disabled AI
-vi.mock('../../settings', () => ({
-  getAiSettings: vi.fn(),
-  saveAiSettings: vi.fn(),
+vi.mock('../providers/aiProviderRouter', () => ({
+  generateJson: vi.fn(),
 }));
 
 describe('Scope Digest Skill', () => {
@@ -56,27 +54,15 @@ describe('Scope Digest Skill', () => {
   });
 
   it('5. disabled AI uses rule-based fallback', async () => {
-    vi.mocked(settings.getAiSettings).mockResolvedValue({
-      mode: 'off',
-      baseUrl: 'http://localhost:11434',
-      model: 'llama3',
-      enabled: false
-    });
+    vi.mocked(aiRouter.generateJson).mockRejectedValue(new Error('AI Provider is disabled'));
 
     const result = await processScopeDigest('/mock', "แอปขายของ online", "เว็บขายของ");
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(aiRouter.generateJson).toHaveBeenCalled();
     expect(result.detected_project_type).toBe("เว็บขายของ");
     expect(result.questions_to_ask.length).toBeGreaterThan(0);
   });
 
   it('6. "แอปขายของ online" mocked AI response creates useful e-commerce digest', async () => {
-    vi.mocked(settings.getAiSettings).mockResolvedValue({
-      mode: 'ollama',
-      baseUrl: 'http://localhost:11434',
-      model: 'llama3',
-      enabled: true
-    });
-
     const mockResponse = {
       detected_project_type: "เว็บขายของ",
       confidence: "high",
@@ -91,13 +77,10 @@ describe('Scope Digest Skill', () => {
       suggested_next_documents: []
     };
 
-    (global.fetch as any).mockResolvedValue({
-      ok: true,
-      json: async () => ({ response: JSON.stringify(mockResponse) })
-    });
+    vi.mocked(aiRouter.generateJson).mockResolvedValue(mockResponse);
 
     const result = await processScopeDigest('/mock', "แอปขายของ online", "เว็บขายของ");
-    expect(global.fetch).toHaveBeenCalled();
+    expect(aiRouter.generateJson).toHaveBeenCalled();
     expect(result.detected_project_type).toBe("เว็บขายของ");
     expect(result.likely_in_scope).toContain("ตะกร้าสินค้า");
   });
