@@ -48,21 +48,21 @@ function AppContent() {
     return () => window.removeEventListener('open-health-check', handleOpenHealthCheck);
   }, []);
 
+  if (!workspacePath) return <WelcomeScreen />;
+  const activeWorkspacePath = workspacePath;
+
   const handleBackupWorkspace = async () => {
-    if (!workspacePath) return;
     try {
       const dateStr = new Date().toISOString().split('T')[0];
       const defaultName = `scopeflow-backup-${workspaceName.replace(/\s+/g, '-')}-${dateStr}.zip`;
       const savePath = await save({ title: 'บันทึกไฟล์ Backup', defaultPath: defaultName, filters: [{ name: 'ZIP Archives', extensions: ['zip'] }] });
       if (!savePath) return;
-      await backupWorkspace(workspacePath, savePath);
+      await backupWorkspace(activeWorkspacePath, savePath);
       alert('บันทึกข้อมูลสำรองสำเร็จ!');
     } catch (err) {
       alert(`เกิดข้อผิดพลาดในการสำรองข้อมูล: ${err}`);
     }
   };
-
-  if (!workspacePath) return <WelcomeScreen />;
 
   function handleCreateDocument(clientId: string, projectId: string, projectPath: string, initialType?: string) {
     setDocumentCreatorProps({ clientId, projectId, projectPath, initialType });
@@ -90,7 +90,7 @@ function AppContent() {
     const projectName = project?.projectName || projectId;
 
     try {
-      const docs = await listProjectDocuments(workspacePath, clientId, projectId);
+      const docs = await listProjectDocuments(activeWorkspacePath, clientId, projectId);
       setExportModalProps({ projectPath, projectName, clientName, documents: docs });
       setShowExportModal(true);
     } catch (err) {
@@ -111,7 +111,7 @@ function AppContent() {
   const handleCreateDemoDirectly = async () => {
     try {
       const { generateDemoWorkspace } = await import('./lib/demo-generator');
-      const result = await generateDemoWorkspace(workspacePath, workspaceName);
+      const result = await generateDemoWorkspace(activeWorkspacePath, workspaceName);
       await refreshTree();
       setSelectedFile(result.primaryProjectPath);
       setDemoGuide({ projectPath: result.primaryProjectPath, artifactPaths: result.artifactPaths });
@@ -173,7 +173,7 @@ function AppContent() {
         onStartBriefIntake={handleStartBriefIntake}
       />
     ) : (
-      <MarkdownEditor filePath={selectedFile} workspacePath={workspacePath} onDocumentChanged={refreshTree} onOpenDocument={(path) => setSelectedFile(path)} allFiles={allFiles} />
+      <MarkdownEditor filePath={selectedFile} workspacePath={activeWorkspacePath} onDocumentChanged={refreshTree} onOpenDocument={(path) => setSelectedFile(path)} allFiles={allFiles} />
     );
   }
 
@@ -197,7 +197,7 @@ function AppContent() {
       {showDocumentCreator && <DocumentCreatorModal {...documentCreatorProps} onClose={() => setShowDocumentCreator(false)} />}
       {showBriefIntakeModal && <BriefIntakeModal {...briefIntakeProps} onClose={() => setShowBriefIntakeModal(false)} />}
       {showExportModal && <ExportModal {...exportModalProps} onClose={() => setShowExportModal(false)} />}
-      {showCompanySettings && <CompanySettingsModal workspacePath={workspacePath} onClose={() => setShowCompanySettings(false)} />}
+      {showCompanySettings && <CompanySettingsModal workspacePath={activeWorkspacePath} onClose={() => setShowCompanySettings(false)} />}
       {showHealthCheck && <HealthCheckModal onClose={() => setShowHealthCheck(false)} />}
       {demoGuide && (
         <DemoFlowGuideModal
