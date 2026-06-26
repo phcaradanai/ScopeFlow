@@ -6,8 +6,11 @@ import { getAiSettings } from '../lib/settings';
 import { X, AlertTriangle, FileText, CheckCircle2, ChevronRight, Lightbulb, Sparkles } from 'lucide-react';
 import SelectField from './ui/SelectField';
 import ScopeDigestPreview from './ScopeDigestPreview';
+import ScopeControlPanel from './ScopeControlPanel';
 import { processScopeDigest } from '../lib/ai/scope-digest/scopeDigestSkill';
 import { ScopeDigestOutput } from '../lib/ai/scope-digest/scopeDigestSchema';
+import { processScopeControl } from '../lib/ai/scope-control/scopeControlSkill';
+import type { ScopeControlOutput } from '../lib/ai/scope-control/scopeControlSchema';
 import { buildBriefScopeDraftPack } from '../lib/ai/draft-assistant/briefScopeDraftAssistant';
 import { createDraftApplyPlan, summarizeDraftApplyPlan, validateDraftApplyPlan, type DraftApplyProjectTarget } from '../lib/ai/draft-assistant/draftApplyPlan';
 import {
@@ -57,6 +60,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
   const [saving, setSaving] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [aiDigest, setAiDigest] = useState<ScopeDigestOutput | null>(null);
+  const [scopeControl, setScopeControl] = useState<ScopeControlOutput | null>(null);
   const [draftReview, setDraftReview] = useState<DraftReviewSession | null>(null);
   const [conflictPath, setConflictPath] = useState<string | null>(null);
   const [conflictProjectPath, setConflictProjectPath] = useState<string | null>(null);
@@ -273,6 +277,8 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
         return;
       }
 
+      const control = await processScopeControl(workspacePath, formData.raw_request, digest, draftPack.scopeMarkdown);
+      setScopeControl(control);
       setDraftReview(createDraftReviewSession(target.projectPath, draftPack, applyPlan));
       setSaving(false);
     } catch (err) {
@@ -452,7 +458,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
                 <Sparkles className="w-5 h-5 text-primary" />
                 ตรวจ Draft ก่อนสร้างเอกสารจริง
               </h2>
-              <p className="modal-subtitle">แก้ข้อความใน Brief/Scope ได้ก่อนกด Apply ระบบยังไม่เขียนไฟล์หรือสร้าง Project จนกว่าคุณจะยืนยัน</p>
+              <p className="modal-subtitle">ตรวจ Scope Control ก่อนแก้ Brief/Scope และกด Apply ระบบยังไม่เขียนไฟล์หรือสร้าง Project จนกว่าคุณจะยืนยัน</p>
             </div>
             <button onClick={onClose} className="modal-close">
               <X className="w-5 h-5" />
@@ -461,6 +467,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
 
           <div className="modal-body overflow-y-auto space-y-5">
             {error && <div className="p-3 rounded-xl bg-error/10 border border-error/30 text-error text-sm">{error}</div>}
+            {scopeControl && <ScopeControlPanel control={scopeControl} />}
             {plannedActions.length > 0 && (
               <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4">
                 <h3 className="text-sm font-bold text-primary-light mb-2">สิ่งที่จะเกิดขึ้นเมื่อกด Apply</h3>
@@ -500,7 +507,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
           </div>
 
           <div className="modal-footer flex-col sm:flex-row gap-3 justify-between">
-            <button type="button" onClick={() => setDraftReview(null)} className="btn btn-ghost">
+            <button type="button" onClick={() => { setDraftReview(null); setScopeControl(null); }} className="btn btn-ghost">
               กลับไปแก้คำขอ
             </button>
             <div className="flex gap-3 flex-wrap justify-end">
