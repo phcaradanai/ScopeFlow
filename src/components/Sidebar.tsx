@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useWorkspace } from '../lib/workspace-context';
 import type { FileEntry } from '../lib/tauri-commands';
+import { getWorkspaceClients, getProjectNodesForClient } from '../lib/workspace-scanner';
 import {
   ChevronRight,
   ChevronDown,
@@ -24,17 +25,9 @@ interface SidebarProps {
   onBackupWorkspace: () => void;
 }
 
-function getProjectNodes(client: FileEntry): FileEntry[] {
-  const projectsFolder = client.children?.find(
-    c => c.is_dir && (c.name === 'projects' || c.path.replace(/\\/g, '/').endsWith('/projects'))
-  );
-  if (projectsFolder?.children) return projectsFolder.children.filter(p => p.is_dir);
-
-  return (client.children || []).filter(child => child.is_dir && child.name !== 'projects');
-}
-
 export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocument, onExportProject, onOpenSettings, onRunHealthCheck, onBackupWorkspace }: SidebarProps) {
   const { workspaceName, tree, selectedFile, setSelectedFile } = useWorkspace();
+  const clients = getWorkspaceClients(tree);
 
   return (
     <aside className="w-72 min-w-[288px] h-full bg-surface-2/80 backdrop-blur-xl flex flex-col justify-between p-3 z-20 shadow-2xl shadow-black/20">
@@ -55,7 +48,7 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
         </div>
 
         <div className="flex-1 overflow-y-auto pl-1 pr-1 space-y-3 pb-4">
-          {tree && tree.children && tree.children.length > 0 ? (
+          {clients.length > 0 ? (
             <div className="flex flex-col space-y-2">
               <div className="flex items-center justify-between px-2 pb-1 pt-2 border-t border-white/5">
                 <span className="text-[10px] font-bold text-text-dim uppercase tracking-wider">
@@ -67,10 +60,11 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
               </div>
 
               <div className="space-y-1">
-                {tree.children.map((client) => (
+                {clients.map((client) => (
                   <ClientNode
                     key={client.path}
-                    node={client}
+                    node={client.node}
+                    clientId={client.clientId}
                     selectedFile={selectedFile}
                     onSelect={setSelectedFile}
                     onCreateProject={onCreateProject}
@@ -113,6 +107,7 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
 
 function ClientNode({
   node,
+  clientId,
   selectedFile,
   onSelect,
   onCreateProject,
@@ -120,6 +115,7 @@ function ClientNode({
   onExportProject,
 }: {
   node: FileEntry;
+  clientId: string;
   selectedFile: string | null;
   onSelect: (path: string | null) => void;
   onCreateProject: (clientId: string) => void;
@@ -127,9 +123,7 @@ function ClientNode({
   onExportProject: (clientId: string, projectId: string, projectPath: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const normalizedPath = node.path.replace(/\\/g, '/');
-  const clientId = normalizedPath.split('/').pop() || '';
-  const projectNodes = getProjectNodes(node);
+  const projectNodes = getProjectNodesForClient(node);
 
   return (
     <div>
