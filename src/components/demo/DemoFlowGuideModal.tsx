@@ -15,6 +15,7 @@ import {
 
 interface DemoFlowGuideModalProps {
   projectPath: string;
+  artifactPaths?: Record<string, string>;
   onOpenProject: (path: string) => void;
   onClose: () => void;
 }
@@ -28,15 +29,19 @@ interface TutorialStep {
   icon: typeof FileText;
 }
 
-function buildTutorialSteps(projectPath: string): TutorialStep[] {
+function pathFor(artifactPaths: Record<string, string> | undefined, key: string, fallback: string) {
+  return artifactPaths?.[key] || fallback;
+}
+
+function buildTutorialSteps(projectPath: string, artifactPaths?: Record<string, string>): TutorialStep[] {
   return [
     {
       title: 'เริ่มที่ภาพรวมโครงการ',
       goal: 'เข้าใจว่า Project Overview คือศูนย์กลางของงาน: เห็น Next Action, Scope Readiness, ความเสี่ยง และเอกสารทั้งหมด',
       whatToLookFor: [
         'ดูแถบ Scope Readiness ว่าเอกสารสำคัญครบหรือยัง',
-        'ดูการ์ดเอกสารด้านล่างว่า Brief, Scope, Quote, Approval และ Acceptance อยู่ตรงไหน',
-        'สังเกตว่า flow นี้จบครบแล้ว จึงควรเห็นเอกสารที่ approved/locked หลายตัว',
+        'ดู Next Action ว่าระบบแนะนำให้ทำอะไรต่อจากสถานะจริงของเอกสาร',
+        'สังเกตว่าระบบใช้เอกสารจริงใน project ไม่ใช่ข้อมูลตัวอย่างลอย ๆ',
       ],
       actionLabel: 'เปิด Project Overview',
       targetPath: projectPath,
@@ -51,7 +56,7 @@ function buildTutorialSteps(projectPath: string): TutorialStep[] {
         'คำถามที่เคยไม่ชัดและถูก resolve แล้ว',
       ],
       actionLabel: 'เปิด Brief',
-      targetPath: `${projectPath}/baseline/brief-v1.0.md`,
+      targetPath: pathFor(artifactPaths, 'brief', `${projectPath}/baseline/brief-v1.0.md`),
       icon: FileText,
     },
     {
@@ -63,7 +68,7 @@ function buildTutorialSteps(projectPath: string): TutorialStep[] {
         'Acceptance Criteria: เงื่อนไขตรวจรับที่ลูกค้าและทีมต้องเห็นตรงกัน',
       ],
       actionLabel: 'เปิด Scope',
-      targetPath: `${projectPath}/baseline/scope-v1.0.md`,
+      targetPath: pathFor(artifactPaths, 'scope', `${projectPath}/baseline/scope-v1.0.md`),
       icon: ClipboardCheck,
     },
     {
@@ -71,11 +76,11 @@ function buildTutorialSteps(projectPath: string): TutorialStep[] {
       goal: 'ดูว่าขอบเขตงานถูกแปลงเป็นราคาและเอกสารเรียกเก็บเงินได้อย่างไร',
       whatToLookFor: [
         'Quotation มียอดรวม ส่วนลด VAT และ grand total',
-        'Invoice แสดงงวดการชำระเงิน',
+        'Invoice หรือเงื่อนไขชำระเงินเชื่อมกับ Scope/Quote',
         'เอกสารราคาอ้างอิงจาก Scope ไม่ใช่คิดแยกจากขอบเขตงาน',
       ],
       actionLabel: 'เปิด Quotation',
-      targetPath: `${projectPath}/baseline/quotation-v1.0.md`,
+      targetPath: pathFor(artifactPaths, 'quotation', `${projectPath}/baseline/quotation-v1.0.md`),
       icon: ReceiptText,
     },
     {
@@ -87,26 +92,26 @@ function buildTutorialSteps(projectPath: string): TutorialStep[] {
         'evidence file อยู่ใน attachments เพื่อใช้ตรวจสอบย้อนหลัง',
       ],
       actionLabel: 'เปิด Approval ของ Scope',
-      targetPath: `${projectPath}/approvals/APR-SCOPE-${projectPath.split('-').pop()}.md`,
+      targetPath: pathFor(artifactPaths, 'scopeApproval', `${projectPath}/approvals`),
       icon: FileCheck2,
     },
     {
       title: 'ปิด loop ด้วย Acceptance และ Export',
       goal: 'ดูขั้นสุดท้ายของงาน: ตรวจรับแล้ว export ชุดเอกสารส่งมอบได้',
       whatToLookFor: [
-        'Acceptance checklist ผ่านครบ',
+        'Acceptance checklist ผ่านครบหรือยัง',
         'เอกสารถูก locked หลังอนุมัติ',
         'มีไฟล์ export เพื่อส่งมอบหรือเก็บหลักฐานปิดงาน',
       ],
       actionLabel: 'เปิด Acceptance',
-      targetPath: `${projectPath}/acceptance/acceptance-v1.0.md`,
+      targetPath: pathFor(artifactPaths, 'acceptance', `${projectPath}/acceptance/acceptance-v1.0.md`),
       icon: PackageCheck,
     },
   ];
 }
 
-export default function DemoFlowGuideModal({ projectPath, onOpenProject, onClose }: DemoFlowGuideModalProps) {
-  const steps = useMemo(() => buildTutorialSteps(projectPath), [projectPath]);
+export default function DemoFlowGuideModal({ projectPath, artifactPaths, onOpenProject, onClose }: DemoFlowGuideModalProps) {
+  const steps = useMemo(() => buildTutorialSteps(projectPath, artifactPaths), [projectPath, artifactPaths]);
   const [currentStep, setCurrentStep] = useState(0);
   const step = steps[currentStep];
   const Icon = step.icon;
@@ -114,9 +119,7 @@ export default function DemoFlowGuideModal({ projectPath, onOpenProject, onClose
   const isLast = currentStep === steps.length - 1;
   const progress = Math.round(((currentStep + 1) / steps.length) * 100);
 
-  const openCurrentTarget = () => {
-    onOpenProject(step.targetPath);
-  };
+  const openCurrentTarget = () => onOpenProject(step.targetPath);
 
   const handleNext = () => {
     if (isLast) {
@@ -209,11 +212,7 @@ export default function DemoFlowGuideModal({ projectPath, onOpenProject, onClose
         <div className="modal-footer demo-tutorial-footer">
           <button onClick={onClose} className="btn btn-ghost">ปิด Tutorial</button>
           <div className="flex items-center gap-2 flex-wrap justify-end">
-            <button
-              onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-              disabled={isFirst}
-              className="btn btn-ghost"
-            >
+            <button onClick={() => setCurrentStep(Math.max(0, currentStep - 1))} disabled={isFirst} className="btn btn-ghost">
               <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
             </button>
             <button onClick={openCurrentTarget} className="btn btn-outline">
