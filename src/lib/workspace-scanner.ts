@@ -25,7 +25,19 @@ function normalizePath(path: string) {
 
 function isMetadataOrSystemNode(node: FileEntry) {
   if (!node.is_dir) return true;
-  return ['.scopeflow', 'exports', 'attachments'].includes(node.name);
+  return ['.scopeflow', 'exports', 'attachments', 'templates'].includes(node.name);
+}
+
+function isProjectLikeNode(node: FileEntry) {
+  if (!node.is_dir) return false;
+  if (['projects', 'attachments', 'exports', 'templates', '.scopeflow'].includes(node.name)) return false;
+
+  const path = normalizePath(node.path);
+  if (path.includes('/clients/') && path.includes('/projects/')) return true;
+
+  // Rust get_workspace_tree returns project directories directly under each client
+  // and flattens project documents as file children, not folder children.
+  return true;
 }
 
 export function getClientsRoot(tree: FileEntry | null): FileEntry | null {
@@ -40,14 +52,10 @@ export function getProjectNodesForClient(clientNode: FileEntry): FileEntry[] {
   );
 
   if (projectsFolder) {
-    return (projectsFolder.children || []).filter(child => child.is_dir);
+    return (projectsFolder.children || []).filter(isProjectLikeNode);
   }
 
-  return (clientNode.children || []).filter(child => {
-    if (!child.is_dir) return false;
-    if (['projects', 'attachments', 'exports'].includes(child.name)) return false;
-    return !!child.children?.some(grandChild => grandChild.is_dir && ['baseline', 'change-requests', 'support-requests', 'approvals', 'acceptance', 'exports', 'attachments', 'current-system'].includes(grandChild.name));
-  });
+  return (clientNode.children || []).filter(isProjectLikeNode);
 }
 
 export function getWorkspaceClients(tree: FileEntry | null): ClientPathInfo[] {
