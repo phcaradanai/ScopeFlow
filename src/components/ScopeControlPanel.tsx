@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { AlertTriangle, CheckCircle2, HelpCircle, ShieldAlert, Timer, WalletCards } from 'lucide-react';
 import type { ScopeControlOutput } from '../lib/ai/scope-control/scopeControlSchema';
 
@@ -17,7 +18,7 @@ function readinessClass(value: ScopeControlOutput['readiness_to_quote']) {
   return 'bg-error/10 text-error border-error/20';
 }
 
-function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+function Section({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
     <div className="rounded-2xl border border-border bg-surface-2 p-4">
       <h3 className="text-sm font-bold text-text mb-3 flex items-center gap-2">
@@ -85,7 +86,7 @@ export default function ScopeControlPanel({ control }: ScopeControlPanelProps) {
       </Section>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <Section title="Man-hour / Estimation Factors" icon={<Timer className="w-4 h-4 text-info" />}>
+        <Section title="Man-hour / Estimation Factors" icon={<Timer className="w-4 h-4 text-primary" />}>
           <div className="mb-3 rounded-xl bg-surface border border-border p-3 text-xs text-text-muted">
             รวมโดยประมาณ: <span className="font-bold text-text">{totalMinHours}–{totalMaxHours} ชั่วโมง</span>
           </div>
