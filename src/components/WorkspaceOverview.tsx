@@ -9,11 +9,13 @@ import { generateCompletedDemoFlow } from '../lib/demo-flow-generator';
 import { openPath } from '@tauri-apps/plugin-opener';
 import YAML from 'yaml';
 import {
+  getWorkspaceClients,
   getProjectPaths,
   computeWorkspaceStats,
   determineCompanyProfileStatus,
   determinePresetsStatus,
-  determineHealthStatusSummary
+  determineHealthStatusSummary,
+  ClientPathInfo,
 } from '../lib/workspace-scanner';
 import { FolderOpen, AlertTriangle, Plus } from 'lucide-react';
 import PageShell from './ui/PageShell';
@@ -41,6 +43,7 @@ export default function WorkspaceOverview({
   const [loading, setLoading] = useState(true);
   const [workspaceVersion, setWorkspaceVersion] = useState('1.0');
   const [createdDate, setCreatedDate] = useState('');
+  const [workspaceClients, setWorkspaceClients] = useState<ClientPathInfo[]>([]);
 
   const [clientsCount, setClientsCount] = useState(0);
   const [projectsCount, setProjectsCount] = useState(0);
@@ -80,14 +83,15 @@ export default function WorkspaceOverview({
           }
         }
 
+        const clients = getWorkspaceClients(tree);
         const projects = getProjectPaths(tree);
-        const clients = tree?.children || [];
+        setWorkspaceClients(clients);
         setClientsCount(clients.length);
         setProjectsCount(projects.length);
 
         if (tree) {
           const currentTree = tree;
-          const allDocsPromises = projects.map((p: any) => scanProjectDocuments(p.path, currentTree));
+          const allDocsPromises = projects.map((p) => scanProjectDocuments(p.path, currentTree));
           const allDocsLists = await Promise.all(allDocsPromises);
           const allDocs = allDocsLists.flat();
 
@@ -229,8 +233,6 @@ export default function WorkspaceOverview({
     );
   }
 
-  const clientsWithProjects = tree?.children || [];
-
   const Header = (
     <div className="page-header-inner page-container-wide">
       <div className="page-title-group">
@@ -284,7 +286,7 @@ export default function WorkspaceOverview({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ClientList
-          clientsWithProjects={clientsWithProjects}
+          clientsWithProjects={workspaceClients}
           onCreateClient={onCreateClient}
           onCreateProject={onCreateProject}
           onSelectClient={setSelectedFile}
