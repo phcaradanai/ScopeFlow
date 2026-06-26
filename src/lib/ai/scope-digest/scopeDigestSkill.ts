@@ -48,6 +48,7 @@ export async function processScopeDigest(
     }
 
     const validatedResult = validateScopeDigest(data.response);
+    validatedResult.is_fallback = false;
     return validatedResult;
 
   } catch (error) {

@@ -338,6 +338,20 @@ export function detectProjectType(rawRequest: string, currentType: string): stri
   return currentType || 'อื่น ๆ';
 }
 
+function renderList(items: string[] | undefined, defaultText: string = '(ไม่มีข้อมูลระบุ)'): string {
+  if (!items) return `${defaultText}\n\n`;
+  const validItems = items.filter(i => i.trim());
+  if (validItems.length === 0) return `${defaultText}\n\n`;
+  return validItems.map(i => `- ${i}`).join('\n') + '\n\n';
+}
+
+function renderChecklist(items: string[] | undefined, defaultText: string = '(ไม่มีรายการที่ต้องเช็ค)'): string {
+  if (!items) return `${defaultText}\n\n`;
+  const validItems = items.filter(i => i.trim());
+  if (validItems.length === 0) return `${defaultText}\n\n`;
+  return validItems.map(i => `- [ ] ${i}`).join('\n') + '\n\n';
+}
+
 export function generateBriefDocument(data: {
   raw_request: string;
   project_type: string;
@@ -371,92 +385,40 @@ export function generateBriefDocument(data: {
   markdown += `> ${data.raw_request.replace(/\n/g, '\n> ')}\n\n`;
 
   markdown += `## 2. สิ่งที่เข้าใจจากคำขอ (Understanding)\n\n`;
-  const understanding = data.ai_digest?.understanding || preset.understanding;
-  if (understanding && understanding.length > 0) {
-    understanding.forEach((item: string) => {
-      markdown += `- ${item}\n`;
-    });
-    markdown += `\n`;
-  } else {
-    markdown += `*ยังไม่ได้สรุป (กรอกข้อมูลจากความเข้าใจเบื้องต้น)*\n\n`;
-  }
+  markdown += renderList(data.ai_digest?.understanding || preset.understanding, '(บันทึกจากความเข้าใจเบื้องต้นจากข้อมูลที่มี)');
 
   markdown += `## 3. สิ่งที่ยืนยันแล้ว (Confirmed)\n\n`;
-  const confirmed = data.ai_digest?.confirmed_facts;
-  if (confirmed && confirmed.length > 0) {
-    confirmed.forEach((item: string) => {
-      markdown += `- ${item}\n`;
-    });
-    markdown += `\n`;
-  } else {
-    markdown += `- ${data.raw_request.replace(/\n/g, ' ')}\n\n`;
-  }
+  markdown += renderList(data.ai_digest?.confirmed_facts, `- ${data.raw_request.replace(/\n/g, ' ')}`);
 
   markdown += `## 4. สิ่งที่เป็นสมมติฐาน (Assumptions)\n\n`;
-  const assumptions = data.ai_digest?.assumptions || preset.assumptions;
-  if (assumptions && assumptions.length > 0) {
-    assumptions.forEach((item: string) => {
-      markdown += `- ${item}\n`;
-    });
-    markdown += `\n`;
-  } else {
-    markdown += `- \n\n`;
-  }
+  markdown += renderList(data.ai_digest?.assumptions || preset.assumptions, '(ยังไม่มีสมมติฐานเพิ่มเติม)');
 
   markdown += `## 5. สิ่งที่ยังไม่ชัด (Unclear Areas)\n\n`;
-  const unclear = data.ai_digest?.unclear_points || preset.unclear;
-  if (unclear && unclear.length > 0) {
-    unclear.forEach((item: string) => {
-      markdown += `- ${item}\n`;
-    });
-    markdown += `\n`;
-  } else {
-    markdown += `- \n\n`;
-  }
+  markdown += renderList(data.ai_digest?.unclear_points || preset.unclear, '(ข้อมูลส่วนใหญ่ชัดเจนแล้ว)');
 
   markdown += `## 6. คำถามที่ควรถามลูกค้า (Questions to Ask)\n\n`;
-  const questions = data.ai_digest?.questions_to_ask || preset.questions;
-  questions.forEach((q: string) => {
-    markdown += `- [ ] ${q}\n`;
-  });
-  if (questions.length === 0) markdown += `- [ ] \n`;
-  markdown += `\n`;
+  markdown += renderChecklist(data.ai_digest?.questions_to_ask || preset.questions, '(ไม่มีคำถามเพิ่มเติมในขณะนี้)');
 
   markdown += `## 7. สิ่งที่อาจอยู่ในขอบเขต (Likely In-Scope)\n\n`;
-  const inScope = data.ai_digest?.likely_in_scope || preset.inScope;
-  inScope.forEach((item: string) => {
-    markdown += `- ${item}\n`;
-  });
-  if (inScope.length === 0) markdown += `- \n`;
-  markdown += `\n`;
+  markdown += renderList(data.ai_digest?.likely_in_scope || preset.inScope, '(รอประเมินจากข้อมูลเพิ่มเติม)');
 
   markdown += `## 8. สิ่งที่ควรระบุว่าไม่รวมในขอบเขต (Likely Out-of-Scope)\n\n`;
-  const outOfScope = data.ai_digest?.likely_out_of_scope || preset.outOfScope;
-  outOfScope.forEach((item: string) => {
-    markdown += `- ${item}\n`;
-  });
-  if (outOfScope.length === 0) markdown += `- \n`;
-  markdown += `\n`;
+  markdown += renderList(data.ai_digest?.likely_out_of_scope || preset.outOfScope, '(ไม่มีข้อจำกัดขอบเขตที่พบชัดเจน)');
 
   markdown += `## 9. ความเสี่ยงงานงอก (Scope Creep Risks)\n\n`;
-  const risks = data.ai_digest?.scope_creep_risks || preset.risks;
-  risks.forEach((item: string) => {
-    markdown += `- ${item}\n`;
-  });
-  if (risks.length === 0) markdown += `- \n`;
-  markdown += `\n`;
+  markdown += renderList(data.ai_digest?.scope_creep_risks || preset.risks, '(ยังไม่พบความเสี่ยงที่ชัดเจน)');
 
   markdown += `## 10. ขั้นตอนถัดไป (Next Steps)\n\n`;
-  const nextDocs = data.ai_digest?.suggested_next_documents;
-  markdown += `- [ ] รวบรวมคำตอบจากลูกค้า\n`;
-  markdown += `- [ ] ยืนยันสมมติฐานและสิ่งที่ยังไม่ชัด\n`;
-  markdown += `- [ ] จัดทำเอกสารขอบเขตงาน (Scope of Work)\n`;
-  if (nextDocs && nextDocs.length > 0) {
-    nextDocs.forEach((doc: string) => {
-      markdown += `- [ ] เตรียมเอกสาร ${doc}\n`;
-    });
-  }
-  markdown += `\n`;
+  const nextDocs = data.ai_digest?.suggested_next_documents || [];
+  const steps = [
+    'รวบรวมคำตอบจากลูกค้า',
+    'ยืนยันสมมติฐานและสิ่งที่ยังไม่ชัด',
+    'จัดทำเอกสารขอบเขตงาน (Scope of Work)'
+  ];
+  nextDocs.forEach(doc => {
+    if(doc.trim()) steps.push(`เตรียมเอกสาร ${doc}`);
+  });
+  markdown += renderChecklist(steps);
 
   return markdown;
 }

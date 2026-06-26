@@ -10,4 +10,5 @@ export interface ScopeDigestOutput {
   likely_out_of_scope: string[];
   scope_creep_risks: string[];
   suggested_next_documents: string[];
+  is_fallback?: boolean;
 }

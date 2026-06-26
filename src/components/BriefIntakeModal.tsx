@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWorkspace } from '../lib/workspace-context';
 import { createDocument, pathExists, createProject } from '../lib/tauri-commands';
 import { generateBriefDocument, BriefFormData, projectPresets } from '../lib/brief-builder';
+import { getAiSettings } from '../lib/settings';
 import { X, AlertTriangle, FileText, CheckCircle2, ChevronRight, Lightbulb, Sparkles } from 'lucide-react';
 import SelectField from './ui/SelectField';
 import ScopeDigestPreview from './ScopeDigestPreview';
@@ -50,6 +51,14 @@ export default function BriefIntakeModal({
   const [conflictPath, setConflictPath] = useState<string | null>(null);
   const [conflictProjectPath, setConflictProjectPath] = useState<string | null>(null);
   const [conflictProjectId, setConflictProjectId] = useState<string | null>(null);
+  
+  const [aiSettings, setAiSettings] = useState<any>(null);
+
+  useEffect(() => {
+    if (workspacePath) {
+      getAiSettings(workspacePath).then(setAiSettings).catch(console.error);
+    }
+  }, [workspacePath]);
 
   const projectTypes = Object.keys(projectPresets);
 
@@ -303,15 +312,23 @@ export default function BriefIntakeModal({
                       options={projectTypes.map((pt) => ({ value: pt, label: pt }))}
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleGenerateAiDigest}
-                    disabled={isGeneratingAi || !formData.raw_request.trim()}
-                    className="btn btn-primary bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 whitespace-nowrap gap-2"
-                  >
-                    <Sparkles className={`w-4 h-4 ${isGeneratingAi ? 'animate-pulse' : ''}`} />
-                    {isGeneratingAi ? 'กำลังวิเคราะห์...' : 'ให้ AI ช่วยย่อยคำขอ'}
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={handleGenerateAiDigest}
+                      disabled={isGeneratingAi || !formData.raw_request.trim()}
+                      className="btn btn-primary bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 whitespace-nowrap gap-2"
+                    >
+                      <Sparkles className={`w-4 h-4 ${isGeneratingAi ? 'animate-pulse' : ''}`} />
+                      {isGeneratingAi ? 'กำลังวิเคราะห์...' : 'ให้ AI ช่วยย่อยคำขอ'}
+                    </button>
+                    {aiSettings && (!aiSettings.enabled || aiSettings.mode === 'off') && (
+                      <div className="text-[11px] text-text-muted flex items-center gap-1.5 bg-surface-3 p-1.5 rounded border border-border">
+                        <AlertTriangle className="w-3 h-3 text-warning" />
+                        AI ยังไม่ได้เปิด ใช้ preset พื้นฐานแทน
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </form>
@@ -369,19 +386,44 @@ export default function BriefIntakeModal({
           </div>
         </div>
 
-        <div className="modal-footer">
-          <button type="button" onClick={onClose} className="btn btn-ghost">
-            ยกเลิก
-          </button>
-          <button
-            type="submit"
-            form="brief-intake-form"
-            disabled={!formData.raw_request.trim() || saving}
-            className="btn btn-primary px-8"
-            style={{ minHeight: '48px' }}
-          >
-            {saving ? 'กำลังสร้าง...' : 'สร้างร่าง Brief'}
-          </button>
+        <div className="modal-footer flex justify-between items-center">
+          <div className="flex-1">
+            {aiDigest && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-text">ความพร้อมของข้อมูล:</span>
+                {(() => {
+                  let score = 0;
+                  if (aiDigest.understanding && aiDigest.understanding.length > 0 && aiDigest.understanding[0] !== '') score++;
+                  if (aiDigest.confirmed_facts && aiDigest.confirmed_facts.length > 0) score++;
+                  if (aiDigest.assumptions && aiDigest.assumptions.length > 0) score++;
+                  if (aiDigest.unclear_points && aiDigest.unclear_points.length > 0) score++;
+                  if (aiDigest.questions_to_ask && aiDigest.questions_to_ask.length > 0) score++;
+                  
+                  if (score >= 4) {
+                    return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-success/10 text-success border border-success/20">พร้อมสร้าง Brief</span>;
+                  } else if (score >= 2) {
+                    return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-warning/10 text-warning border border-warning/20">ยังควรถามเพิ่ม</span>;
+                  } else {
+                    return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-error/10 text-error border border-error/20">ยังไม่ควรเสนอราคา</span>;
+                  }
+                })()}
+              </div>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <button type="button" onClick={onClose} className="btn btn-ghost">
+              ยกเลิก
+            </button>
+            <button
+              type="submit"
+              form="brief-intake-form"
+              disabled={!formData.raw_request.trim() || saving}
+              className="btn btn-primary px-8"
+              style={{ minHeight: '48px' }}
+            >
+              {saving ? 'กำลังสร้าง...' : 'สร้างร่าง Brief'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

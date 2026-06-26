@@ -77,9 +77,24 @@ export default function ScopeDigestPreview({ digest, onChange }: ScopeDigestPrev
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-surface-2 border border-border">
-        <span className="text-sm text-text-muted">ประเภทโครงการที่ตรวจพบ:</span>
-        <span className="text-sm font-semibold text-primary">{digest.detected_project_type}</span>
+      <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-surface-2 border border-border justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-text-muted">ประเภทโครงการที่ตรวจพบ:</span>
+          <span className="text-sm font-semibold text-primary">{digest.detected_project_type}</span>
+        </div>
+        <div>
+          {digest.is_fallback ? (
+            <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-surface-3 text-text-muted border border-border inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-text-dim"></span>
+              Preset Fallback
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary border border-primary/20 inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+              AI Digest
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

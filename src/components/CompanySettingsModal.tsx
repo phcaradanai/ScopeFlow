@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Building2, Save } from 'lucide-react';
-import { CompanyProfile, getCompanyProfile, saveCompanyProfile } from '../lib/settings';
+import { CompanyProfile, getCompanyProfile, saveCompanyProfile, AiSettings, getAiSettings, saveAiSettings } from '../lib/settings';
+import { testOllamaConnection } from '../lib/ai/ollamaConnectionTest';
 import SelectField from './ui/SelectField';
 
 interface CompanySettingsModalProps {
@@ -25,6 +26,14 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
     default_warranty_terms: '',
     default_support_terms: '',
   });
+  const [aiSettings, setAiSettings] = useState<AiSettings>({
+    mode: 'off',
+    baseUrl: 'http://localhost:11434',
+    model: 'llama3',
+    enabled: false
+  });
+  const [testStatus, setTestStatus] = useState<string | null>(null);
+  const [isTesting, setIsTesting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -35,6 +44,10 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
         const data = await getCompanyProfile(workspacePath);
         if (data) {
           setProfile(prev => ({ ...prev, ...data }));
+        }
+        const aiData = await getAiSettings(workspacePath);
+        if (aiData) {
+          setAiSettings(aiData);
         }
       } catch (err: any) {
         if (err.message === 'MALFORMED_YAML') {
@@ -53,6 +66,23 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
     setProfile(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleAiChange = (field: keyof AiSettings, value: string | boolean) => {
+    setAiSettings(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleTestOllama = async () => {
+    setIsTesting(true);
+    setTestStatus(null);
+    try {
+      const status = await testOllamaConnection(aiSettings.baseUrl, aiSettings.model);
+      setTestStatus(status);
+    } catch {
+      setTestStatus('การทดสอบล้มเหลว');
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile.provider_name.trim()) {
@@ -64,6 +94,7 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
     setError('');
     try {
       await saveCompanyProfile(workspacePath, profile);
+      await saveAiSettings(workspacePath, aiSettings);
       onClose();
     } catch (err: any) {
       console.error(err);
@@ -278,6 +309,82 @@ export default function CompanySettingsModal({ workspacePath, onClose }: Company
                 placeholder="เช่น ซัพพอร์ตฟรี 30 วัน, thereafter บาท/ครั้ง"
               />
             </div>
+          </div>
+
+          <div className="form-section border-t border-border pt-6 mt-6">
+            <h3 className="form-section-title">AI Assistant / Ollama Local</h3>
+            <p className="form-section-helper">ตั้งค่าการใช้งาน AI ช่วยย่อยข้อมูล (ทำงานแบบ Local ไม่มีข้อมูลหลุดรอด)</p>
+            
+            <div className="form-field-row items-center mb-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={aiSettings.enabled}
+                  onChange={e => handleAiChange('enabled', e.target.checked)}
+                  className="rounded border-border text-primary focus:ring-primary/20"
+                />
+                <span className="text-sm font-medium text-text">เปิดใช้งาน AI Digest</span>
+              </label>
+            </div>
+
+            {aiSettings.enabled && (
+              <>
+                <div className="form-field-row">
+                  <div className="form-field">
+                    <label className="form-label">โหมดการทำงาน (Mode)</label>
+                    <SelectField
+                      value={aiSettings.mode}
+                      onChange={val => handleAiChange('mode', val)}
+                      options={[
+                        { value: 'off', label: 'ปิด (Off)' },
+                        { value: 'ollama', label: 'Ollama (Local)' },
+                      ]}
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label className="form-label">Ollama Base URL</label>
+                    <input
+                      type="text"
+                      value={aiSettings.baseUrl}
+                      onChange={e => handleAiChange('baseUrl', e.target.value)}
+                      className="form-input"
+                      placeholder="http://localhost:11434"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-field-row items-end">
+                  <div className="form-field flex-1">
+                    <label className="form-label">ชื่อโมเดล (Model Name)</label>
+                    <input
+                      type="text"
+                      value={aiSettings.model}
+                      onChange={e => handleAiChange('model', e.target.value)}
+                      className="form-input"
+                      placeholder="llama3"
+                    />
+                  </div>
+                  <div className="form-field">
+                    <button
+                      type="button"
+                      onClick={handleTestOllama}
+                      disabled={isTesting || !aiSettings.baseUrl || !aiSettings.model}
+                      className="btn btn-outline h-[42px]"
+                    >
+                      {isTesting ? 'กำลังทดสอบ...' : 'ทดสอบการเชื่อมต่อ'}
+                    </button>
+                  </div>
+                </div>
+                
+                {testStatus && (
+                  <div className={`mt-2 p-3 rounded-lg text-sm font-medium ${
+                    testStatus.includes('สำเร็จ') ? 'bg-success/10 text-success border border-success/20' : 'bg-warning/10 text-warning border border-warning/20'
+                  }`}>
+                    {testStatus}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </form>
 

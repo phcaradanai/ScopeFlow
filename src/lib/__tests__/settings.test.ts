@@ -84,4 +84,21 @@ payment_terms:
       expect(presets.out_of_scope.length).toBeGreaterThan(0); // Inherited from default
     });
   });
+
+  describe('Ai Settings', () => {
+    it('should return default if settings does not exist', async () => {
+      vi.mocked(tauriCommands.pathExists).mockResolvedValue(false);
+      const { getAiSettings } = await import('../settings');
+      const s = await getAiSettings('/test');
+      expect(s.enabled).toBe(false);
+      expect(s.mode).toBe('off');
+    });
+
+    it('should save AiSettings to YAML', async () => {
+      const { saveAiSettings } = await import('../settings');
+      const s = { mode: 'ollama' as const, baseUrl: 'http://localhost', model: 'llama3', enabled: true };
+      await saveAiSettings('/test', s);
+      expect(tauriCommands.writeFileContent).toHaveBeenCalled();
+    });
+  });
 });
