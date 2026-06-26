@@ -27,6 +27,7 @@ interface WorkspaceOverviewProps {
   onRunHealthCheck: () => void;
   onBackupWorkspace: () => void;
   onCreateProject: (clientId: string) => void;
+  onDemoFlowCreated?: (projectPath: string) => void;
 }
 
 export default function WorkspaceOverview({
@@ -34,6 +35,7 @@ export default function WorkspaceOverview({
   onRunHealthCheck,
   onBackupWorkspace,
   onCreateProject,
+  onDemoFlowCreated,
 }: WorkspaceOverviewProps) {
   const { workspacePath, workspaceName, tree, refreshTree, setSelectedFile } = useWorkspace();
   const [loading, setLoading] = useState(true);
@@ -135,11 +137,7 @@ export default function WorkspaceOverview({
 
         const backupKey = `scopeflow:last_backup:${currentPath}`;
         const localBackup = localStorage.getItem(backupKey);
-        if (localBackup) {
-          setLastBackup(localBackup);
-        } else {
-          setLastBackup('ยังไม่ได้สำรองข้อมูล');
-        }
+        setLastBackup(localBackup || 'ยังไม่ได้สำรองข้อมูล');
       } catch (err) {
         console.error('Failed to load workspace overview:', err);
       } finally {
@@ -199,7 +197,7 @@ export default function WorkspaceOverview({
         const result = await generateCompletedDemoFlow(workspacePath);
         await refreshTree();
         setSelectedFile(result.projectPath);
-        alert('สร้าง Demo จบครบ Flow สำเร็จ!');
+        onDemoFlowCreated?.(result.projectPath);
       } catch (err) {
         alert(`สร้าง Demo จบครบ Flow ไม่สำเร็จ: ${err}`);
       } finally {
