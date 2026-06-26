@@ -22,34 +22,25 @@ import AppShell from './components/ui/AppShell';
 import EmptyState from './components/ui/EmptyState';
 import './index.css';
 
+interface DemoGuideState {
+  projectPath: string;
+  artifactPaths?: Record<string, string>;
+}
+
 function AppContent() {
   const { workspaceName, workspacePath, selectedFile, refreshTree, setSelectedFile, tree } = useWorkspace();
   const [showClientForm, setShowClientForm] = useState(false);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [projectFormClientId, setProjectFormClientId] = useState('');
   const [showDocumentCreator, setShowDocumentCreator] = useState(false);
-  const [documentCreatorProps, setDocumentCreatorProps] = useState({
-    clientId: '',
-    projectId: '',
-    projectPath: '',
-    initialType: undefined as string | undefined,
-  });
+  const [documentCreatorProps, setDocumentCreatorProps] = useState({ clientId: '', projectId: '', projectPath: '', initialType: undefined as string | undefined });
   const [showBriefIntakeModal, setShowBriefIntakeModal] = useState(false);
-  const [briefIntakeProps, setBriefIntakeProps] = useState({
-    clientId: '',
-    projectId: undefined as string | undefined,
-    projectPath: undefined as string | undefined,
-  });
+  const [briefIntakeProps, setBriefIntakeProps] = useState({ clientId: '', projectId: undefined as string | undefined, projectPath: undefined as string | undefined });
   const [showExportModal, setShowExportModal] = useState(false);
   const [showCompanySettings, setShowCompanySettings] = useState(false);
   const [showHealthCheck, setShowHealthCheck] = useState(false);
-  const [demoGuideProjectPath, setDemoGuideProjectPath] = useState('');
-  const [exportModalProps, setExportModalProps] = useState({
-    projectPath: '',
-    projectName: '',
-    clientName: '',
-    documents: [] as DocumentInfo[]
-  });
+  const [demoGuide, setDemoGuide] = useState<DemoGuideState | null>(null);
+  const [exportModalProps, setExportModalProps] = useState({ projectPath: '', projectName: '', clientName: '', documents: [] as DocumentInfo[] });
 
   useEffect(() => {
     const handleOpenHealthCheck = () => setShowHealthCheck(true);
@@ -62,15 +53,8 @@ function AppContent() {
     try {
       const dateStr = new Date().toISOString().split('T')[0];
       const defaultName = `scopeflow-backup-${workspaceName.replace(/\s+/g, '-')}-${dateStr}.zip`;
-
-      const savePath = await save({
-        title: 'บันทึกไฟล์ Backup',
-        defaultPath: defaultName,
-        filters: [{ name: 'ZIP Archives', extensions: ['zip'] }]
-      });
-
+      const savePath = await save({ title: 'บันทึกไฟล์ Backup', defaultPath: defaultName, filters: [{ name: 'ZIP Archives', extensions: ['zip'] }] });
       if (!savePath) return;
-
       await backupWorkspace(workspacePath, savePath);
       alert('บันทึกข้อมูลสำรองสำเร็จ!');
     } catch (err) {
@@ -78,9 +62,7 @@ function AppContent() {
     }
   };
 
-  if (!workspacePath) {
-    return <WelcomeScreen />;
-  }
+  if (!workspacePath) return <WelcomeScreen />;
 
   function handleCreateDocument(clientId: string, projectId: string, projectPath: string, initialType?: string) {
     setDocumentCreatorProps({ clientId, projectId, projectPath, initialType });
@@ -107,7 +89,6 @@ function AppContent() {
     const clientName = client?.clientName || clientId;
     const projectName = project?.projectName || projectId;
 
-    if (!workspacePath) return;
     try {
       const docs = await listProjectDocuments(workspacePath, clientId, projectId);
       setExportModalProps({ projectPath, projectName, clientName, documents: docs });
@@ -120,9 +101,7 @@ function AppContent() {
   const allFiles: { name: string, path: string, is_dir: boolean }[] = [];
   function extractFiles(node: any) {
     if (!node) return;
-    if (!node.is_dir) {
-      allFiles.push({ name: node.name, path: node.path, is_dir: node.is_dir });
-    }
+    if (!node.is_dir) allFiles.push({ name: node.name, path: node.path, is_dir: node.is_dir });
     node.children?.forEach((c: any) => extractFiles(c));
   }
   if (tree) extractFiles(tree);
@@ -130,23 +109,19 @@ function AppContent() {
   const selectedProject = selectedFile ? findWorkspaceProject(tree, selectedFile) : undefined;
 
   const handleCreateDemoDirectly = async () => {
-    if (!workspacePath) return;
     try {
       const { generateDemoWorkspace } = await import('./lib/demo-generator');
       const result = await generateDemoWorkspace(workspacePath, workspaceName);
       await refreshTree();
       setSelectedFile(result.primaryProjectPath);
-      alert('สร้าง Demo Workspace สำเร็จ และเปิดโครงการตัวอย่างให้แล้ว');
+      setDemoGuide({ projectPath: result.primaryProjectPath, artifactPaths: result.artifactPaths });
     } catch (err) {
       await refreshTree();
       alert(`สร้าง Demo ไม่สำเร็จ: ${err}\n\nรีเฟรช Workspace แล้ว กรุณาตรวจรายการลูกค้าด้านซ้ายอีกครั้ง`);
     }
   };
 
-  const clientEmptyStateId = selectedFile?.startsWith('__client__:')
-    ? selectedFile.substring('__client__:'.length)
-    : '';
-
+  const clientEmptyStateId = selectedFile?.startsWith('__client__:') ? selectedFile.substring('__client__:'.length) : '';
   const workspaceClients = getWorkspaceClients(tree);
   const hasNoClients = workspaceClients.length === 0;
 
@@ -164,15 +139,8 @@ function AppContent() {
   } else if (clientEmptyStateId) {
     const client = findWorkspaceClient(tree, clientEmptyStateId);
     const clientName = client?.clientName || clientEmptyStateId;
-
     mainContent = client && client.projects.length > 0 ? (
-      <ClientOverview
-        clientNode={client.node}
-        clientId={client.clientId}
-        onCreateProject={handleCreateProject}
-        onOpenProject={setSelectedFile}
-        onStartBriefIntake={handleStartFromCustomerRequest}
-      />
+      <ClientOverview clientNode={client.node} clientId={client.clientId} onCreateProject={handleCreateProject} onOpenProject={setSelectedFile} onStartBriefIntake={handleStartFromCustomerRequest} />
     ) : (
       <EmptyState
         icon={Briefcase}
@@ -191,7 +159,7 @@ function AppContent() {
         onRunHealthCheck={() => setShowHealthCheck(true)}
         onBackupWorkspace={handleBackupWorkspace}
         onCreateProject={handleCreateProject}
-        onDemoFlowCreated={setDemoGuideProjectPath}
+        onDemoFlowCreated={(projectPath, artifactPaths) => setDemoGuide({ projectPath, artifactPaths })}
       />
     );
   } else {
@@ -205,13 +173,7 @@ function AppContent() {
         onStartBriefIntake={handleStartBriefIntake}
       />
     ) : (
-      <MarkdownEditor
-        filePath={selectedFile}
-        workspacePath={workspacePath}
-        onDocumentChanged={refreshTree}
-        onOpenDocument={(path) => setSelectedFile(path)}
-        allFiles={allFiles}
-      />
+      <MarkdownEditor filePath={selectedFile} workspacePath={workspacePath} onDocumentChanged={refreshTree} onOpenDocument={(path) => setSelectedFile(path)} allFiles={allFiles} />
     );
   }
 
@@ -230,29 +192,19 @@ function AppContent() {
       }
     >
       {mainContent}
-
       {showClientForm && <ClientForm onClose={() => setShowClientForm(false)} />}
-      {showProjectForm && (
-        <ProjectForm clientId={projectFormClientId} onClose={() => setShowProjectForm(false)} />
-      )}
-      {showDocumentCreator && (
-        <DocumentCreatorModal {...documentCreatorProps} onClose={() => setShowDocumentCreator(false)} />
-      )}
-      {showBriefIntakeModal && (
-        <BriefIntakeModal {...briefIntakeProps} onClose={() => setShowBriefIntakeModal(false)} />
-      )}
-      {showExportModal && (
-        <ExportModal {...exportModalProps} onClose={() => setShowExportModal(false)} />
-      )}
-      {showCompanySettings && (
-        <CompanySettingsModal workspacePath={workspacePath} onClose={() => setShowCompanySettings(false)} />
-      )}
+      {showProjectForm && <ProjectForm clientId={projectFormClientId} onClose={() => setShowProjectForm(false)} />}
+      {showDocumentCreator && <DocumentCreatorModal {...documentCreatorProps} onClose={() => setShowDocumentCreator(false)} />}
+      {showBriefIntakeModal && <BriefIntakeModal {...briefIntakeProps} onClose={() => setShowBriefIntakeModal(false)} />}
+      {showExportModal && <ExportModal {...exportModalProps} onClose={() => setShowExportModal(false)} />}
+      {showCompanySettings && <CompanySettingsModal workspacePath={workspacePath} onClose={() => setShowCompanySettings(false)} />}
       {showHealthCheck && <HealthCheckModal onClose={() => setShowHealthCheck(false)} />}
-      {demoGuideProjectPath && (
+      {demoGuide && (
         <DemoFlowGuideModal
-          projectPath={demoGuideProjectPath}
+          projectPath={demoGuide.projectPath}
+          artifactPaths={demoGuide.artifactPaths}
           onOpenProject={setSelectedFile}
-          onClose={() => setDemoGuideProjectPath('')}
+          onClose={() => setDemoGuide(null)}
         />
       )}
     </AppShell>
