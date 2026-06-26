@@ -133,9 +133,10 @@ function AppContent() {
     if (!workspacePath) return;
     try {
       const { generateDemoWorkspace } = await import('./lib/demo-generator');
-      await generateDemoWorkspace(workspacePath, workspaceName);
+      const result = await generateDemoWorkspace(workspacePath, workspaceName);
       await refreshTree();
-      alert('สร้าง Demo Workspace สำเร็จ!');
+      setSelectedFile(result.primaryProjectPath);
+      alert('สร้าง Demo Workspace สำเร็จ และเปิดโครงการตัวอย่างให้แล้ว');
     } catch (err) {
       await refreshTree();
       alert(`สร้าง Demo ไม่สำเร็จ: ${err}\n\nรีเฟรช Workspace แล้ว กรุณาตรวจรายการลูกค้าด้านซ้ายอีกครั้ง`);
