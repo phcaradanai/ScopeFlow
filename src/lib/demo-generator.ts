@@ -1,6 +1,12 @@
 import { invoke } from '@tauri-apps/api/core';
 
+function demoSuffix() {
+  return new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
+}
+
 export async function generateDemoWorkspace(workspacePath: string, workspaceName: string) {
+  const suffix = demoSuffix();
+
   // 1. Create Workspace
   const workspaceConfig = `workspace:
   name: "${workspaceName}"
@@ -25,8 +31,8 @@ settings:
   });
 
   // 2. Create Client
-  const clientId = 'demo-client';
-  const clientYaml = `name: "บริษัท เดโม จำกัด"
+  const clientId = `demo-client-${suffix}`;
+  const clientYaml = `name: "บริษัท เดโม จำกัด ${suffix}"
 contact_person: "คุณ สมชาย ใจดี"
 email: "somchai@demo-client.com"
 phone: "081-234-5678"
@@ -42,7 +48,7 @@ notes: "ลูกค้ารายใหญ่"`;
   });
 
   // 3. Create Projects
-  const proj1Id = 'website-revamp';
+  const proj1Id = `website-revamp-${suffix}`;
   const proj1Yaml = `name: "ปรับปรุงเว็บไซต์องค์กร"
 client: "${clientId}"
 type: "new-project"
@@ -60,7 +66,7 @@ notes: "ทำใหม่ทั้งหมดด้วย React"`;
     currentSystemFiles: null
   });
 
-  const proj2Id = 'system-maintenance';
+  const proj2Id = `system-maintenance-${suffix}`;
   const proj2Yaml = `name: "บำรุงรักษาระบบ ERP"
 client: "${clientId}"
 type: "maintenance"
@@ -80,7 +86,7 @@ notes: "สัญญาดูแลรายปี"`;
 
   // 4. Create Documents for proj1 (website-revamp)
   const proj1Path = `${workspacePath}/clients/${clientId}/projects/${proj1Id}`;
-  
+
   // Scope (Approved)
   const scopeFrontmatter = `---
 type: scope
