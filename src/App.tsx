@@ -15,6 +15,8 @@ import BriefIntakeModal from './components/BriefIntakeModal';
 import { listProjectDocuments, DocumentInfo, backupWorkspace } from './lib/tauri-commands';
 import { FolderOpen, Briefcase } from 'lucide-react';
 import { save } from '@tauri-apps/plugin-dialog';
+import AppShell from './components/ui/AppShell';
+import EmptyState from './components/ui/EmptyState';
 import './index.css';
 
 function AppContent() {
@@ -91,7 +93,6 @@ function AppContent() {
     setShowBriefIntakeModal(true);
   }
 
-  // New handler to start from customer request and create a Brief directly
   function handleStartFromCustomerRequest(clientId: string) {
     handleStartBriefIntake(clientId);
   }
@@ -128,7 +129,6 @@ function AppContent() {
     }
   }
 
-  // Flatten the tree to get all files
   const allFiles: { name: string, path: string, is_dir: boolean }[] = [];
   let isSelectedProject = false;
   let selectedProjectName = '';
@@ -136,7 +136,6 @@ function AppContent() {
   function extractFiles(node: any, depth = 0) {
     if (!node) return;
 
-    // Depth 0: Workspace, Depth 1: Client, Depth 2: Project
     if (depth === 2 && node.is_dir) {
       if (node.path === selectedFile) {
         isSelectedProject = true;
@@ -179,61 +178,27 @@ function AppContent() {
   let mainContent;
   if ((selectedFile === '__workspace_overview__' || !selectedFile) && hasNoClients) {
     mainContent = (
-      <div className="h-full flex items-center justify-center bg-gradient-to-b from-[#121214] to-[#09090b]">
-        <div className="max-w-md w-full mx-auto px-6 text-center flex flex-col items-center">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
-            <FolderOpen className="w-8 h-8 text-primary-light" />
-          </div>
-          <h2 className="text-2xl font-bold text-text mb-2">ยังไม่มีลูกค้า</h2>
-          <p className="text-sm text-text-dim mb-8">
-            สร้างลูกค้ารายแรก หรือใช้ Demo Workspace เพื่อทดลอง workflow
-          </p>
-          <div className="flex gap-4 w-full justify-center">
-            <button
-              onClick={handleCreateDemoDirectly}
-              className="btn btn-ghost"
-            >
-              สร้าง Demo
-            </button>
-            <button
-              onClick={() => setShowClientForm(true)}
-              className="btn btn-primary"
-            >
-              สร้างลูกค้าใหม่
-            </button>
-          </div>
-        </div>
-      </div>
+      <EmptyState
+        icon={FolderOpen}
+        title="ยังไม่มีลูกค้า"
+        description="สร้างลูกค้ารายแรก หรือใช้ Demo Workspace เพื่อทดลอง workflow"
+        primaryAction={{ label: "สร้างลูกค้าใหม่", onClick: () => setShowClientForm(true) }}
+        secondaryAction={{ label: "สร้าง Demo", onClick: handleCreateDemoDirectly }}
+      />
     );
   } else if (clientEmptyStateId) {
     const clientNode = tree?.children?.find(c => c.path.endsWith(clientEmptyStateId) || c.path.split('/').pop() === clientEmptyStateId);
     const clientName = clientNode ? clientNode.name : clientEmptyStateId;
     mainContent = (
-      <div className="h-full flex items-center justify-center bg-gradient-to-b from-[#121214] to-[#09090b]">
-        <div className="w-full px-6 text-center flex flex-col gap-4 items-center">
-          <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-6">
-            <Briefcase className="w-8 h-8 text-accent" />
-          </div>
-          <h2 className="text-2xl font-bold text-text mb-2">ยังไม่มีงานของลูกค้ารายนี้ ({clientName})</h2>
-          <p className="text-sm text-text-dim mb-8">
-            เริ่มจากสร้างโปรเจกต์ หรือวางคำขอลูกค้าเพื่อสร้าง Brief แรก
-          </p>
-          <div className="flex gap-4 w-full justify-center">
-            <button
-              onClick={() => handleStartFromCustomerRequest(clientEmptyStateId)}
-              className="btn btn-ghost"
-            >
-              เริ่มจากคำขอลูกค้า
-            </button>
-            <button
-              onClick={() => handleCreateProject(clientEmptyStateId)}
-              className="btn btn-primary"
-            >
-              สร้างโปรเจกต์
-            </button>
-          </div>
-        </div>
-      </div>
+      <EmptyState
+        icon={Briefcase}
+        title={`ยังไม่มีงานของลูกค้ารายนี้ (${clientName})`}
+        description="เริ่มจากสร้างโปรเจกต์ หรือวางคำขอลูกค้าเพื่อสร้าง Brief แรก"
+        iconColorClass="text-accent"
+        iconBgClass="bg-accent/10 border-accent/20"
+        primaryAction={{ label: "สร้างโปรเจกต์", onClick: () => handleCreateProject(clientEmptyStateId) }}
+        secondaryAction={{ label: "เริ่มจากคำขอลูกค้า", onClick: () => handleStartFromCustomerRequest(clientEmptyStateId) }}
+      />
     );
   } else if (selectedFile === '__workspace_overview__' || !selectedFile) {
     mainContent = (
@@ -266,20 +231,20 @@ function AppContent() {
   }
 
   return (
-    <div className="h-screen flex">
-      <Sidebar
-        onCreateClient={() => setShowClientForm(true)}
-        onCreateProject={handleCreateProject}
-        onCreateDocument={handleCreateDocument}
-        onExportProject={handleExportProject}
-        onOpenSettings={() => setShowCompanySettings(true)}
-        onRunHealthCheck={() => setShowHealthCheck(true)}
-        onBackupWorkspace={handleBackupWorkspace}
-      />
-
-      <main className="flex-1 h-full overflow-hidden">
-        {mainContent}
-      </main>
+    <AppShell
+      sidebar={
+        <Sidebar
+          onCreateClient={() => setShowClientForm(true)}
+          onCreateProject={handleCreateProject}
+          onCreateDocument={handleCreateDocument}
+          onExportProject={handleExportProject}
+          onOpenSettings={() => setShowCompanySettings(true)}
+          onRunHealthCheck={() => setShowHealthCheck(true)}
+          onBackupWorkspace={handleBackupWorkspace}
+        />
+      }
+    >
+      {mainContent}
 
       {showClientForm && <ClientForm onClose={() => setShowClientForm(false)} />}
       {showProjectForm && (
@@ -315,7 +280,7 @@ function AppContent() {
       {showHealthCheck && (
         <HealthCheckModal onClose={() => setShowHealthCheck(false)} />
       )}
-    </div>
+    </AppShell>
   );
 }
 

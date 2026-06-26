@@ -1,0 +1,87 @@
+@theme {
+  --font-sans: "Inter", "Plus Jakarta Sans", "Noto Sans Thai", system-ui, sans-serif;
+  --color-primary: #6366f1;
+  --color-primary-hover: #4f46e5;
+  --color-primary-light: #818cf8;
+  --color-surface: #09090b;      /* Zinc 950 */
+  --color-surface-2: #18181b;    /* Zinc 900 */
+  --color-surface-3: #27272a;    /* Zinc 800 */
+  --color-border: #27272a;       /* Zinc 800 */
+  --color-border-light: #3f3f46; /* Zinc 700 */
+  --spacing-sm: 12px;
+  --spacing-md: 20px;
+  --spacing-lg: 28px;
+  --color-text: #fafafa;         /* Zinc 50 */
+  --color-text-muted: #a1a1aa;   /* Zinc 400 */
+  --color-text-dim: #71717a;     /* Zinc 500 */
+  --color-success: #10b981;      /* Emerald 500 */
+  --color-warning: #f59e0b;      /* Amber 500 */
+  --color-error: #ef4444;        /* Red 500 */
+  --color-accent: #8b5cf6;       /* Violet 500 */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Spacing scale utilities */
+.space-section { gap: 1.75rem; } /* 28px */
+.space-section-lg { gap: 2.25rem; } /* 36px */
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-light);
+}
+
+/* Custom Animations */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Global main page padding */
+main, .main-content {
+  padding: 32px;
+}
+
+/* Page section gap */
+.page-section {
+  margin-bottom: 32px;
+}
+.page-section:last-child {
+  margin-bottom: 0;
+}
