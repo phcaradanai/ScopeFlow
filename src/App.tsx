@@ -12,12 +12,20 @@ import HealthCheckModal from './components/HealthCheckModal';
 import ProjectOverview from './components/ProjectOverview';
 import WorkspaceOverview from './components/WorkspaceOverview';
 import BriefIntakeModal from './components/BriefIntakeModal';
-import { listProjectDocuments, DocumentInfo, backupWorkspace } from './lib/tauri-commands';
+import ClientOverview from './components/ClientOverview';
+import { listProjectDocuments, DocumentInfo, backupWorkspace, FileEntry } from './lib/tauri-commands';
 import { FolderOpen, Briefcase } from 'lucide-react';
 import { save } from '@tauri-apps/plugin-dialog';
 import AppShell from './components/ui/AppShell';
 import EmptyState from './components/ui/EmptyState';
 import './index.css';
+
+function getClientProjects(clientNode?: FileEntry): FileEntry[] {
+  if (!clientNode) return [];
+  const projectsFolder = clientNode.children?.find(c => c.name === 'projects' && c.is_dir);
+  if (projectsFolder?.children) return projectsFolder.children.filter(p => p.is_dir);
+  return (clientNode.children || []).filter(child => child.is_dir && child.name !== 'projects');
+}
 
 function AppContent() {
   const { workspaceName, workspacePath, selectedFile, refreshTree, setSelectedFile, tree } = useWorkspace();
@@ -117,12 +125,7 @@ function AppContent() {
     if (!workspacePath) return;
     try {
       const docs = await listProjectDocuments(workspacePath, clientId, projectId);
-      setExportModalProps({
-        projectPath,
-        projectName,
-        clientName,
-        documents: docs
-      });
+      setExportModalProps({ projectPath, projectName, clientName, documents: docs });
       setShowExportModal(true);
     } catch (err) {
       console.error('Failed to load documents for export:', err);
@@ -136,27 +139,20 @@ function AppContent() {
   function extractFiles(node: any, depth = 0) {
     if (!node) return;
 
-    if (depth === 2 && node.is_dir) {
-      if (node.path === selectedFile) {
-        isSelectedProject = true;
-        selectedProjectName = node.name;
-      }
+    if (depth === 2 && node.is_dir && node.path === selectedFile) {
+      isSelectedProject = true;
+      selectedProjectName = node.name;
     }
 
     if (!node.is_dir) {
-      allFiles.push({
-        name: node.name,
-        path: node.path,
-        is_dir: node.is_dir
-      });
+      allFiles.push({ name: node.name, path: node.path, is_dir: node.is_dir });
     }
     if (node.children) {
       node.children.forEach((c: any) => extractFiles(c, depth + 1));
     }
   }
-  if (tree) {
-    extractFiles(tree);
-  }
+  if (tree) extractFiles(tree);
+
   const handleCreateDemoDirectly = async () => {
     if (!workspacePath) return;
     try {
@@ -189,7 +185,17 @@ function AppContent() {
   } else if (clientEmptyStateId) {
     const clientNode = tree?.children?.find(c => c.path.endsWith(clientEmptyStateId) || c.path.split('/').pop() === clientEmptyStateId);
     const clientName = clientNode ? clientNode.name : clientEmptyStateId;
-    mainContent = (
+    const clientProjects = getClientProjects(clientNode);
+
+    mainContent = clientNode && clientProjects.length > 0 ? (
+      <ClientOverview
+        clientNode={clientNode}
+        clientId={clientEmptyStateId}
+        onCreateProject={handleCreateProject}
+        onOpenProject={setSelectedFile}
+        onStartBriefIntake={handleStartFromCustomerRequest}
+      />
+    ) : (
       <EmptyState
         icon={Briefcase}
         title={`ยังไม่มีงานของลูกค้ารายนี้ (${clientName})`}
@@ -248,38 +254,21 @@ function AppContent() {
 
       {showClientForm && <ClientForm onClose={() => setShowClientForm(false)} />}
       {showProjectForm && (
-        <ProjectForm
-          clientId={projectFormClientId}
-          onClose={() => setShowProjectForm(false)}
-        />
+        <ProjectForm clientId={projectFormClientId} onClose={() => setShowProjectForm(false)} />
       )}
       {showDocumentCreator && (
-        <DocumentCreatorModal
-          {...documentCreatorProps}
-          onClose={() => setShowDocumentCreator(false)}
-        />
+        <DocumentCreatorModal {...documentCreatorProps} onClose={() => setShowDocumentCreator(false)} />
       )}
       {showBriefIntakeModal && (
-        <BriefIntakeModal
-          {...briefIntakeProps}
-          onClose={() => setShowBriefIntakeModal(false)}
-        />
+        <BriefIntakeModal {...briefIntakeProps} onClose={() => setShowBriefIntakeModal(false)} />
       )}
       {showExportModal && (
-        <ExportModal
-          {...exportModalProps}
-          onClose={() => setShowExportModal(false)}
-        />
+        <ExportModal {...exportModalProps} onClose={() => setShowExportModal(false)} />
       )}
       {showCompanySettings && (
-        <CompanySettingsModal
-          workspacePath={workspacePath}
-          onClose={() => setShowCompanySettings(false)}
-        />
+        <CompanySettingsModal workspacePath={workspacePath} onClose={() => setShowCompanySettings(false)} />
       )}
-      {showHealthCheck && (
-        <HealthCheckModal onClose={() => setShowHealthCheck(false)} />
-      )}
+      {showHealthCheck && <HealthCheckModal onClose={() => setShowHealthCheck(false)} />}
     </AppShell>
   );
 }
