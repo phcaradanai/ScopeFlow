@@ -9,6 +9,7 @@ import ScopeDigestPreview from './ScopeDigestPreview';
 import { processScopeDigest } from '../lib/ai/scope-digest/scopeDigestSkill';
 import { ScopeDigestOutput } from '../lib/ai/scope-digest/scopeDigestSchema';
 import { buildBriefScopeDraftPack } from '../lib/ai/draft-assistant/briefScopeDraftAssistant';
+import { createDraftApplyPlan, summarizeDraftApplyPlan, validateDraftApplyPlan, type DraftApplyProjectTarget } from '../lib/ai/draft-assistant/draftApplyPlan';
 import {
   canApplyDraftReview,
   createDraftReviewSession,
@@ -81,6 +82,31 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
     }
   };
 
+  const buildGeneratedProjectFields = async () => {
+    if (!workspacePath) {
+      setError('ไม่พบ workspace path');
+      return null;
+    }
+
+    const timestamp = Date.now();
+    const generatedProjId = `project-${timestamp}`;
+    const projectName = `โครงการใหม่ (${formData.project_type || 'ร่างความต้องการ'})`;
+    const { generateProjectYaml } = await import('../lib/templates');
+    const projectYaml = generateProjectYaml({
+      id: generatedProjId,
+      name: projectName,
+      client: clientId,
+      type: 'new-project',
+    });
+
+    return {
+      projectId: generatedProjId,
+      projectName,
+      projectPath: `${workspacePath}/clients/${clientId}/projects/${generatedProjId}`,
+      projectYaml,
+    };
+  };
+
   const resolveProjectTarget = async (): Promise<ProjectTarget | null> => {
     if (!workspacePath) {
       setError('ไม่พบ workspace path');
@@ -95,23 +121,42 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
       };
     }
 
-    const timestamp = Date.now();
-    const generatedProjId = `project-${timestamp}`;
-    const projectName = `โครงการใหม่ (${formData.project_type || 'ร่างความต้องการ'})`;
-    const { generateProjectYaml } = await import('../lib/templates');
-    const projYaml = generateProjectYaml({
-      id: generatedProjId,
-      name: projectName,
-      client: clientId,
-      type: 'new-project',
-    });
+    const generated = await buildGeneratedProjectFields();
+    if (!generated) return null;
 
-    await createProject(workspacePath, clientId, generatedProjId, projYaml, 'new-project');
+    await createProject(workspacePath, clientId, generated.projectId, generated.projectYaml, 'new-project');
 
     return {
-      finalProjectId: generatedProjId,
-      finalProjectPath: `${workspacePath}/clients/${clientId}/projects/${generatedProjId}`,
-      projectName,
+      finalProjectId: generated.projectId,
+      finalProjectPath: generated.projectPath,
+      projectName: generated.projectName,
+    };
+  };
+
+  const stageProjectTarget = async (): Promise<DraftApplyProjectTarget | null> => {
+    if (!workspacePath) {
+      setError('ไม่พบ workspace path');
+      return null;
+    }
+
+    if (projectId && projectPath) {
+      return {
+        projectId,
+        projectPath,
+        projectName: projectId,
+        shouldCreateProject: false,
+      };
+    }
+
+    const generated = await buildGeneratedProjectFields();
+    if (!generated) return null;
+
+    return {
+      projectId: generated.projectId,
+      projectPath: generated.projectPath,
+      projectName: generated.projectName,
+      shouldCreateProject: true,
+      projectYaml: generated.projectYaml,
     };
   };
 
@@ -192,8 +237,14 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
         setAiDigest(digest);
       }
 
-      const target = await resolveProjectTarget();
+      const target = await stageProjectTarget();
       if (!target) {
+        setSaving(false);
+        return;
+      }
+
+      if (target.shouldCreateProject && await pathExists(target.projectPath)) {
+        setError('ไม่สามารถเตรียม Draft ได้ เพราะ project path นี้มีอยู่แล้ว กรุณาลองใหม่อีกครั้ง');
         setSaving(false);
         return;
       }
@@ -201,28 +252,28 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
       const draftPack = buildBriefScopeDraftPack({
         rawRequest: formData.raw_request,
         projectType: formData.project_type,
-        projectId: target.finalProjectId,
+        projectId: target.projectId,
         clientId,
         projectName: target.projectName,
         digest,
       });
 
-      const session = createDraftReviewSession(target.finalProjectPath, draftPack);
+      const applyPlan = createDraftApplyPlan(target, draftPack);
       const existingPaths = [];
-      for (const doc of session.documents) {
+      for (const doc of applyPlan.documents) {
         if (await pathExists(doc.path)) existingPaths.push(doc.path.split(/[/\\]/).pop() || doc.path);
       }
 
       if (existingPaths.length > 0) {
         setError(`ไม่สามารถสร้าง Draft ได้ เพราะมีไฟล์อยู่แล้ว: ${existingPaths.join(', ')} กรุณาเปิดไฟล์เดิมหรือสร้างเวอร์ชันใหม่`);
-        setConflictPath(session.documents[0].path);
-        setConflictProjectPath(target.finalProjectPath);
-        setConflictProjectId(target.finalProjectId);
+        setConflictPath(applyPlan.documents[0].path);
+        setConflictProjectPath(target.projectPath);
+        setConflictProjectId(target.projectId);
         setSaving(false);
         return;
       }
 
-      setDraftReview(session);
+      setDraftReview(createDraftReviewSession(target.projectPath, draftPack, applyPlan));
       setSaving(false);
     } catch (err) {
       setError(String(err));
@@ -237,18 +288,54 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
 
   const handleApplyDraftReview = async () => {
     if (!draftReview || !canApplyDraftReview(draftReview)) return;
+    const applyPlan = draftReview.applyPlan;
+    if (!applyPlan) {
+      setError('ไม่พบแผนการ Apply Draft กรุณากลับไปสร้าง Preview ใหม่');
+      return;
+    }
+
+    const planErrors = validateDraftApplyPlan(applyPlan);
+    if (planErrors.length > 0) {
+      setError(`ไม่สามารถ Apply ได้: ${planErrors.join(', ')}`);
+      return;
+    }
+
+    if (!workspacePath) {
+      setError('ไม่พบ workspace path');
+      return;
+    }
 
     try {
       setSaving(true);
       setError('');
 
-      for (const doc of draftReview.documents) {
+      if (applyPlan.target.shouldCreateProject && await pathExists(applyPlan.target.projectPath)) {
+        setError('ไม่สามารถ Apply ได้ เพราะ Project นี้ถูกสร้างไว้แล้ว กรุณากลับไปสร้าง Preview ใหม่');
+        setSaving(false);
+        return;
+      }
+
+      const existingDocs = [];
+      for (const doc of applyPlan.documents) {
+        if (await pathExists(doc.path)) existingDocs.push(doc.path.split(/[/\\]/).pop() || doc.path);
+      }
+      if (existingDocs.length > 0) {
+        setError(`ไม่สามารถ Apply ได้ เพราะมีไฟล์อยู่แล้ว: ${existingDocs.join(', ')}`);
+        setSaving(false);
+        return;
+      }
+
+      if (applyPlan.target.shouldCreateProject) {
+        await createProject(workspacePath, clientId, applyPlan.target.projectId, applyPlan.target.projectYaml || '', 'new-project');
+      }
+
+      for (const doc of applyPlan.documents) {
         await createDocument(doc.path, doc.markdown);
       }
 
       await refreshTree();
-      const scopeDoc = draftReview.documents.find(doc => doc.id === 'scope');
-      setSelectedFile(scopeDoc?.path || draftReview.documents[0].path);
+      const scopeDoc = applyPlan.documents.find(doc => doc.id === 'scope');
+      setSelectedFile(scopeDoc?.path || applyPlan.documents[0].path);
       onClose();
     } catch (err) {
       setError(String(err));
@@ -354,6 +441,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
 
   if (draftReview) {
     const warnings = getDraftReviewWarnings(draftReview);
+    const plannedActions = draftReview.applyPlan ? summarizeDraftApplyPlan(draftReview.applyPlan) : [];
 
     return (
       <div className="modal-overlay">
@@ -364,7 +452,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
                 <Sparkles className="w-5 h-5 text-primary" />
                 ตรวจ Draft ก่อนสร้างเอกสารจริง
               </h2>
-              <p className="modal-subtitle">แก้ข้อความใน Brief/Scope ได้ก่อนกด Apply ระบบยังไม่เขียนไฟล์จนกว่าคุณจะยืนยัน</p>
+              <p className="modal-subtitle">แก้ข้อความใน Brief/Scope ได้ก่อนกด Apply ระบบยังไม่เขียนไฟล์หรือสร้าง Project จนกว่าคุณจะยืนยัน</p>
             </div>
             <button onClick={onClose} className="modal-close">
               <X className="w-5 h-5" />
@@ -373,6 +461,14 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
 
           <div className="modal-body overflow-y-auto space-y-5">
             {error && <div className="p-3 rounded-xl bg-error/10 border border-error/30 text-error text-sm">{error}</div>}
+            {plannedActions.length > 0 && (
+              <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4">
+                <h3 className="text-sm font-bold text-primary-light mb-2">สิ่งที่จะเกิดขึ้นเมื่อกด Apply</h3>
+                <ul className="space-y-1 text-xs text-text-muted leading-relaxed">
+                  {plannedActions.map(action => <li key={action}>- {action}</li>)}
+                </ul>
+              </div>
+            )}
             {warnings.length > 0 && (
               <div className="rounded-2xl border border-warning/20 bg-warning/10 p-4">
                 <h3 className="text-sm font-bold text-warning mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> ควรตรวจเป็นพิเศษ</h3>
