@@ -1,6 +1,6 @@
 import { FileEntry } from '../lib/tauri-commands';
 import { useProjectDocuments } from '../hooks/useProjectDocuments';
-import { RefreshCw, Briefcase, Plus, Search, ArrowRight } from 'lucide-react';
+import { RefreshCw, Briefcase, Plus, Search } from 'lucide-react';
 import SelectField from './ui/SelectField';
 import PageShell from './ui/PageShell';
 import ProjectWorkflowStepper from './project/ProjectWorkflowStepper';
@@ -18,13 +18,13 @@ interface ProjectOverviewProps {
   onStartBriefIntake?: (clientId: string, projectId: string, projectPath: string) => void;
 }
 
-export default function ProjectOverview({ 
-  projectPath, 
-  projectName, 
-  workspaceTree, 
-  onOpenDocument, 
-  onCreateDocument, 
-  onStartBriefIntake 
+export default function ProjectOverview({
+  projectPath,
+  projectName,
+  workspaceTree,
+  onOpenDocument,
+  onCreateDocument,
+  onStartBriefIntake,
 }: ProjectOverviewProps) {
   const {
     loading,
@@ -50,49 +50,22 @@ export default function ProjectOverview({
     hasNoQuote,
     filteredDocs,
     uniqueTypes,
-    uniqueStatuses
+    uniqueStatuses,
   } = useProjectDocuments(projectPath, workspaceTree);
 
   const clientId = projectPath.split('/').slice(-2, -1)[0] || '';
   const projectId = projectPath.split('/').pop() || '';
 
-  // Calculate next action based on current state
-  const nextAction = hasNoBrief
-    ? {
-        label: 'เริ่มต้นด้วย Brief',
-        desc: 'รวบรวมความต้องการของลูกค้าเพื่อเป็นตั้งต้นในการทำ Scope',
-        onClick: () => {
-          if (onStartBriefIntake) {
-            onStartBriefIntake(clientId, projectId, projectPath);
-          } else {
-            onCreateDocument(clientId, projectId, projectPath, 'brief');
-          }
-        },
-      }
-    : hasNoScope
-      ? {
-          label: 'กำหนดขอบเขตงาน (Scope)',
-          desc: 'นำข้อมูลจาก Brief มาจัดทำเอกสารขอบเขตงาน',
-          onClick: () => onCreateDocument(clientId, projectId, projectPath, 'scope'),
-        }
-      : hasNoQuote
-        ? {
-            label: 'ออกใบเสนอราคา',
-            desc: 'ประเมินราคาจากขอบเขตงานที่กำหนด',
-            onClick: () => onCreateDocument(clientId, projectId, projectPath, 'quotation'),
-          }
-        : undefined;
-
   const Header = (
-    <div className="flex items-center justify-between">
-      <div>
-        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-text-muted flex items-center gap-3">
-          <Briefcase className="w-7 h-7 text-primary" />
-          {projectName}
+    <div className="page-header-inner page-container-wide">
+      <div className="page-title-group">
+        <h1 className="page-title">
+          <Briefcase className="w-7 h-7 text-primary shrink-0" />
+          <span className="page-title-text">{projectName}</span>
         </h1>
-        <p className="text-base text-text-muted mt-2 font-medium">ภาพรวมโครงการและดัชนีเอกสาร</p>
+        <p className="page-subtitle">ภาพรวมโครงการและดัชนีเอกสาร</p>
       </div>
-      <div className="flex gap-3">
+      <div className="page-actions">
         <button
           onClick={() => onCreateDocument(clientId, projectId, projectPath)}
           className="btn btn-primary"
@@ -102,9 +75,9 @@ export default function ProjectOverview({
         <button
           onClick={loadDocuments}
           disabled={loading}
-          className="flex items-center gap-2 px-5 py-3 bg-white/5 border border-white/10 hover:border-white/20 rounded-2xl text-base font-medium hover:bg-white/10 transition-all duration-300 disabled:opacity-50 shadow-sm min-h-[44px]"
+          className="btn btn-ghost"
         >
-          <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           รีเฟรช
         </button>
       </div>
@@ -113,30 +86,7 @@ export default function ProjectOverview({
 
   return (
     <PageShell header={Header}>
-      {/* Next Action Area — prominent callout card */}
-      {nextAction && (
-        <div className="card bg-gradient-to-br from-primary/10 to-primary/[0.03] border-primary/20 overflow-hidden relative">
-          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-primary/20 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex-1">
-              <span className="px-2.5 py-1 rounded-full bg-primary/20 text-primary-light text-[10px] font-bold uppercase tracking-wider inline-block mb-3">
-                Next Action
-              </span>
-              <h2 className="text-xl font-bold text-text mb-1">{nextAction.label}</h2>
-              <p className="text-sm text-text-muted">{nextAction.desc}</p>
-            </div>
-            <button 
-              onClick={nextAction.onClick}
-              className="btn btn-primary flex items-center gap-2 shrink-0"
-            >
-              ดำเนินการตอนนี้ <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Workflow stepper */}
-      <ProjectWorkflowStepper 
+      <ProjectWorkflowStepper
         hasNoBrief={hasNoBrief}
         hasNoScope={hasNoScope}
         hasNoQuote={hasNoQuote}
@@ -147,15 +97,14 @@ export default function ProjectOverview({
         onStartBriefIntake={onStartBriefIntake}
       />
 
-      {/* Balanced two-column layout for secondary content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <ProjectRisksPanel 
+        <ProjectRisksPanel
           hasNoScope={hasNoScope}
           hasNoQuote={hasNoQuote}
           openCRs={openCRs}
           pendingApprovals={pendingApprovals}
         />
-        <ProjectWorkflowStats 
+        <ProjectWorkflowStats
           draftDocs={draftDocs}
           approvedDocs={approvedDocs}
           openCRs={openCRs}
@@ -163,20 +112,17 @@ export default function ProjectOverview({
         />
       </div>
 
-      <div className="flex flex-col gap-5">
-        <ScopeReadinessGrid 
-          briefDocs={briefDocs}
-          scopeDocs={scopeDocs}
-          quotationDocs={quotationDocs}
-          invoiceDocs={invoiceDocs}
-          approvedDocs={approvedDocs}
-          contentFlags={contentFlags}
-        />
-      </div>
+      <ScopeReadinessGrid
+        briefDocs={briefDocs}
+        scopeDocs={scopeDocs}
+        quotationDocs={quotationDocs}
+        invoiceDocs={invoiceDocs}
+        approvedDocs={approvedDocs}
+        contentFlags={contentFlags}
+      />
 
-      {/* Filter Bar */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1 relative group">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_168px_168px] gap-3">
+        <div className="relative group min-w-0">
           <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-text-dim group-focus-within:text-primary transition-colors duration-300" />
           <input
             type="text"
@@ -186,38 +132,32 @@ export default function ProjectOverview({
             className="form-input pl-12"
           />
         </div>
-        <div className="relative sm:w-48">
-          <SelectField
-            value={filterType}
-            onChange={setFilterType}
-            options={[
-              { value: 'all', label: 'ทุกประเภท' },
-              ...uniqueTypes.map(t => ({ value: t, label: t }))
-            ]}
-          />
-        </div>
-        <div className="relative sm:w-48">
-          <SelectField
-            value={filterStatus}
-            onChange={setFilterStatus}
-            options={[
-              { value: 'all', label: 'ทุกสถานะ' },
-              ...uniqueStatuses.map(s => ({ value: s, label: s }))
-            ]}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-3 pb-8">
-        <DocumentList 
-          filteredDocs={filteredDocs}
-          onOpenDocument={onOpenDocument}
-          clientId={clientId}
-          projectPath={projectPath}
-          onCreateDocument={onCreateDocument}
-          onStartBriefIntake={onStartBriefIntake}
+        <SelectField
+          value={filterType}
+          onChange={setFilterType}
+          options={[
+            { value: 'all', label: 'ทุกประเภท' },
+            ...uniqueTypes.map(t => ({ value: t, label: t }))
+          ]}
+        />
+        <SelectField
+          value={filterStatus}
+          onChange={setFilterStatus}
+          options={[
+            { value: 'all', label: 'ทุกสถานะ' },
+            ...uniqueStatuses.map(s => ({ value: s, label: s }))
+          ]}
         />
       </div>
+
+      <DocumentList
+        filteredDocs={filteredDocs}
+        onOpenDocument={onOpenDocument}
+        clientId={clientId}
+        projectPath={projectPath}
+        onCreateDocument={onCreateDocument}
+        onStartBriefIntake={onStartBriefIntake}
+      />
     </PageShell>
   );
 }
