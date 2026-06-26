@@ -14,19 +14,13 @@ import WorkspaceOverview from './components/WorkspaceOverview';
 import BriefIntakeModal from './components/BriefIntakeModal';
 import ClientOverview from './components/ClientOverview';
 import DemoFlowGuideModal from './components/demo/DemoFlowGuideModal';
-import { listProjectDocuments, DocumentInfo, backupWorkspace, FileEntry } from './lib/tauri-commands';
+import { listProjectDocuments, DocumentInfo, backupWorkspace } from './lib/tauri-commands';
 import { FolderOpen, Briefcase } from 'lucide-react';
 import { save } from '@tauri-apps/plugin-dialog';
+import { findWorkspaceClient, findWorkspaceProject, getWorkspaceClients } from './lib/workspace-scanner';
 import AppShell from './components/ui/AppShell';
 import EmptyState from './components/ui/EmptyState';
 import './index.css';
-
-function getClientProjects(clientNode?: FileEntry): FileEntry[] {
-  if (!clientNode) return [];
-  const projectsFolder = clientNode.children?.find(c => c.name === 'projects' && c.is_dir);
-  if (projectsFolder?.children) return projectsFolder.children.filter(p => p.is_dir);
-  return (clientNode.children || []).filter(child => child.is_dir && child.name !== 'projects');
-}
 
 function AppContent() {
   const { workspaceName, workspacePath, selectedFile, refreshTree, setSelectedFile, tree } = useWorkspace();
@@ -108,21 +102,10 @@ function AppContent() {
   }
 
   async function handleExportProject(clientId: string, projectId: string, projectPath: string) {
-    let clientName = clientId;
-    let projectName = projectId;
-
-    if (tree?.children) {
-      const clientNode = tree.children.find((c: any) => c.path.endsWith(clientId));
-      if (clientNode) {
-        clientName = clientNode.name;
-        if (clientNode.children) {
-          const projectNode = clientNode.children.find((p: any) => p.path === projectPath);
-          if (projectNode) {
-            projectName = projectNode.name;
-          }
-        }
-      }
-    }
+    const client = findWorkspaceClient(tree, clientId);
+    const project = findWorkspaceProject(tree, projectPath);
+    const clientName = client?.clientName || clientId;
+    const projectName = project?.projectName || projectId;
 
     if (!workspacePath) return;
     try {
@@ -135,25 +118,16 @@ function AppContent() {
   }
 
   const allFiles: { name: string, path: string, is_dir: boolean }[] = [];
-  let isSelectedProject = false;
-  let selectedProjectName = '';
-
-  function extractFiles(node: any, depth = 0) {
+  function extractFiles(node: any) {
     if (!node) return;
-
-    if (depth === 2 && node.is_dir && node.path === selectedFile) {
-      isSelectedProject = true;
-      selectedProjectName = node.name;
-    }
-
     if (!node.is_dir) {
       allFiles.push({ name: node.name, path: node.path, is_dir: node.is_dir });
     }
-    if (node.children) {
-      node.children.forEach((c: any) => extractFiles(c, depth + 1));
-    }
+    node.children?.forEach((c: any) => extractFiles(c));
   }
   if (tree) extractFiles(tree);
+
+  const selectedProject = selectedFile ? findWorkspaceProject(tree, selectedFile) : undefined;
 
   const handleCreateDemoDirectly = async () => {
     if (!workspacePath) return;
@@ -171,7 +145,8 @@ function AppContent() {
     ? selectedFile.substring('__client__:'.length)
     : '';
 
-  const hasNoClients = !tree?.children || tree.children.length === 0;
+  const workspaceClients = getWorkspaceClients(tree);
+  const hasNoClients = workspaceClients.length === 0;
 
   let mainContent;
   if ((selectedFile === '__workspace_overview__' || !selectedFile) && hasNoClients) {
@@ -185,14 +160,13 @@ function AppContent() {
       />
     );
   } else if (clientEmptyStateId) {
-    const clientNode = tree?.children?.find(c => c.path.endsWith(clientEmptyStateId) || c.path.split('/').pop() === clientEmptyStateId);
-    const clientName = clientNode ? clientNode.name : clientEmptyStateId;
-    const clientProjects = getClientProjects(clientNode);
+    const client = findWorkspaceClient(tree, clientEmptyStateId);
+    const clientName = client?.clientName || clientEmptyStateId;
 
-    mainContent = clientNode && clientProjects.length > 0 ? (
+    mainContent = client && client.projects.length > 0 ? (
       <ClientOverview
-        clientNode={clientNode}
-        clientId={clientEmptyStateId}
+        clientNode={client.node}
+        clientId={client.clientId}
         onCreateProject={handleCreateProject}
         onOpenProject={setSelectedFile}
         onStartBriefIntake={handleStartFromCustomerRequest}
@@ -219,10 +193,10 @@ function AppContent() {
       />
     );
   } else {
-    mainContent = isSelectedProject ? (
+    mainContent = selectedProject ? (
       <ProjectOverview
-        projectPath={selectedFile}
-        projectName={selectedProjectName}
+        projectPath={selectedProject.path}
+        projectName={selectedProject.projectName}
         workspaceTree={tree as any}
         onOpenDocument={(path) => setSelectedFile(path)}
         onCreateDocument={handleCreateDocument}
