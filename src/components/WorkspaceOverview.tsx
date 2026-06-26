@@ -29,7 +29,7 @@ interface WorkspaceOverviewProps {
   onRunHealthCheck: () => void;
   onBackupWorkspace: () => void;
   onCreateProject: (clientId: string) => void;
-  onDemoFlowCreated?: (projectPath: string) => void;
+  onDemoFlowCreated?: (projectPath: string, artifactPaths?: Record<string, string>) => void;
 }
 
 export default function WorkspaceOverview({
@@ -94,7 +94,6 @@ export default function WorkspaceOverview({
           const allDocsPromises = projects.map((p) => scanProjectDocuments(p.path, currentTree));
           const allDocsLists = await Promise.all(allDocsPromises);
           const allDocs = allDocsLists.flat();
-
           const stats = computeWorkspaceStats(clients.length, projects.length, allDocs);
           setDocumentsCount(stats.documentsCount);
           setApprovedCount(stats.approvedCount);
@@ -153,12 +152,11 @@ export default function WorkspaceOverview({
   }, [workspacePath, tree]);
 
   const handleOpenWorkspaceFolder = async () => {
-    if (workspacePath) {
-      try {
-        await openPath(workspacePath);
-      } catch (err) {
-        console.error('Failed to open workspace folder:', err);
-      }
+    if (!workspacePath) return;
+    try {
+      await openPath(workspacePath);
+    } catch (err) {
+      console.error('Failed to open workspace folder:', err);
     }
   };
 
@@ -168,8 +166,7 @@ export default function WorkspaceOverview({
       const folderName = workspacePath.split(/[/\\]/).pop() || 'ScopeFlow Workspace';
       const { generateWorkspaceConfig } = await import('../lib/templates');
       const config = generateWorkspaceConfig(folderName);
-      const yamlPath = `${workspacePath}/scopeflow.yaml`;
-      await writeFileContent(yamlPath, config);
+      await writeFileContent(`${workspacePath}/scopeflow.yaml`, config);
       await refreshTree();
       alert('สร้างไฟล์ scopeflow.yaml และแก้ไขสำเร็จ!');
     } catch (err) {
@@ -185,7 +182,7 @@ export default function WorkspaceOverview({
         const result = await generateDemoWorkspace(workspacePath, workspaceName);
         await refreshTree();
         setSelectedFile(result.primaryProjectPath);
-        alert('สร้าง Demo Workspace สำเร็จ และเปิดโครงการตัวอย่างให้แล้ว');
+        onDemoFlowCreated?.(result.primaryProjectPath, result.artifactPaths);
       } catch (err) {
         await refreshTree();
         alert(`สร้าง Demo ไม่สำเร็จ: ${err}\n\nระบบรีเฟรช Workspace แล้ว กรุณาตรวจรายการด้านซ้ายอีกครั้ง`);
@@ -203,7 +200,7 @@ export default function WorkspaceOverview({
         const result = await generateCompletedDemoFlow(workspacePath);
         await refreshTree();
         setSelectedFile(result.projectPath);
-        onDemoFlowCreated?.(result.projectPath);
+        onDemoFlowCreated?.(result.projectPath, result.artifactPaths);
       } catch (err) {
         await refreshTree();
         alert(`สร้าง Demo จบครบ Flow ไม่สำเร็จ: ${err}`);
@@ -262,54 +259,25 @@ export default function WorkspaceOverview({
             </div>
             <div className="text-left min-w-0">
               <h4 className="text-sm font-bold text-text">พบข้อผิดพลาดร้ายแรงใน Workspace</h4>
-              <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                {healthIssues.find(i => i.type === 'error')?.message}
-              </p>
+              <p className="text-xs text-text-muted mt-1 leading-relaxed">{healthIssues.find(i => i.type === 'error')?.message}</p>
             </div>
           </div>
           {healthIssues.some(i => i.fixAction === 'create_scopeflow_yaml') && (
-            <button
-              onClick={handleFixScopeflowYaml}
-              className="btn btn-sm text-error bg-error/20 hover:bg-error hover:text-white border border-error/30 transition-all font-semibold shrink-0"
-            >
+            <button onClick={handleFixScopeflowYaml} className="btn btn-sm text-error bg-error/20 hover:bg-error hover:text-white border border-error/30 transition-all font-semibold shrink-0">
               <Plus className="w-3.5 h-3.5" /> สร้างไฟล์สำหรับ Workspace
             </button>
           )}
         </div>
       )}
 
-      <WorkspaceStats
-        clientsCount={clientsCount}
-        projectsCount={projectsCount}
-        documentsCount={documentsCount}
-        approvedCount={approvedCount}
-        lockedCount={lockedCount}
-        healthStatus={healthStatus}
-      />
+      <WorkspaceStats clientsCount={clientsCount} projectsCount={projectsCount} documentsCount={documentsCount} approvedCount={approvedCount} lockedCount={lockedCount} healthStatus={healthStatus} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <ClientList
-          clientsWithProjects={workspaceClients}
-          onCreateClient={onCreateClient}
-          onCreateProject={onCreateProject}
-          onSelectClient={setSelectedFile}
-        />
-        <WorkspaceStatus
-          companyProfileStatus={companyProfileStatus}
-          presetsStatus={presetsStatus}
-          lastBackup={lastBackup}
-          latestExport={latestExport}
-        />
+        <ClientList clientsWithProjects={workspaceClients} onCreateClient={onCreateClient} onCreateProject={onCreateProject} onSelectClient={setSelectedFile} />
+        <WorkspaceStatus companyProfileStatus={companyProfileStatus} presetsStatus={presetsStatus} lastBackup={lastBackup} latestExport={latestExport} />
       </div>
 
-      <MaintenanceActions
-        onCreateClient={onCreateClient}
-        onRunHealthCheck={onRunHealthCheck}
-        onBackupWorkspace={handleTriggerBackup}
-        handleCreateDemo={handleCreateDemo}
-        handleCreateCompleteDemoFlow={handleCreateCompleteDemoFlow}
-        handleOpenWorkspaceFolder={handleOpenWorkspaceFolder}
-      />
+      <MaintenanceActions onCreateClient={onCreateClient} onRunHealthCheck={onRunHealthCheck} onBackupWorkspace={handleTriggerBackup} handleCreateDemo={handleCreateDemo} handleCreateCompleteDemoFlow={handleCreateCompleteDemoFlow} handleOpenWorkspaceFolder={handleOpenWorkspaceFolder} />
     </PageShell>
   );
 }
