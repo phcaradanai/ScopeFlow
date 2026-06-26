@@ -3,18 +3,21 @@ import React from 'react';
 interface PageShellProps {
   header?: React.ReactNode;
   children: React.ReactNode;
+  wide?: boolean;
 }
 
-export default function PageShell({ header, children }: PageShellProps) {
+export default function PageShell({ header, children, wide = true }: PageShellProps) {
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-[#121214] to-[#09090b] overflow-hidden">
+    <div className="page-surface">
       {header && (
-        <div className="flex-none px-8 py-6 border-b border-white/10 bg-white/[0.01] backdrop-blur-md z-10 shadow-sm">
-          {header}
+        <div className="page-header-bar">
+          <div className={wide ? 'page-header-inner page-container-wide' : 'page-header-inner'}>
+            {header}
+          </div>
         </div>
       )}
-      <div className="flex-1 overflow-y-auto scroll-smooth">
-        <div className="max-w-[1280px] mx-auto w-full px-8 pt-10 pb-32 flex flex-col gap-8">
+      <div className="page-scroll">
+        <div className={wide ? 'page-container page-container-wide' : 'page-container'}>
           {children}
         </div>
       </div>
