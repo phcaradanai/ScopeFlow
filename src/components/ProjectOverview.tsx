@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ProjectDocument, scanProjectDocuments } from '../lib/document-scanner';
 import { FileEntry } from '../lib/tauri-commands';
 import {
-  RefreshCw, FileText, Search, Lock, CheckCircle, Briefcase, ArrowRight, AlertTriangle, Target, Plus
+  RefreshCw, FileText, Search, Lock, CheckCircle, Briefcase, AlertTriangle, Target, Plus
 } from 'lucide-react';
 import SelectField from './ui/SelectField';
 
@@ -73,6 +73,8 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
     hasQuestions: false,
   };
 
+
+
   // Scope readiness checks
   const scopeReady = scopeDocs > 0 && quotationDocs > 0;
 
@@ -80,31 +82,6 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
   const hasNoBrief = briefDocs === 0;
   const hasNoScope = scopeDocs === 0;
   const hasNoQuote = quotationDocs === 0;
-  const hasOpenItems = openCRs > 0 || openSUPs > 0 || pendingApprovals > 0;
-
-  let nextActionLabel: string;
-  let nextActionDesc: string;
-  if (hasNoBrief && hasNoScope) {
-    nextActionLabel = 'สร้างร่าง Brief';
-    nextActionDesc = 'ยังไม่มีเอกสารใดๆ — แปะคำขอลูกค้าเพื่อสร้างโครงร่างแรก';
-  } else if (hasNoScope) {
-    nextActionLabel = 'สร้าง Scope';
-    nextActionDesc = 'มีร่าง Brief แล้ว — สร้าง Scope เพื่อตีกรอบให้ชัดเจน';
-  } else if (hasNoQuote) {
-    nextActionLabel = 'สร้างใบเสนอราคา';
-    nextActionDesc = 'Scope พร้อมแล้ว — เริ่มสร้างใบเสนอราคา';
-  } else if (scopeReady && approvedDocs >= 2) {
-    nextActionLabel = 'Scope พร้อม';
-    nextActionDesc = 'Scope + Quotation พร้อม ขั้นตอนต่อไปคือส่งเขำ review';
-  } else if (hasOpenItems) {
-    nextActionLabel = 'จัดการรายการที่เปิดอยู่';
-    nextActionDesc = `${openCRs + openSUPs + pendingApprovals} รายการรอดำเนินการ`;
-  } else {
-    nextActionLabel = 'เริ่มใหม่';
-    nextActionDesc = 'ทุกอย่างเรียบร้อย — สรุปงานเป็น CR/DCR ได้ตลอด';
-  }
-
-  // Filtering and Searching
   const filteredDocs = useMemo(() => {
     return documents.filter(doc => {
       if (filterType !== 'all' && doc.type !== filterType && doc.folder !== filterType) return false;

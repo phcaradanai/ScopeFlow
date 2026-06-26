@@ -1,9 +1,11 @@
 import YAML from 'yaml';
 import { todayISO } from './validation';
+import type { ScopeDigestOutput } from './ai/scope-digest/scopeDigestSchema';
 
 export interface BriefFormData {
   raw_request: string;
   project_type: string;
+  ai_digest?: ScopeDigestOutput;
 }
 
 export interface PresetData {
@@ -342,9 +344,10 @@ export function generateBriefDocument(data: {
   project: string;
   client: string;
   projectName: string;
+  ai_digest?: ScopeDigestOutput;
 }): string {
   const today = todayISO();
-  const detectedType = detectProjectType(data.raw_request, data.project_type);
+  const detectedType = data.ai_digest?.detected_project_type || detectProjectType(data.raw_request, data.project_type);
   const preset = projectPresets[detectedType] || projectPresets['อื่น ๆ'];
 
   const frontmatter = {
@@ -368,8 +371,9 @@ export function generateBriefDocument(data: {
   markdown += `> ${data.raw_request.replace(/\n/g, '\n> ')}\n\n`;
 
   markdown += `## 2. สิ่งที่เข้าใจจากคำขอ (Understanding)\n\n`;
-  if (preset.understanding && preset.understanding.length > 0) {
-    preset.understanding.forEach(item => {
+  const understanding = data.ai_digest?.understanding || preset.understanding;
+  if (understanding && understanding.length > 0) {
+    understanding.forEach((item: string) => {
       markdown += `- ${item}\n`;
     });
     markdown += `\n`;
@@ -378,11 +382,20 @@ export function generateBriefDocument(data: {
   }
 
   markdown += `## 3. สิ่งที่ยืนยันแล้ว (Confirmed)\n\n`;
-  markdown += `- ${data.raw_request.replace(/\n/g, ' ')}\n\n`;
+  const confirmed = data.ai_digest?.confirmed_facts;
+  if (confirmed && confirmed.length > 0) {
+    confirmed.forEach((item: string) => {
+      markdown += `- ${item}\n`;
+    });
+    markdown += `\n`;
+  } else {
+    markdown += `- ${data.raw_request.replace(/\n/g, ' ')}\n\n`;
+  }
 
   markdown += `## 4. สิ่งที่เป็นสมมติฐาน (Assumptions)\n\n`;
-  if (preset.assumptions && preset.assumptions.length > 0) {
-    preset.assumptions.forEach(item => {
+  const assumptions = data.ai_digest?.assumptions || preset.assumptions;
+  if (assumptions && assumptions.length > 0) {
+    assumptions.forEach((item: string) => {
       markdown += `- ${item}\n`;
     });
     markdown += `\n`;
@@ -391,8 +404,9 @@ export function generateBriefDocument(data: {
   }
 
   markdown += `## 5. สิ่งที่ยังไม่ชัด (Unclear Areas)\n\n`;
-  if (preset.unclear && preset.unclear.length > 0) {
-    preset.unclear.forEach(item => {
+  const unclear = data.ai_digest?.unclear_points || preset.unclear;
+  if (unclear && unclear.length > 0) {
+    unclear.forEach((item: string) => {
       markdown += `- ${item}\n`;
     });
     markdown += `\n`;
@@ -401,33 +415,48 @@ export function generateBriefDocument(data: {
   }
 
   markdown += `## 6. คำถามที่ควรถามลูกค้า (Questions to Ask)\n\n`;
-  preset.questions.forEach(q => {
+  const questions = data.ai_digest?.questions_to_ask || preset.questions;
+  questions.forEach((q: string) => {
     markdown += `- [ ] ${q}\n`;
   });
-  markdown += `- [ ] \n\n`;
+  if (questions.length === 0) markdown += `- [ ] \n`;
+  markdown += `\n`;
 
   markdown += `## 7. สิ่งที่อาจอยู่ในขอบเขต (Likely In-Scope)\n\n`;
-  preset.inScope.forEach(item => {
+  const inScope = data.ai_digest?.likely_in_scope || preset.inScope;
+  inScope.forEach((item: string) => {
     markdown += `- ${item}\n`;
   });
-  markdown += `- \n\n`;
+  if (inScope.length === 0) markdown += `- \n`;
+  markdown += `\n`;
 
   markdown += `## 8. สิ่งที่ควรระบุว่าไม่รวมในขอบเขต (Likely Out-of-Scope)\n\n`;
-  preset.outOfScope.forEach(item => {
+  const outOfScope = data.ai_digest?.likely_out_of_scope || preset.outOfScope;
+  outOfScope.forEach((item: string) => {
     markdown += `- ${item}\n`;
   });
-  markdown += `- \n\n`;
+  if (outOfScope.length === 0) markdown += `- \n`;
+  markdown += `\n`;
 
   markdown += `## 9. ความเสี่ยงงานงอก (Scope Creep Risks)\n\n`;
-  preset.risks.forEach(item => {
+  const risks = data.ai_digest?.scope_creep_risks || preset.risks;
+  risks.forEach((item: string) => {
     markdown += `- ${item}\n`;
   });
-  markdown += `- \n\n`;
+  if (risks.length === 0) markdown += `- \n`;
+  markdown += `\n`;
 
   markdown += `## 10. ขั้นตอนถัดไป (Next Steps)\n\n`;
+  const nextDocs = data.ai_digest?.suggested_next_documents;
   markdown += `- [ ] รวบรวมคำตอบจากลูกค้า\n`;
   markdown += `- [ ] ยืนยันสมมติฐานและสิ่งที่ยังไม่ชัด\n`;
-  markdown += `- [ ] จัดทำเอกสารขอบเขตงาน (Scope of Work)\n\n`;
+  markdown += `- [ ] จัดทำเอกสารขอบเขตงาน (Scope of Work)\n`;
+  if (nextDocs && nextDocs.length > 0) {
+    nextDocs.forEach((doc: string) => {
+      markdown += `- [ ] เตรียมเอกสาร ${doc}\n`;
+    });
+  }
+  markdown += `\n`;
 
   return markdown;
 }

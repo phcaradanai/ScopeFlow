@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { useWorkspace } from '../lib/workspace-context';
 import { createDocument, pathExists, createProject } from '../lib/tauri-commands';
 import { generateBriefDocument, BriefFormData, projectPresets } from '../lib/brief-builder';
-import { X, AlertTriangle, FileText, CheckCircle2, ChevronRight, Lightbulb } from 'lucide-react';
+import { X, AlertTriangle, FileText, CheckCircle2, ChevronRight, Lightbulb, Sparkles } from 'lucide-react';
 import SelectField from './ui/SelectField';
+import ScopeDigestPreview from './ScopeDigestPreview';
+import { processScopeDigest } from '../lib/ai/scope-digest/scopeDigestSkill';
+import { ScopeDigestOutput } from '../lib/ai/scope-digest/scopeDigestSchema';
 
 const EXAMPLES = [
   {
@@ -40,6 +43,8 @@ export default function BriefIntakeModal({
   const [formData, setFormData] = useState<BriefFormData>(defaultData);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiDigest, setAiDigest] = useState<ScopeDigestOutput | null>(null);
   
   // Conflict resolution state
   const [conflictPath, setConflictPath] = useState<string | null>(null);
@@ -59,6 +64,39 @@ export default function BriefIntakeModal({
     }
   };
 
+  const handleGenerateAiDigest = async () => {
+    if (!formData.raw_request.trim()) {
+      setError('กรุณาใส่ข้อความ/คำพูดจากลูกค้าก่อนให้ AI ช่วยย่อย');
+      return;
+    }
+    
+    if (!workspacePath) {
+      setError('ไม่พบ workspace path');
+      return;
+    }
+
+    try {
+      setIsGeneratingAi(true);
+      setError('');
+      const digest = await processScopeDigest(
+        workspacePath,
+        formData.raw_request,
+        formData.project_type
+      );
+      setAiDigest(digest);
+      // Auto-update project type if AI is highly confident and it's not "อื่น ๆ"
+      if (digest.detected_project_type !== 'ทั่วไป' && digest.detected_project_type !== 'ไม่ทราบประเภท') {
+        if (projectTypes.includes(digest.detected_project_type)) {
+          setFormData(prev => ({ ...prev, project_type: digest.detected_project_type }));
+        }
+      }
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
+
   const handleCreateNewVersion = async () => {
     if (!conflictProjectPath || !conflictProjectId) return;
     
@@ -70,7 +108,8 @@ export default function BriefIntakeModal({
         ...formData,
         project: conflictProjectId,
         client: clientId,
-        projectName: `โครงการใหม่ (${formData.project_type || 'ร่างความต้องการ'})`
+        projectName: `โครงการใหม่ (${formData.project_type || 'ร่างความต้องการ'})`,
+        ai_digest: aiDigest || undefined
       };
       const finalContent = generateBriefDocument(briefDocData);
       
@@ -145,7 +184,8 @@ export default function BriefIntakeModal({
         ...formData,
         project: finalProjectId,
         client: clientId,
-        projectName: `โครงการใหม่ (${formData.project_type || 'ร่างความต้องการ'})`
+        projectName: `โครงการใหม่ (${formData.project_type || 'ร่างความต้องการ'})`,
+        ai_digest: aiDigest || undefined
       };
       
       const finalContent = generateBriefDocument(briefDocData);
@@ -255,54 +295,76 @@ export default function BriefIntakeModal({
 
               <div className="form-section !bg-transparent !border-transparent !p-0 mt-auto">
                 <label className="form-label mb-2 block">ประเภทโครงการ (เลือกเพื่อให้ระบบแนะนำได้แม่นยำขึ้น)</label>
-                <SelectField
-                  value={formData.project_type}
-                  onChange={(val) => handleChange('project_type', val)}
-                  options={projectTypes.map((pt) => ({ value: pt, label: pt }))}
-                />
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <SelectField
+                      value={formData.project_type}
+                      onChange={(val) => handleChange('project_type', val)}
+                      options={projectTypes.map((pt) => ({ value: pt, label: pt }))}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGenerateAiDigest}
+                    disabled={isGeneratingAi || !formData.raw_request.trim()}
+                    className="btn btn-primary bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 whitespace-nowrap gap-2"
+                  >
+                    <Sparkles className={`w-4 h-4 ${isGeneratingAi ? 'animate-pulse' : ''}`} />
+                    {isGeneratingAi ? 'กำลังวิเคราะห์...' : 'ให้ AI ช่วยย่อยคำขอ'}
+                  </button>
+                </div>
               </div>
             </form>
 
-            {/* Right Column: Tips & Examples */}
+            {/* Right Column: Tips & Examples or AI Digest Preview */}
             <div className="bg-surface-2/80 border-l border-border p-6 flex flex-col gap-6 overflow-y-auto">
-              <div>
-                <h3 className="flex items-center gap-2 font-semibold text-text mb-4">
-                  <Lightbulb className="w-5 h-5 text-warning" />
-                  คำแนะนำในการเขียน
-                </h3>
-                <ul className="space-y-3 text-sm text-text-muted">
-                  <li className="flex gap-3 items-start"><CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" /> <span>ระบุเป้าหมายหลักของโครงการให้ชัดเจน</span></li>
-                  <li className="flex gap-3 items-start"><CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" /> <span>ระบุกลุ่มผู้ใช้งานเป้าหมาย</span></li>
-                  <li className="flex gap-3 items-start"><CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" /> <span>บอกฟีเจอร์สำคัญที่ต้องมี (Must-have)</span></li>
-                </ul>
-              </div>
+              {aiDigest ? (
+                <ScopeDigestPreview 
+                  digest={aiDigest} 
+                  onChange={setAiDigest} 
+                />
+              ) : (
+                <>
+                  <div>
+                    <h3 className="flex items-center gap-2 font-semibold text-text mb-4">
+                      <Lightbulb className="w-5 h-5 text-warning" />
+                      คำแนะนำในการเขียน
+                    </h3>
+                    <ul className="space-y-3 text-sm text-text-muted">
+                      <li className="flex gap-3 items-start"><CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" /> <span>ระบุเป้าหมายหลักของโครงการให้ชัดเจน</span></li>
+                      <li className="flex gap-3 items-start"><CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" /> <span>ระบุกลุ่มผู้ใช้งานเป้าหมาย</span></li>
+                      <li className="flex gap-3 items-start"><CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" /> <span>บอกฟีเจอร์สำคัญที่ต้องมี (Must-have)</span></li>
+                    </ul>
+                  </div>
 
-              <div className="mt-2">
-                <h3 className="font-semibold text-text mb-3">ตัวอย่างข้อความ</h3>
-                <div className="flex flex-col gap-3">
-                  {EXAMPLES.map((ex, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        handleChange('raw_request', ex.content);
-                        if (ex.project_type && projectTypes.includes(ex.project_type)) {
-                          handleChange('project_type', ex.project_type);
-                        }
-                      }}
-                      className="text-left p-4 rounded-xl border border-border bg-surface hover:bg-surface-3 hover:border-text-dim transition-all group"
-                    >
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-semibold text-sm text-primary-light">{ex.title}</span>
-                        <ChevronRight className="w-4 h-4 text-text-dim group-hover:text-text transition-colors" />
-                      </div>
-                      <p className="text-xs text-text-muted line-clamp-3 leading-relaxed">
-                        "{ex.content}"
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </div>
+                  <div className="mt-2">
+                    <h3 className="font-semibold text-text mb-3">ตัวอย่างข้อความ</h3>
+                    <div className="flex flex-col gap-3">
+                      {EXAMPLES.map((ex, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            handleChange('raw_request', ex.content);
+                            if (ex.project_type && projectTypes.includes(ex.project_type)) {
+                              handleChange('project_type', ex.project_type);
+                            }
+                          }}
+                          className="text-left p-4 rounded-xl border border-border bg-surface hover:bg-surface-3 hover:border-text-dim transition-all group"
+                        >
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-semibold text-sm text-primary-light">{ex.title}</span>
+                            <ChevronRight className="w-4 h-4 text-text-dim group-hover:text-text transition-colors" />
+                          </div>
+                          <p className="text-xs text-text-muted line-clamp-3 leading-relaxed">
+                            "{ex.content}"
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

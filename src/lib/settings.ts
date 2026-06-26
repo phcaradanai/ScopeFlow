@@ -26,6 +26,21 @@ export interface Presets {
   revision_terms: string[];
 }
 
+export interface AiSettings {
+  mode: 'off' | 'ollama';
+  baseUrl: string;
+  model: string;
+  enabled: boolean;
+}
+
+const defaultAiSettings: AiSettings = {
+  mode: 'off',
+  baseUrl: 'http://localhost:11434',
+  model: 'llama3',
+  enabled: false
+};
+
+
 const defaultPresets: Presets = {
   payment_terms: [
     "แบ่งชำระ 50% ก่อนเริ่มงาน และ 50% เมื่อส่งมอบงานเสร็จสมบูรณ์",
@@ -98,4 +113,29 @@ export async function savePresets(workspacePath: string, presets: Presets): Prom
   const presetsPath = `${workspacePath}/.scopeflow/presets.yaml`;
   const yamlContent = YAML.stringify(presets);
   await writeFileContent(presetsPath, yamlContent);
+}
+
+export async function getAiSettings(workspacePath: string): Promise<AiSettings> {
+  const settingsPath = `${workspacePath}/.scopeflow/ai-settings.yaml`;
+  const exists = await pathExists(settingsPath);
+  
+  if (!exists) {
+    await saveAiSettings(workspacePath, defaultAiSettings);
+    return defaultAiSettings;
+  }
+  
+  try {
+    const content = await readFileContent(settingsPath);
+    const parsed = YAML.parse(content) as AiSettings;
+    return { ...defaultAiSettings, ...parsed };
+  } catch (err) {
+    console.error("Failed to parse AI settings:", err);
+    return defaultAiSettings;
+  }
+}
+
+export async function saveAiSettings(workspacePath: string, settings: AiSettings): Promise<void> {
+  const settingsPath = `${workspacePath}/.scopeflow/ai-settings.yaml`;
+  const yamlContent = YAML.stringify(settings);
+  await writeFileContent(settingsPath, yamlContent);
 }
