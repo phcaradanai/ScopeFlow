@@ -188,7 +188,7 @@ function ClientNode({
             e.stopPropagation();
             onCreateProject(clientId);
           }}
-          className="w-5 h-5 rounded-md flex items-center justify-center text-text-dim hover:bg-accent hover:text-white transition-all opacity-0 group-hover:opacity-100"
+          className="w-5 h-5 rounded-md flex items-center justify-center text-text-dim hover:bg-accent hover:text-white transition-all opacity-30 group-hover:opacity-100 focus:opacity-100"
           title="สร้างโครงการใหม่"
         >
           <Plus className="w-3 h-3" />
@@ -196,7 +196,7 @@ function ClientNode({
       </div>
 
       {expanded && node.children && (
-        <div className="ml-4 pl-3 border-l border-white/10 my-1 space-y-1">
+        <div className="ml-3.5 pl-2.5 border-l-2 border-white/5 my-1 space-y-1">
           {node.children.length === 0 ? (
             <p className="text-[10px] text-text-dim px-2 py-1">ยังไม่มีโครงการ</p>
           ) : (
@@ -266,7 +266,7 @@ function ProjectNode({
         <Briefcase className={`w-3.5 h-3.5 shrink-0 ${selectedFile === node.path ? 'text-primary-light' : 'text-primary-light/60 group-hover:text-primary-light'}`} />
         <span className="text-[11px] font-semibold truncate flex-1 leading-tight">{node.name}</span>
         
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-0.5 opacity-30 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -291,7 +291,7 @@ function ProjectNode({
       </div>
 
       {expanded && node.children && (
-        <div className="ml-5 pl-2 border-l border-white/5 my-1 space-y-0.5">
+        <div className="ml-4 pl-3 border-l-2 border-white/5 my-1 space-y-0.5 relative">
           {node.children.length === 0 ? (
             <p className="text-[10px] text-text-dim px-2 py-1">ยังไม่มีเอกสาร</p>
           ) : (

@@ -45,7 +45,6 @@ export default function ProjectOverview({
     quotationDocs,
     invoiceDocs,
     contentFlags,
-    scopeReady,
     hasNoBrief,
     hasNoScope,
     hasNoQuote,
@@ -88,7 +87,6 @@ export default function ProjectOverview({
   return (
     <PageShell header={Header}>
       <ProjectWorkflowStepper 
-        scopeReady={scopeReady}
         hasNoBrief={hasNoBrief}
         hasNoScope={hasNoScope}
         hasNoQuote={hasNoQuote}
@@ -99,7 +97,7 @@ export default function ProjectOverview({
         onStartBriefIntake={onStartBriefIntake}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="flex flex-col gap-5">
         <ScopeReadinessGrid 
           briefDocs={briefDocs}
           scopeDocs={scopeDocs}
@@ -108,18 +106,20 @@ export default function ProjectOverview({
           approvedDocs={approvedDocs}
           contentFlags={contentFlags}
         />
-        <ProjectRisksPanel 
-          hasNoScope={hasNoScope}
-          hasNoQuote={hasNoQuote}
-          openCRs={openCRs}
-          pendingApprovals={pendingApprovals}
-        />
-        <ProjectWorkflowStats 
-          draftDocs={draftDocs}
-          approvedDocs={approvedDocs}
-          openCRs={openCRs}
-          openSUPs={openSUPs}
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <ProjectRisksPanel 
+            hasNoScope={hasNoScope}
+            hasNoQuote={hasNoQuote}
+            openCRs={openCRs}
+            pendingApprovals={pendingApprovals}
+          />
+          <ProjectWorkflowStats 
+            draftDocs={draftDocs}
+            approvedDocs={approvedDocs}
+            openCRs={openCRs}
+            openSUPs={openSUPs}
+          />
+        </div>
       </div>
 
       {/* Filter Bar */}
