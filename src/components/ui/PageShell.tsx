@@ -11,9 +11,7 @@ export default function PageShell({ header, children, wide = true }: PageShellPr
     <div className="page-surface">
       {header && (
         <div className="page-header-bar">
-          <div className={wide ? 'page-header-inner page-container-wide' : 'page-header-inner'}>
-            {header}
-          </div>
+          {header}
         </div>
       )}
       <div className="page-scroll">
