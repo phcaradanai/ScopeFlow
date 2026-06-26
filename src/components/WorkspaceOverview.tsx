@@ -38,21 +38,18 @@ export default function WorkspaceOverview({
   const [loading, setLoading] = useState(true);
   const [workspaceVersion, setWorkspaceVersion] = useState('1.0');
   const [createdDate, setCreatedDate] = useState('');
-  
-  // Counts
+
   const [clientsCount, setClientsCount] = useState(0);
   const [projectsCount, setProjectsCount] = useState(0);
   const [documentsCount, setDocumentsCount] = useState(0);
   const [approvedCount, setApprovedCount] = useState(0);
   const [lockedCount, setLockedCount] = useState(0);
-  
-  // Statuses
+
   const [companyProfileStatus, setCompanyProfileStatus] = useState<'configured' | 'missing' | 'malformed'>('missing');
   const [presetsStatus, setPresetsStatus] = useState<'configured' | 'missing' | 'malformed'>('missing');
   const [healthStatus, setHealthStatus] = useState<'OK' | 'Warning' | 'Error'>('OK');
   const [healthIssues, setHealthIssues] = useState<any[]>([]);
-  
-  // Backup / Export
+
   const [lastBackup, setLastBackup] = useState('ยังไม่ได้สำรองข้อมูล');
   const [latestExport, setLatestExport] = useState('ยังไม่มีข้อมูลการส่งออก');
 
@@ -179,7 +176,7 @@ export default function WorkspaceOverview({
 
   const handleCreateDemo = async () => {
     if (!workspacePath) return;
-    if (window.confirm("คุณต้องการสร้างข้อมูลตัวอย่าง (Demo Workspace) ในโฟลเดอร์นี้ใช่หรือไม่? การดำเนินการนี้จะเพิ่มข้อมูลลูกค้าโครงการและเอกสารสำหรับทดลองใช้งาน")) {
+    if (window.confirm('คุณต้องการสร้างข้อมูลตัวอย่าง (Demo Workspace) ในโฟลเดอร์นี้ใช่หรือไม่? การดำเนินการนี้จะเพิ่มข้อมูลลูกค้าโครงการและเอกสารสำหรับทดลองใช้งาน')) {
       try {
         setLoading(true);
         await generateDemoWorkspace(workspacePath, workspaceName);
@@ -205,10 +202,12 @@ export default function WorkspaceOverview({
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-gradient-to-b from-[#121214] to-[#09090b]">
-        <div className="text-center">
-          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-text-muted">กำลังโหลดข้อมูล Workspace...</p>
+      <div className="page-surface">
+        <div className="empty-state-screen">
+          <div className="text-center">
+            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-text-muted">กำลังโหลดข้อมูล Workspace...</p>
+          </div>
         </div>
       </div>
     );
@@ -217,15 +216,15 @@ export default function WorkspaceOverview({
   const clientsWithProjects = tree?.children || [];
 
   const Header = (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-text-muted flex items-center gap-3">
-          <FolderOpen className="w-8 h-8 text-primary-light" />
-          ภาพรวม Workspace
+    <div className="page-header-inner page-container-wide">
+      <div className="page-title-group">
+        <h1 className="page-title">
+          <FolderOpen className="w-7 h-7 text-primary-light shrink-0" />
+          <span className="page-title-text">ภาพรวม Workspace</span>
         </h1>
-        <p className="text-sm text-text-dim mt-2 font-mono truncate max-w-2xl">{workspacePath}</p>
+        <p className="page-subtitle font-mono truncate">{workspacePath}</p>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="page-actions">
         <span className="badge badge-muted font-mono text-xs">เวอร์ชัน: {workspaceVersion}</span>
         {createdDate && <span className="badge badge-muted font-mono text-xs">วันที่สร้าง: {createdDate}</span>}
       </div>
@@ -234,14 +233,13 @@ export default function WorkspaceOverview({
 
   return (
     <PageShell header={Header}>
-      {/* Error/Warning Banner */}
       {healthIssues.some(i => i.type === 'error') && (
         <div className="p-5 bg-error/10 border border-error/20 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
           <div className="flex items-start gap-3.5">
             <div className="w-10 h-10 rounded-xl bg-error/15 flex items-center justify-center text-error shrink-0">
               <AlertTriangle className="w-5 h-5" />
             </div>
-            <div className="text-left">
+            <div className="text-left min-w-0">
               <h4 className="text-sm font-bold text-text">พบข้อผิดพลาดร้ายแรงใน Workspace</h4>
               <p className="text-xs text-text-muted mt-1 leading-relaxed">
                 {healthIssues.find(i => i.type === 'error')?.message}
@@ -259,7 +257,7 @@ export default function WorkspaceOverview({
         </div>
       )}
 
-      <WorkspaceStats 
+      <WorkspaceStats
         clientsCount={clientsCount}
         projectsCount={projectsCount}
         documentsCount={documentsCount}
@@ -269,13 +267,13 @@ export default function WorkspaceOverview({
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <ClientList 
+        <ClientList
           clientsWithProjects={clientsWithProjects}
           onCreateClient={onCreateClient}
           onCreateProject={onCreateProject}
           onSelectClient={setSelectedFile}
         />
-        <WorkspaceStatus 
+        <WorkspaceStatus
           companyProfileStatus={companyProfileStatus}
           presetsStatus={presetsStatus}
           lastBackup={lastBackup}
@@ -283,7 +281,7 @@ export default function WorkspaceOverview({
         />
       </div>
 
-      <MaintenanceActions 
+      <MaintenanceActions
         onCreateClient={onCreateClient}
         onRunHealthCheck={onRunHealthCheck}
         onBackupWorkspace={handleTriggerBackup}
