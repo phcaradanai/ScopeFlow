@@ -24,6 +24,10 @@ async function fileExistsFromTreeOrDisk(parentPath: string, children: FileEntry[
   return pathExists(`${parentPath}/${name}`);
 }
 
+function isReferenceOnlyDocument(folder: string) {
+  return folder === 'current-system' || folder === 'attachments' || folder === 'exports';
+}
+
 export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEntry): Promise<HealthIssue[]> {
   const issues: HealthIssue[] = [];
 
@@ -85,8 +89,12 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
       const approvals = docs.filter(d => d.type === 'approval-record');
 
       for (const doc of docs) {
-        if (doc.parse_status === 'warning' && doc.type !== 'export') {
+        if (doc.parse_status === 'warning' && doc.type !== 'export' && !isReferenceOnlyDocument(doc.folder)) {
           issues.push({ type: 'warning', message: `เอกสาร "${doc.file_name}" มี YAML Frontmatter ไม่สมบูรณ์` });
+        }
+
+        if (isReferenceOnlyDocument(doc.folder)) {
+          continue;
         }
 
         if (doc.locked && !doc.approval_ref && doc.type !== 'export' && doc.type !== 'approval-record') {
