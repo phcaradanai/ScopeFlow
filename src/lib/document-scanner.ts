@@ -13,7 +13,9 @@ export interface ProjectDocument {
   approved_by?: string;
   approved_date?: string;
   approval_ref?: string;
+  approval_number?: string;
   approved_document?: string;
+  document_type?: string;
   evidence_files?: string[];
   previous_version?: string;
   created?: string;
@@ -42,9 +44,6 @@ const ALLOWED_FOLDERS = [
   'exports'
 ];
 
-/**
- * Traverses a workspace tree to find a specific node by path.
- */
 function findNodeByPath(node: FileEntry, targetPath: string): FileEntry | null {
   if (node.path === targetPath) return node;
   if (node.children) {
@@ -56,15 +55,12 @@ function findNodeByPath(node: FileEntry, targetPath: string): FileEntry | null {
   return null;
 }
 
-/**
- * Extracts all matching files from a directory node.
- */
 function extractFiles(node: FileEntry, projectPath: string, files: FileEntry[]) {
   if (!node) return;
   if (!node.is_dir) {
     const relativePath = node.path.substring(projectPath.length + 1);
     const folder = relativePath.split(/[/\\]/)[0];
-    
+
     if (ALLOWED_FOLDERS.includes(folder)) {
       if (node.name.endsWith('.md') || (folder === 'exports' && node.name.endsWith('.html'))) {
         files.push(node);
@@ -75,27 +71,20 @@ function extractFiles(node: FileEntry, projectPath: string, files: FileEntry[]) 
   }
 }
 
-/**
- * Generates a plain text excerpt from markdown content
- */
 function generateExcerpt(content: string, length = 150): string {
-  // Strip frontmatter
   const noFrontmatter = content.replace(/^---[\s\S]*?---\n+/, '');
-  
-  // Very basic markdown stripping (remove hashes, stars, underscores, links, images, tables, html tags)
+
   const noMarkdown = noFrontmatter
-    .replace(/#+\s+/g, '') // headings
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links
-    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '') // images
-    .replace(/[*_~`]/g, '') // bold/italic/strikethrough/code
-    .replace(/<[^>]*>?/gm, '') // html tags
-    .replace(/\|.*\|/g, '') // tables
-    .replace(/\s+/g, ' ') // collapse whitespace
+    .replace(/#+\s+/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+    .replace(/[*_~`]/g, '')
+    .replace(/<[^>]*>?/gm, '')
+    .replace(/\|.*\|/g, '')
+    .replace(/\s+/g, ' ')
     .trim();
-    
-  if (noMarkdown.length > length) {
-    return noMarkdown.substring(0, length) + '...';
-  }
+
+  if (noMarkdown.length > length) return noMarkdown.substring(0, length) + '...';
   return noMarkdown;
 }
 
@@ -103,23 +92,22 @@ export function extractDocumentMetadata(filePath: string, content: string, proje
   const fileName = filePath.split(/[/\\]/).pop() || '';
   const relativePath = filePath.substring(projectPath.length + 1);
   const folder = relativePath.split(/[/\\]/)[0] || '';
-  
+
   const excerpt = generateExcerpt(content);
-  
+
   const defaultDoc: ProjectDocument = {
     file_path: filePath,
     file_name: fileName,
     folder,
-    type: folder, // Default type based on folder
+    type: folder,
     title: fileName,
     status: 'draft',
     version: '1.0',
     locked: false,
     excerpt,
-    parse_status: 'warning', // Warning by default if no frontmatter found
+    parse_status: 'warning',
   };
 
-  // If it's an export HTML file, don't parse YAML
   if (fileName.endsWith('.html')) {
     defaultDoc.type = 'export';
     defaultDoc.status = 'exported';
@@ -127,22 +115,16 @@ export function extractDocumentMetadata(filePath: string, content: string, proje
     return defaultDoc;
   }
 
-  // Extract first H1 as fallback title
   const h1Match = content.match(/^#\s+(.+)$/m);
-  if (h1Match && h1Match[1]) {
-    defaultDoc.title = h1Match[1].trim();
-  }
+  if (h1Match && h1Match[1]) defaultDoc.title = h1Match[1].trim();
 
   const frontmatterRegex = /^---\n([\s\S]*?)\n---\n+/;
   const match = content.match(frontmatterRegex);
-
-  if (!match) {
-    return defaultDoc;
-  }
+  if (!match) return defaultDoc;
 
   try {
     const yaml = YAML.parse(match[1]);
-    
+
     return {
       file_path: filePath,
       file_name: fileName,
@@ -155,7 +137,9 @@ export function extractDocumentMetadata(filePath: string, content: string, proje
       approved_by: yaml.approved_by,
       approved_date: yaml.approved_date,
       approval_ref: yaml.approval_ref,
+      approval_number: yaml.approval_number,
       approved_document: yaml.approved_document,
+      document_type: yaml.document_type,
       evidence_files: yaml.evidence_files,
       previous_version: yaml.previous_version,
       created: yaml.created,
@@ -164,7 +148,7 @@ export function extractDocumentMetadata(filePath: string, content: string, proje
       excerpt,
       parse_status: 'success',
       content_flags: {
-        hasGoal: /##.*(?:ความเป็นมา|เป้าหมาย|Overview)/.test(content) && content.split(/##.*(?:ความเป็นมา|เป้าหมาย|Overview)/)[1].trim().length > 10,
+        hasGoal: /##.*(?:ความเป็นมา|เป้าหมาย|Overview|Goal)/.test(content) && content.split(/##.*(?:ความเป็นมา|เป้าหมาย|Overview|Goal)/)[1].trim().length > 10,
         hasInScope: /##.*(?:รวมอยู่|In-Scope|In Scope)/.test(content) && content.split(/##.*(?:รวมอยู่|In-Scope|In Scope)/)[1].trim().length > 10,
         hasOutOfScope: /##.*(?:อยู่นอกเหนือ|ไม่รวม|Out-of-Scope|Out of Scope)/.test(content) && content.split(/##.*(?:อยู่นอกเหนือ|ไม่รวม|Out-of-Scope|Out of Scope)/)[1].trim().length > 10,
         hasDeliverables: /##.*(?:ส่งมอบ|Deliverables)/.test(content) && content.split(/##.*(?:ส่งมอบ|Deliverables)/)[1].trim().length > 10,
@@ -174,7 +158,6 @@ export function extractDocumentMetadata(filePath: string, content: string, proje
       }
     };
   } catch {
-    // Malformed YAML
     return defaultDoc;
   }
 }
@@ -187,7 +170,6 @@ export async function scanProjectDocuments(projectPath: string, workspaceTree: F
   extractFiles(projectNode, projectPath, files);
 
   const results: ProjectDocument[] = [];
-  
   for (const file of files) {
     try {
       const content = await readFileContent(file.path);
