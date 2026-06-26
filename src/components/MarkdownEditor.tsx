@@ -4,9 +4,11 @@ import { updateDocumentApprovalStatus, generateApprovalRecord, lockDocument } fr
 import { getNextDocumentNumber } from '../lib/document-utils';
 import { getNextRevisionFilename, generateRevisionDocument } from '../lib/revisions';
 import QuotationForm from './QuotationForm';
+import InvoiceForm from './InvoiceForm';
 import ScopeHelperForm from './ScopeHelperForm';
 import BriefHelperForm from './BriefHelperForm';
 import { parseQuotationFormData, generateQuotationMarkdown } from '../lib/quotation-builder';
+import { parseInvoiceFormData, generateInvoiceMarkdown } from '../lib/invoice-builder';
 import { parseScopeFormData, generateScopeMarkdown } from '../lib/scope-builder';
 import { generateBriefDocument, parseBriefToScope } from '../lib/brief-builder';
 import { getCompanyProfile } from '../lib/settings';
@@ -289,7 +291,7 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
 
           {/* Mode switcher - segmented */}
           <div className="segmented-control">
-            {(docType === 'quotation' || docType === 'scope' || docType === 'brief') && (
+            {(docType === 'quotation' || docType === 'scope' || docType === 'brief' || docType === 'invoice') && (
               <button
                 onClick={() => setMode('form')}
                 className={`segmented-btn ${mode === 'form' ? 'segmented-btn-active' : ''}`}
@@ -371,6 +373,33 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
                 }
               }
               const md = generateQuotationMarkdown(data, profile, clientId, projId, filename);
+              setContent(md);
+              setMode('preview');
+            }}
+          />
+        ) : mode === 'form' && docType === 'invoice' ? (
+          <InvoiceForm
+            workspacePath={workspacePath}
+            initialData={parseInvoiceFormData(content)}
+            onGenerate={async (data) => {
+              if (isLocked) {
+                alert('เอกสารนี้ถูกล็อกแล้ว กรุณาสร้างเวอร์ชันใหม่เพื่อแก้ไข');
+                return;
+              }
+              if (content.trim() && !window.confirm('การสร้างเอกสารใหม่จากฟอร์มอาจแทนที่เนื้อหาเดิม กรุณาตรวจสอบก่อนบันทึก')) {
+                return;
+              }
+              let profile = null;
+              try {
+                profile = await getCompanyProfile(workspacePath);
+              } catch (err: any) {
+                if (err.message === 'MALFORMED_YAML') {
+                  alert('คำเตือน: ไฟล์ตั้งค่าบริษัทเสียหาย จะไม่แสดงข้อมูลบริษัทในเอกสารนี้');
+                } else {
+                  console.error(err);
+                }
+              }
+              const md = generateInvoiceMarkdown(data, profile, clientId, projId, filename);
               setContent(md);
               setMode('preview');
             }}

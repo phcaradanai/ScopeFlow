@@ -365,6 +365,65 @@ export function generateQuotationDocument(data: {
 }
 
 /**
+ * Generate invoice-xxx.md content from template
+ */
+export function generateInvoiceDocument(data: {
+  project: string;
+  client: string;
+  author: string;
+}): string {
+  const today = todayISO();
+
+  const frontmatter = toFrontmatter({
+    type: 'invoice',
+    version: '1.0',
+    project: data.project,
+    client: data.client,
+    status: 'draft',
+    created: today,
+    updated: today,
+    author: data.author,
+    currency: 'THB',
+    vat_percent: 7,
+    due_date: '',
+    locked: false,
+  });
+
+  const body = `
+# ใบแจ้งหนี้ (Invoice)
+
+## ข้อมูลผู้ออกใบแจ้งหนี้ (Vendor Information)
+
+<!-- ข้อมูลผู้ออกใบแจ้งหนี้ -->
+
+## ข้อมูลลูกค้า (Client Information)
+
+<!-- ข้อมูลลูกค้า -->
+
+## รายการและราคา (Items & Pricing)
+
+| # | รายการ | จำนวน | ราคา/หน่วย | รวม |
+|---|--------|-------|------------|-----|
+| 1 |        |       |            |     |
+
+## สรุปยอดเงิน (Pricing Summary)
+
+<!-- สรุปราคารวม ส่วนลด ภาษี -->
+
+## เงื่อนไขการชำระเงิน (Payment Terms)
+
+<!-- งวดการชำระเงิน และบัญชี -->
+
+## หมายเหตุ (Notes)
+
+<!-- บันทึกเพิ่มเติม -->
+
+`;
+
+  return frontmatter + '\n' + body;
+}
+
+/**
  * Generate CR document
  */
 export function generateCRDocument(data: {

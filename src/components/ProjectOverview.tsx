@@ -56,6 +56,7 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
   const pendingApprovals = documents.filter(d => d.folder === 'approvals' && d.status === 'pending').length;
   const scopeDocs = documents.filter(d => d.type === 'scope').length;
   const quotationDocs = documents.filter(d => d.type === 'quotation').length;
+  const invoiceDocs = documents.filter(d => d.type === 'invoice').length;
 
   // Primary reference document for readiness
   const primaryScope = documents.find(d => d.type === 'scope' && d.status === 'approved') || 
@@ -335,6 +336,13 @@ export default function ProjectOverview({ projectPath, projectName, workspaceTre
                 <span className={`text-sm font-bold flex items-center gap-1.5 ${quotationDocs > 0 ? 'text-success' : 'text-warning'}`}>
                   {quotationDocs > 0 ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
                   Quotation
+                </span>
+              </div>
+              <div className="flex flex-col gap-1 p-3 rounded-lg bg-surface-2 border border-border">
+                <span className="text-xs text-text-dim uppercase tracking-wider">ใบแจ้งหนี้</span>
+                <span className={`text-sm font-bold flex items-center gap-1.5 ${invoiceDocs > 0 ? 'text-success' : 'text-text-dim'}`}>
+                  {invoiceDocs > 0 ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                  Invoice
                 </span>
               </div>
               <div className="flex flex-col gap-1 p-3 rounded-lg bg-surface-2 border border-border">

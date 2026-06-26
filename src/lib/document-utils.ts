@@ -46,6 +46,10 @@ export function getDocumentFilePath(
       filename = 'quotation-v1.0.md';
       folder = 'baseline';
       break;
+    case 'invoice':
+      filename = `invoice-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${numberStr}.md`;
+      folder = 'invoices';
+      break;
     case 'cr':
       filename = `CR-${numberStr}-${slug}.md`;
       folder = 'change-requests';

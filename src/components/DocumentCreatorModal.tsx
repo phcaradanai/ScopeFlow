@@ -9,9 +9,10 @@ import {
   generateDCRDocument,
   generateSupportRequestDocument,
   generateAcceptanceChecklist,
+  generateInvoiceDocument,
 } from '../lib/templates';
 import { validateSlug, nameToSlug } from '../lib/validation';
-import { X, Target, Receipt, GitPullRequest, Code, LifeBuoy, Wrench, CheckSquare } from 'lucide-react';
+import { X, Target, Receipt, GitPullRequest, Code, LifeBuoy, Wrench, CheckSquare, FileText } from 'lucide-react';
 import SelectField from './ui/SelectField';
 
 const DOCUMENT_TYPES = [
@@ -34,6 +35,16 @@ const DOCUMENT_TYPES = [
     bgClass: 'bg-emerald-500/10',
     borderClass: 'border-emerald-500/30',
     ringClass: 'ring-emerald-500/50',
+  },
+  {
+    value: 'invoice',
+    label: 'ใบแจ้งหนี้ (Invoice)',
+    description: 'เอกสารแจ้งยอดชำระเงิน',
+    icon: FileText,
+    colorClass: 'text-indigo-500',
+    bgClass: 'bg-indigo-500/10',
+    borderClass: 'border-indigo-500/30',
+    ringClass: 'ring-indigo-500/50',
   },
   {
     value: 'cr',
@@ -166,6 +177,15 @@ export default function DocumentCreatorModal({
         filename = 'quotation-v1.0.md';
         finalPath = `${finalProjectPath}/baseline/${filename}`;
         finalContent = generateQuotationDocument({
+          project: finalProjectId,
+          client: clientId,
+          author: '',
+        });
+      } else if (type === 'invoice') {
+        const invNumber = getNextDocumentNumber(documents, `invoice-${new Date().toISOString().split('T')[0].replace(/-/g, '')}`);
+        filename = `invoice-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${invNumber}.md`;
+        finalPath = `${finalProjectPath}/invoices/${filename}`;
+        finalContent = generateInvoiceDocument({
           project: finalProjectId,
           client: clientId,
           author: '',
