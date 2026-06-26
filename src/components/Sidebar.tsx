@@ -24,13 +24,21 @@ interface SidebarProps {
   onBackupWorkspace: () => void;
 }
 
+function getProjectNodes(client: FileEntry): FileEntry[] {
+  const projectsFolder = client.children?.find(
+    c => c.is_dir && (c.name === 'projects' || c.path.replace(/\\/g, '/').endsWith('/projects'))
+  );
+  if (projectsFolder?.children) return projectsFolder.children.filter(p => p.is_dir);
+
+  return (client.children || []).filter(child => child.is_dir && child.name !== 'projects');
+}
+
 export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocument, onExportProject, onOpenSettings, onRunHealthCheck, onBackupWorkspace }: SidebarProps) {
   const { workspaceName, tree, selectedFile, setSelectedFile } = useWorkspace();
 
   return (
-    <aside className="w-72 min-w-[288px] h-full bg-surface-2/80 backdrop-blur-xl border-r border-white/5 flex flex-col justify-between p-3 z-20 shadow-2xl shadow-black/20">
+    <aside className="w-72 min-w-[288px] h-full bg-surface-2/80 backdrop-blur-xl flex flex-col justify-between p-3 z-20 shadow-2xl shadow-black/20">
       <div className="flex flex-col flex-1 min-h-0">
-        {/* Workspace header */}
         <div className="px-1 py-3 flex items-center justify-between gap-3 mb-2">
           <button
             onClick={() => setSelectedFile('__workspace_overview__')}
@@ -46,24 +54,18 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
           </button>
         </div>
 
-        {/* Tree navigation */}
         <div className="flex-1 overflow-y-auto pl-1 pr-1 space-y-3 pb-4">
           {tree && tree.children && tree.children.length > 0 ? (
             <div className="flex flex-col space-y-2">
-              {/* Clients header */}
               <div className="flex items-center justify-between px-2 pb-1 pt-2 border-t border-white/5">
                 <span className="text-[10px] font-bold text-text-dim uppercase tracking-wider">
                   ลูกค้า (Clients)
                 </span>
-                <button
-                  onClick={onCreateClient}
-                  className="sidebar-action-btn w-6 h-6"
-                  title="สร้างลูกค้าใหม่"
-                >
+                <button onClick={onCreateClient} className="sidebar-action-btn w-6 h-6" title="สร้างลูกค้าใหม่">
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
-              
+
               <div className="space-y-1">
                 {tree.children.map((client) => (
                   <ClientNode
@@ -82,10 +84,7 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
             <div className="text-center py-8">
               <User className="w-8 h-8 text-text-dim/50 mx-auto mb-3" />
               <p className="text-xs text-text-dim">ยังไม่มีลูกค้า</p>
-              <button
-                onClick={onCreateClient}
-                className="mt-2 text-xs font-semibold text-primary-light hover:text-primary transition-colors"
-              >
+              <button onClick={onCreateClient} className="mt-2 text-xs font-semibold text-primary-light hover:text-primary transition-colors">
                 + สร้างลูกค้าใหม่
               </button>
             </div>
@@ -93,30 +92,17 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
         </div>
       </div>
 
-      {/* Settings & Tools Footer */}
       <div className="mt-2 pt-3 border-t border-white/5 space-y-1 bg-surface-2/90 sticky bottom-0 z-10">
         <h3 className="text-[10px] font-bold text-text-dim uppercase tracking-wider px-2 mb-2">เครื่องมือ</h3>
-        
-        <button
-          onClick={onOpenSettings}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-text-muted hover:text-white transition-colors text-xs font-medium group"
-        >
+        <button onClick={onOpenSettings} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-text-muted hover:text-white transition-colors text-xs font-medium group">
           <Settings className="w-4 h-4 text-text-dim group-hover:rotate-90 group-hover:text-white transition-all duration-300" />
           <span>ตั้งค่าบริษัท</span>
         </button>
-        
-        <button
-          onClick={onRunHealthCheck}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-warning/10 text-text-muted hover:text-warning transition-colors text-xs font-medium group"
-        >
+        <button onClick={onRunHealthCheck} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-warning/10 text-text-muted hover:text-warning transition-colors text-xs font-medium group">
           <ShieldCheck className="w-4 h-4 text-text-dim group-hover:text-warning transition-colors" />
           <span>ตรวจสอบ Workspace</span>
         </button>
-        
-        <button
-          onClick={onBackupWorkspace}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-success/10 text-text-muted hover:text-success transition-colors text-xs font-medium group"
-        >
+        <button onClick={onBackupWorkspace} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-success/10 text-text-muted hover:text-success transition-colors text-xs font-medium group">
           <Download className="w-4 h-4 text-text-dim group-hover:text-success transition-colors" />
           <span>สำรอง Workspace</span>
         </button>
@@ -143,11 +129,7 @@ function ClientNode({
   const [expanded, setExpanded] = useState(false);
   const normalizedPath = node.path.replace(/\\/g, '/');
   const clientId = normalizedPath.split('/').pop() || '';
-
-  const projectsFolder = node.children?.find(
-    c => c.name === 'projects' || c.path.replace(/\\/g, '/').endsWith('/projects')
-  );
-  const hasNoProjects = !projectsFolder || !projectsFolder.children || projectsFolder.children.length === 0;
+  const projectNodes = getProjectNodes(node);
 
   return (
     <div>
@@ -156,33 +138,24 @@ function ClientNode({
         tabIndex={0}
         onClick={() => {
           setExpanded(!expanded);
-          if (hasNoProjects) {
-            onSelect(`__client__:${clientId}`);
-          }
+          onSelect(`__client__:${clientId}`);
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             setExpanded(!expanded);
-            if (hasNoProjects) {
-              onSelect(`__client__:${clientId}`);
-            }
+            onSelect(`__client__:${clientId}`);
           }
         }}
         className={`flex items-center gap-2.5 w-full group text-left px-2 py-2 rounded-lg transition-all duration-200 cursor-pointer border border-transparent ${
-          selectedFile === `__client__:${clientId}` 
-            ? 'bg-accent/15 border-accent/20 text-accent-light' 
+          selectedFile === `__client__:${clientId}`
+            ? 'bg-accent/15 border-accent/20 text-accent-light'
             : 'hover:bg-white/5 hover:border-white/10 text-text hover:text-accent-light'
         }`}
       >
-        {expanded ? (
-          <ChevronDown className="w-3.5 h-3.5 opacity-50 shrink-0" />
-        ) : (
-          <ChevronRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
-        )}
+        {expanded ? <ChevronDown className="w-3.5 h-3.5 opacity-50 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 opacity-50 shrink-0" />}
         <User className={`w-4 h-4 shrink-0 ${selectedFile === `__client__:${clientId}` ? 'text-accent' : 'text-accent/60 group-hover:text-accent'}`} />
         <span className="text-xs font-bold truncate flex-1">{node.name}</span>
-        
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -195,12 +168,12 @@ function ClientNode({
         </button>
       </div>
 
-      {expanded && node.children && (
+      {expanded && (
         <div className="ml-3.5 pl-2.5 border-l-2 border-white/5 my-1 space-y-1">
-          {node.children.length === 0 ? (
+          {projectNodes.length === 0 ? (
             <p className="text-[10px] text-text-dim px-2 py-1">ยังไม่มีโครงการ</p>
           ) : (
-            node.children.map((project) => (
+            projectNodes.map((project) => (
               <ProjectNode
                 key={project.path}
                 node={project}
@@ -253,19 +226,12 @@ function ProjectNode({
           }
         }}
         className={`flex items-center gap-2 w-full group text-left px-2 py-1.5 rounded-lg transition-all duration-200 cursor-pointer ${
-          selectedFile === node.path
-            ? 'bg-primary/20 text-white shadow-sm ring-1 ring-primary/30'
-            : 'hover:bg-white/5 text-text-muted hover:text-text'
+          selectedFile === node.path ? 'bg-primary/20 text-white shadow-sm ring-1 ring-primary/30' : 'hover:bg-white/5 text-text-muted hover:text-text'
         }`}
       >
-        {expanded ? (
-          <ChevronDown className="w-3 h-3 opacity-50 shrink-0" />
-        ) : (
-          <ChevronRight className="w-3 h-3 opacity-50 shrink-0" />
-        )}
+        {expanded ? <ChevronDown className="w-3 h-3 opacity-50 shrink-0" /> : <ChevronRight className="w-3 h-3 opacity-50 shrink-0" />}
         <Briefcase className={`w-3.5 h-3.5 shrink-0 ${selectedFile === node.path ? 'text-primary-light' : 'text-primary-light/60 group-hover:text-primary-light'}`} />
         <span className="text-[11px] font-semibold truncate flex-1 leading-tight">{node.name}</span>
-        
         <div className="flex items-center gap-0.5 opacity-30 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
           <button
             onClick={(e) => {
@@ -275,7 +241,7 @@ function ProjectNode({
             className="w-5 h-5 rounded flex items-center justify-center text-text-dim hover:bg-white/10 hover:text-white transition-colors"
             title="ส่งออกชุดเอกสาร"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <Download className="w-3 h-3" />
           </button>
           <button
             onClick={(e) => {
@@ -295,20 +261,20 @@ function ProjectNode({
           {node.children.length === 0 ? (
             <p className="text-[10px] text-text-dim px-2 py-1">ยังไม่มีเอกสาร</p>
           ) : (
-            node.children.map((doc) => (
-              <button
-                key={doc.path}
-                onClick={() => onSelect(doc.path)}
-                className={`flex items-center gap-2 w-full text-left px-2 py-1 rounded-md transition-colors ${
-                  selectedFile === doc.path
-                    ? 'bg-white/10 text-white font-medium'
-                    : 'text-text-dim hover:bg-white/5 hover:text-text'
-                }`}
-              >
-                <FileText className={`w-3 h-3 shrink-0 ${selectedFile === doc.path ? 'text-primary-light' : 'opacity-50'}`} />
-                <span className="text-[10px] truncate leading-tight">{doc.name}</span>
-              </button>
-            ))
+            node.children
+              .filter(doc => !doc.is_dir)
+              .map((doc) => (
+                <button
+                  key={doc.path}
+                  onClick={() => onSelect(doc.path)}
+                  className={`flex items-center gap-2 w-full text-left px-2 py-1 rounded-md transition-colors ${
+                    selectedFile === doc.path ? 'bg-white/10 text-white font-medium' : 'text-text-dim hover:bg-white/5 hover:text-text'
+                  }`}
+                >
+                  <FileText className={`w-3 h-3 shrink-0 ${selectedFile === doc.path ? 'text-primary-light' : 'opacity-50'}`} />
+                  <span className="text-[10px] truncate leading-tight">{doc.name}</span>
+                </button>
+              ))
           )}
         </div>
       )}
