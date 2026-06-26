@@ -125,7 +125,7 @@ function AppContent() {
       });
       setShowExportModal(true);
     } catch (err) {
-      console.error("Failed to load documents for export:", err);
+      console.error('Failed to load documents for export:', err);
     }
   }
 
@@ -182,8 +182,8 @@ function AppContent() {
         icon={FolderOpen}
         title="ยังไม่มีลูกค้า"
         description="สร้างลูกค้ารายแรก หรือใช้ Demo Workspace เพื่อทดลอง workflow"
-        primaryAction={{ label: "สร้างลูกค้าใหม่", onClick: () => setShowClientForm(true) }}
-        secondaryAction={{ label: "สร้าง Demo", onClick: handleCreateDemoDirectly }}
+        primaryAction={{ label: 'สร้างลูกค้าใหม่', onClick: () => setShowClientForm(true) }}
+        secondaryAction={{ label: 'สร้าง Demo', onClick: handleCreateDemoDirectly }}
       />
     );
   } else if (clientEmptyStateId) {
@@ -193,11 +193,11 @@ function AppContent() {
       <EmptyState
         icon={Briefcase}
         title={`ยังไม่มีงานของลูกค้ารายนี้ (${clientName})`}
-        description="เริ่มจากสร้างโปรเจกต์ หรือวางคำขอลูกค้าเพื่อสร้าง Brief แรก"
+        description="เริ่มจากวางคำขอลูกค้าเพื่อสร้าง Brief แรก หรือสร้างโปรเจกต์เปล่าถ้าต้องการจัดโครงงานเอง"
         iconColorClass="text-accent"
         iconBgClass="bg-accent/10 border-accent/20"
-        primaryAction={{ label: "สร้างโปรเจกต์", onClick: () => handleCreateProject(clientEmptyStateId) }}
-        secondaryAction={{ label: "เริ่มจากคำขอลูกค้า", onClick: () => handleStartFromCustomerRequest(clientEmptyStateId) }}
+        primaryAction={{ label: 'เริ่มจากคำขอลูกค้า', onClick: () => handleStartFromCustomerRequest(clientEmptyStateId) }}
+        secondaryAction={{ label: 'สร้างโปรเจกต์', onClick: () => handleCreateProject(clientEmptyStateId) }}
       />
     );
   } else if (selectedFile === '__workspace_overview__' || !selectedFile) {
