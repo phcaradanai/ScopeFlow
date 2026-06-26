@@ -5,6 +5,7 @@ export interface DemoWorkspaceResult {
   projectIds: string[];
   primaryProjectPath: string;
   maintenanceProjectPath: string;
+  artifactPaths: Record<string, string>;
 }
 
 function demoSuffix() {
@@ -30,11 +31,7 @@ settings:
   company_email: "contact@demo-company.com"
   author_name: "Demo User"`;
 
-  await invoke('create_workspace', {
-    path: workspacePath,
-    name: workspaceName,
-    configContent: workspaceConfig
-  });
+  await invoke('create_workspace', { path: workspacePath, name: workspaceName, configContent: workspaceConfig });
 
   const clientId = `demo-client-${suffix}`;
   const clientYaml = `name: "บริษัท เดโม จำกัด ${suffix}"
@@ -46,11 +43,7 @@ address: "456 Client St, Bangkok"
 tax_id: "0987654321098"
 notes: "ลูกค้ารายใหญ่"`;
 
-  await invoke('create_client', {
-    workspacePath,
-    clientId,
-    clientYaml
-  });
+  await invoke('create_client', { workspacePath, clientId, clientYaml });
 
   const proj1Id = `website-revamp-${suffix}`;
   const proj1Yaml = `name: "ปรับปรุงเว็บไซต์องค์กร"
@@ -90,9 +83,50 @@ notes: "สัญญาดูแลรายปี"`;
 
   const proj1Path = `${workspacePath}/clients/${clientId}/projects/${proj1Id}`;
   const proj2Path = `${workspacePath}/clients/${clientId}/projects/${proj2Id}`;
+  const artifactPaths: Record<string, string> = {
+    project: proj1Path,
+    maintenanceProject: proj2Path,
+    brief: `${proj1Path}/baseline/brief-v1.0.md`,
+    scope: `${proj1Path}/baseline/scope-v1.0.md`,
+    quotation: `${proj1Path}/baseline/quotation-v1.0.md`,
+    scopeApproval: `${proj1Path}/approvals/APR-001-scope-v1.0-approved.md`,
+    acceptance: `${proj1Path}/acceptance/acceptance-checklist-v1.0.md`,
+    export: `${proj1Path}/exports/scope-pack-20260605.html`,
+  };
 
   await invoke('create_document', {
-    path: `${proj1Path}/baseline/scope-v1.0.md`,
+    path: artifactPaths.brief,
+    content: `---
+type: brief
+title: Brief ปรับปรุงเว็บไซต์องค์กร
+version: "1.0"
+status: approved
+locked: true
+approved_by: "คุณ สมชาย ใจดี"
+approval_ref: APR-BRIEF-001
+document_number: BR-001
+created: "2026-05-28"
+updated: "2026-06-01"
+---
+# Brief ปรับปรุงเว็บไซต์องค์กร
+
+## เป้าหมายหลัก
+ลูกค้าต้องการปรับปรุงเว็บไซต์องค์กรให้ดูน่าเชื่อถือ โหลดเร็ว และรองรับมือถือ
+
+## สิ่งที่จำเป็น
+- หน้าแรกใหม่
+- หน้าเกี่ยวกับบริษัท
+- หน้าสินค้า/บริการ
+- ฟอร์มติดต่อ
+- รองรับ SEO พื้นฐาน
+
+## คำถามที่ปิดแล้ว
+- ใช้เว็บองค์กร ไม่ใช่ e-commerce
+- ยังไม่ทำระบบสมาชิกในรอบนี้`
+  });
+
+  await invoke('create_document', {
+    path: artifactPaths.scope,
     content: `---
 type: scope
 title: ขอบเขตระบบเว็บไซต์องค์กร
@@ -106,14 +140,25 @@ created: "2026-06-01"
 updated: "2026-06-05"
 ---
 # ขอบเขตระบบ
+
+## In-Scope
 - หน้าแรก (Home)
 - เกี่ยวกับเรา (About)
 - สินค้า (Products)
-- ติดต่อเรา (Contact)`
+- ติดต่อเรา (Contact)
+
+## Out-of-Scope
+- ระบบสมาชิก
+- ระบบชำระเงินออนไลน์
+
+## Acceptance Criteria
+- เว็บไซต์แสดงผลบนมือถือได้ดี
+- ฟอร์มติดต่อส่งข้อมูลได้
+- โหลดหน้าแรกต่ำกว่า 3 วินาทีในสภาพแวดล้อมปกติ`
   });
 
   await invoke('create_document', {
-    path: `${proj1Path}/baseline/quotation-v1.0.md`,
+    path: artifactPaths.quotation,
     content: `---
 type: quotation
 title: ใบเสนอราคาทำเว็บไซต์
@@ -150,7 +195,7 @@ line_items:
     path: `${proj1Path}/change-requests/CR-001-add-careers.md`,
     content: `---
 type: cr
-title: ขอเพิ่มหน้าสมัครงงาน
+title: ขอเพิ่มหน้าสมัครงาน
 version: "1.0"
 status: draft
 locked: false
@@ -163,7 +208,7 @@ updated: "2026-06-20"
   });
 
   await invoke('create_document', {
-    path: `${proj1Path}/acceptance/acceptance-checklist-v1.0.md`,
+    path: artifactPaths.acceptance,
     content: `---
 type: acceptance
 title: รายการตรวจรับงานเว็บไซต์
@@ -180,7 +225,7 @@ created: "2026-06-21"
   });
 
   await invoke('create_document', {
-    path: `${proj1Path}/approvals/APR-001-scope-v1.0-approved.md`,
+    path: artifactPaths.scopeApproval,
     content: `---
 type: approval-record
 title: "บันทึกการอนุมัติ ขอบเขตระบบเว็บไซต์องค์กร"
@@ -203,7 +248,7 @@ created: "2026-06-05"
   });
 
   await invoke('write_file_content', {
-    path: `${proj1Path}/exports/scope-pack-20260605.html`,
+    path: artifactPaths.export,
     content: `<html><body><h1>เอกสาร Scope ที่ถูกนำออกแล้ว</h1></body></html>`
   });
 
@@ -244,5 +289,6 @@ created: "2026-06-23"
     projectIds: [proj1Id, proj2Id],
     primaryProjectPath: proj1Path,
     maintenanceProjectPath: proj2Path,
+    artifactPaths,
   };
 }
