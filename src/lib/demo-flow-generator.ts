@@ -1,10 +1,17 @@
 import { invoke } from '@tauri-apps/api/core';
 
+export interface CompletedDemoFlowResult {
+  clientId: string;
+  projectId: string;
+  projectPath: string;
+  artifactPaths: Record<string, string>;
+}
+
 function timestampId() {
   return Date.now().toString().slice(-8);
 }
 
-export async function generateCompletedDemoFlow(workspacePath: string) {
+export async function generateCompletedDemoFlow(workspacePath: string): Promise<CompletedDemoFlowResult> {
   const suffix = timestampId();
   const clientId = `demo-flow-client-${suffix}`;
   const projectId = `complete-scope-flow-${suffix}`;
@@ -38,9 +45,22 @@ notes: "ตัวอย่างครบ: Raw request → Brief → Scope → Q
   });
 
   const projectPath = `${workspacePath}/clients/${clientId}/projects/${projectId}`;
+  const artifactPaths: Record<string, string> = {
+    project: projectPath,
+    brief: `${projectPath}/baseline/brief-v1.0.md`,
+    scope: `${projectPath}/baseline/scope-v1.0.md`,
+    quotation: `${projectPath}/baseline/quotation-v1.0.md`,
+    invoice: `${projectPath}/baseline/invoice-v1.0.md`,
+    acceptance: `${projectPath}/acceptance/acceptance-v1.0.md`,
+    briefApproval: `${projectPath}/approvals/APR-BRIEF-${suffix}.md`,
+    scopeApproval: `${projectPath}/approvals/APR-SCOPE-${suffix}.md`,
+    quotationApproval: `${projectPath}/approvals/APR-QUOTE-${suffix}.md`,
+    acceptanceApproval: `${projectPath}/approvals/APR-ACCEPT-${suffix}.md`,
+    export: `${projectPath}/exports/scopeflow-complete-demo-${suffix}.html`,
+  };
 
   await invoke('create_document', {
-    path: `${projectPath}/baseline/brief-v1.0.md`,
+    path: artifactPaths.brief,
     content: `---
 type: brief
 title: "Brief: ระบบจองคิวและชำระเงินออนไลน์"
@@ -70,7 +90,7 @@ updated: "2026-06-02"
   });
 
   await invoke('create_document', {
-    path: `${projectPath}/baseline/scope-v1.0.md`,
+    path: artifactPaths.scope,
     content: `---
 type: scope
 title: "Scope: ระบบจองคิวและชำระเงินออนไลน์"
@@ -116,7 +136,7 @@ updated: "2026-06-05"
   });
 
   await invoke('create_document', {
-    path: `${projectPath}/baseline/quotation-v1.0.md`,
+    path: artifactPaths.quotation,
     content: `---
 type: quotation
 title: "Quotation: ระบบจองคิวและชำระเงินออนไลน์"
@@ -141,7 +161,7 @@ grand_total: 181900
   });
 
   await invoke('create_document', {
-    path: `${projectPath}/baseline/invoice-v1.0.md`,
+    path: artifactPaths.invoice,
     content: `---
 type: invoice
 title: "Invoice: งวดที่ 1 ระบบจองคิว"
@@ -158,7 +178,7 @@ grand_total: 54570
   });
 
   await invoke('create_document', {
-    path: `${projectPath}/acceptance/acceptance-v1.0.md`,
+    path: artifactPaths.acceptance,
     content: `---
 type: acceptance
 title: "Acceptance: ตรวจรับระบบจองคิว"
@@ -178,16 +198,16 @@ updated: "2026-06-30"
   });
 
   const approvals = [
-    ['APR-BRIEF', 'brief-v1.0.md', 'brief'],
-    ['APR-SCOPE', 'scope-v1.0.md', 'scope'],
-    ['APR-QUOTE', 'quotation-v1.0.md', 'quotation'],
-    ['APR-ACCEPT', 'acceptance-v1.0.md', 'acceptance'],
+    ['APR-BRIEF', 'brief-v1.0.md', 'brief', artifactPaths.briefApproval],
+    ['APR-SCOPE', 'scope-v1.0.md', 'scope', artifactPaths.scopeApproval],
+    ['APR-QUOTE', 'quotation-v1.0.md', 'quotation', artifactPaths.quotationApproval],
+    ['APR-ACCEPT', 'acceptance-v1.0.md', 'acceptance', artifactPaths.acceptanceApproval],
   ];
 
-  for (const [prefix, approvedDocument, documentType] of approvals) {
+  for (const [prefix, approvedDocument, documentType, approvalPath] of approvals) {
     const approvalNumber = `${prefix}-${suffix}`;
     await invoke('create_document', {
-      path: `${projectPath}/approvals/${approvalNumber}.md`,
+      path: approvalPath,
       content: `---
 type: approval-record
 title: "บันทึกการอนุมัติ ${approvedDocument}"
@@ -211,9 +231,9 @@ created: "2026-06-30"
   }
 
   await invoke('write_file_content', {
-    path: `${projectPath}/exports/scopeflow-complete-demo-${suffix}.html`,
+    path: artifactPaths.export,
     content: `<html><body><h1>ScopeFlow Complete Demo</h1><p>Brief → Scope → Quote → Approval → Acceptance → Export completed.</p></body></html>`,
   });
 
-  return { clientId, projectId, projectPath };
+  return { clientId, projectId, projectPath, artifactPaths };
 }
