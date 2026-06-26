@@ -1,6 +1,6 @@
 import { FileEntry } from '../lib/tauri-commands';
 import { useProjectDocuments } from '../hooks/useProjectDocuments';
-import { RefreshCw, Briefcase, Plus, Search } from 'lucide-react';
+import { RefreshCw, Briefcase, Plus, Search, ArrowRight } from 'lucide-react';
 import SelectField from './ui/SelectField';
 import PageShell from './ui/PageShell';
 import ProjectWorkflowStepper from './project/ProjectWorkflowStepper';
@@ -56,6 +56,33 @@ export default function ProjectOverview({
   const clientId = projectPath.split('/').slice(-2, -1)[0] || '';
   const projectId = projectPath.split('/').pop() || '';
 
+  // Calculate next action based on current state
+  const nextAction = hasNoBrief
+    ? {
+        label: 'เริ่มต้นด้วย Brief',
+        desc: 'รวบรวมความต้องการของลูกค้าเพื่อเป็นตั้งต้นในการทำ Scope',
+        onClick: () => {
+          if (onStartBriefIntake) {
+            onStartBriefIntake(clientId, projectId, projectPath);
+          } else {
+            onCreateDocument(clientId, projectId, projectPath, 'brief');
+          }
+        },
+      }
+    : hasNoScope
+      ? {
+          label: 'กำหนดขอบเขตงาน (Scope)',
+          desc: 'นำข้อมูลจาก Brief มาจัดทำเอกสารขอบเขตงาน',
+          onClick: () => onCreateDocument(clientId, projectId, projectPath, 'scope'),
+        }
+      : hasNoQuote
+        ? {
+            label: 'ออกใบเสนอราคา',
+            desc: 'ประเมินราคาจากขอบเขตงานที่กำหนด',
+            onClick: () => onCreateDocument(clientId, projectId, projectPath, 'quotation'),
+          }
+        : undefined;
+
   const Header = (
     <div className="flex items-center justify-between">
       <div>
@@ -86,6 +113,29 @@ export default function ProjectOverview({
 
   return (
     <PageShell header={Header}>
+      {/* Next Action Area — prominent callout card */}
+      {nextAction && (
+        <div className="card bg-gradient-to-br from-primary/10 to-primary/[0.03] border-primary/20 overflow-hidden relative">
+          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-primary/20 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex-1">
+              <span className="px-2.5 py-1 rounded-full bg-primary/20 text-primary-light text-[10px] font-bold uppercase tracking-wider inline-block mb-3">
+                Next Action
+              </span>
+              <h2 className="text-xl font-bold text-text mb-1">{nextAction.label}</h2>
+              <p className="text-sm text-text-muted">{nextAction.desc}</p>
+            </div>
+            <button 
+              onClick={nextAction.onClick}
+              className="btn btn-primary flex items-center gap-2 shrink-0"
+            >
+              ดำเนินการตอนนี้ <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Workflow stepper */}
       <ProjectWorkflowStepper 
         hasNoBrief={hasNoBrief}
         hasNoScope={hasNoScope}
@@ -97,6 +147,22 @@ export default function ProjectOverview({
         onStartBriefIntake={onStartBriefIntake}
       />
 
+      {/* Balanced two-column layout for secondary content */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <ProjectRisksPanel 
+          hasNoScope={hasNoScope}
+          hasNoQuote={hasNoQuote}
+          openCRs={openCRs}
+          pendingApprovals={pendingApprovals}
+        />
+        <ProjectWorkflowStats 
+          draftDocs={draftDocs}
+          approvedDocs={approvedDocs}
+          openCRs={openCRs}
+          openSUPs={openSUPs}
+        />
+      </div>
+
       <div className="flex flex-col gap-5">
         <ScopeReadinessGrid 
           briefDocs={briefDocs}
@@ -106,20 +172,6 @@ export default function ProjectOverview({
           approvedDocs={approvedDocs}
           contentFlags={contentFlags}
         />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <ProjectRisksPanel 
-            hasNoScope={hasNoScope}
-            hasNoQuote={hasNoQuote}
-            openCRs={openCRs}
-            pendingApprovals={pendingApprovals}
-          />
-          <ProjectWorkflowStats 
-            draftDocs={draftDocs}
-            approvedDocs={approvedDocs}
-            openCRs={openCRs}
-            openSUPs={openSUPs}
-          />
-        </div>
       </div>
 
       {/* Filter Bar */}

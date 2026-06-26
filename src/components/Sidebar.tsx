@@ -28,7 +28,7 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
   const { workspaceName, tree, selectedFile, setSelectedFile } = useWorkspace();
 
   return (
-    <aside className="w-64 min-w-[256px] h-full bg-surface-2/80 backdrop-blur-xl border-r border-white/5 flex flex-col justify-between p-3 z-20 shadow-2xl shadow-black/20">
+    <aside className="w-72 min-w-[288px] h-full bg-surface-2/80 backdrop-blur-xl border-r border-white/5 flex flex-col justify-between p-3 z-20 shadow-2xl shadow-black/20">
       <div className="flex flex-col flex-1 min-h-0">
         {/* Workspace header */}
         <div className="px-1 py-3 flex items-center justify-between gap-3 mb-2">
