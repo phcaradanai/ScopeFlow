@@ -179,14 +179,16 @@ export default function WorkspaceOverview({
 
   const handleCreateDemo = async () => {
     if (!workspacePath) return;
-    if (window.confirm('คุณต้องการสร้างข้อมูลตัวอย่าง (Demo Workspace) ในโฟลเดอร์นี้ใช่หรือไม่? การดำเนินการนี้จะเพิ่มข้อมูลลูกค้าโครงการและเอกสารสำหรับทดลองใช้งาน')) {
+    if (window.confirm('สร้าง Demo Workspace พร้อมลูกค้า โครงการ และเอกสารตัวอย่างใช่หรือไม่?')) {
       try {
         setLoading(true);
-        await generateDemoWorkspace(workspacePath, workspaceName);
+        const result = await generateDemoWorkspace(workspacePath, workspaceName);
         await refreshTree();
-        alert('สร้าง Demo Workspace สำเร็จ!');
+        setSelectedFile(result.primaryProjectPath);
+        alert('สร้าง Demo Workspace สำเร็จ และเปิดโครงการตัวอย่างให้แล้ว');
       } catch (err) {
-        alert(`สร้าง Demo ไม่สำเร็จ: ${err}`);
+        await refreshTree();
+        alert(`สร้าง Demo ไม่สำเร็จ: ${err}\n\nระบบรีเฟรช Workspace แล้ว กรุณาตรวจรายการด้านซ้ายอีกครั้ง`);
       } finally {
         setLoading(false);
       }
@@ -203,6 +205,7 @@ export default function WorkspaceOverview({
         setSelectedFile(result.projectPath);
         onDemoFlowCreated?.(result.projectPath);
       } catch (err) {
+        await refreshTree();
         alert(`สร้าง Demo จบครบ Flow ไม่สำเร็จ: ${err}`);
       } finally {
         setLoading(false);
