@@ -122,14 +122,14 @@ export default function ProjectOverview({
       />
 
       <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_168px_168px] gap-3">
-        <div className="relative group min-w-0">
-          <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-text-dim group-focus-within:text-primary transition-colors duration-300" />
+        <div className="form-input-with-icon group">
+          <Search className="form-input-leading-icon group-focus-within:text-primary" />
           <input
             type="text"
             placeholder="ค้นหาจากชื่อเอกสาร, ประเภท, สถานะ..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="form-input pl-12"
+            className="form-input form-input-has-leading-icon"
           />
         </div>
         <SelectField
