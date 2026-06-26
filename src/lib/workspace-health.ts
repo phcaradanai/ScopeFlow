@@ -18,10 +18,15 @@ const REQUIRED_PROJECT_FOLDERS = [
   'attachments'
 ];
 
+async function fileExistsFromTreeOrDisk(parentPath: string, children: FileEntry[] | undefined, name: string, isDir?: boolean) {
+  const fromTree = children?.find(c => c.name === name && (isDir === undefined || c.is_dir === isDir));
+  if (fromTree) return true;
+  return pathExists(`${parentPath}/${name}`);
+}
+
 export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEntry): Promise<HealthIssue[]> {
   const issues: HealthIssue[] = [];
 
-  // 1. Check scopeflow.yaml
   const hasConfig = tree.children?.some(c => c.name === 'scopeflow.yaml') || (await pathExists(`${_workspacePath}/scopeflow.yaml`));
   if (!hasConfig) {
     issues.push({
@@ -29,23 +34,22 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
       message: 'ไม่พบไฟล์ scopeflow.yaml (ไม่ใช่ ScopeFlow Workspace)',
       fixAction: 'create_scopeflow_yaml',
     });
-    return issues; // Critical error, abort
+    return issues;
   }
 
-  // 2. Check clients folder
   const clientsFolder = tree.children?.find(c => c.name === 'clients' && c.is_dir);
   const hasClientsFolder = clientsFolder || (await pathExists(`${_workspacePath}/clients`));
   if (!hasClientsFolder) {
     issues.push({ type: 'error', message: 'ไม่พบโฟลเดอร์ clients/ (กรุณาสร้างลูกค้าใหม่)' });
-    return issues; 
+    return issues;
   }
 
-  // 3. Iterate clients
   const clients = clientsFolder ? (clientsFolder.children || []) : (tree.children || []);
   for (const client of clients) {
     if (!client.is_dir) continue;
 
-    const hasClientYaml = client.children?.find(c => c.name === '_client.yaml');
+    const clientPath = client.path;
+    const hasClientYaml = await fileExistsFromTreeOrDisk(clientPath, client.children, '_client.yaml', false);
     if (!hasClientYaml) {
        issues.push({ type: 'warning', message: `ลูกค้า "${client.name}" ไม่มีไฟล์ _client.yaml` });
     }
@@ -53,33 +57,33 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
     const projectsFolder = client.children?.find(c => c.name === 'projects' && c.is_dir);
     const projects = projectsFolder ? (projectsFolder.children || []) : (client.children || []);
 
-    // Iterate projects
     for (const project of projects) {
       if (!project.is_dir) continue;
 
-      const hasProjectYaml = project.children?.find(c => c.name === '_project.yaml');
+      const projectPath = project.path;
+      const hasProjectYaml = await fileExistsFromTreeOrDisk(projectPath, project.children, '_project.yaml', false);
       if (!hasProjectYaml) {
         issues.push({ type: 'warning', message: `โครงการ "${project.name}" ไม่มีไฟล์ _project.yaml` });
       }
 
-      // Check required folders
-      const missingFolders = REQUIRED_PROJECT_FOLDERS.filter(folder => 
-        !project.children?.find(c => c.name === folder && c.is_dir)
-      );
+      const missingFolders: string[] = [];
+      for (const folder of REQUIRED_PROJECT_FOLDERS) {
+        const exists = await fileExistsFromTreeOrDisk(projectPath, project.children, folder, true);
+        if (!exists) missingFolders.push(folder);
+      }
 
       if (missingFolders.length > 0) {
         issues.push({
           type: 'warning',
           message: `โครงการ "${project.name}" ขาดโฟลเดอร์: ${missingFolders.join(', ')}`,
           fixAction: 'create_project_folders',
-          payload: { projectPath: project.path, missingFolders }
+          payload: { projectPath, missingFolders }
         });
       }
 
-      // Read documents
       const docs = await scanProjectDocuments(project.path, tree);
       const approvals = docs.filter(d => d.type === 'approval-record');
-      
+
       for (const doc of docs) {
         if (doc.parse_status === 'warning' && doc.type !== 'export') {
           issues.push({ type: 'warning', message: `เอกสาร "${doc.file_name}" มี YAML Frontmatter ไม่สมบูรณ์` });
@@ -100,7 +104,6 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
           }
         }
 
-        // Check if approval record points to missing document
         if (doc.type === 'approval-record' && doc.approved_document) {
           const approvedDocExists = docs.find(d => d.file_name === doc.approved_document);
           if (!approvedDocExists) {
@@ -108,7 +111,6 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
           }
         }
 
-        // Check if evidence files exist
         if (doc.evidence_files && doc.evidence_files.length > 0) {
            const attachmentsFolder = project.children?.find(c => c.name === 'attachments' && c.is_dir);
            for (const evidence of doc.evidence_files) {
