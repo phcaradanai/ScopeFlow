@@ -9,6 +9,14 @@ import ScopeDigestPreview from './ScopeDigestPreview';
 import { processScopeDigest } from '../lib/ai/scope-digest/scopeDigestSkill';
 import { ScopeDigestOutput } from '../lib/ai/scope-digest/scopeDigestSchema';
 import { buildBriefScopeDraftPack } from '../lib/ai/draft-assistant/briefScopeDraftAssistant';
+import {
+  canApplyDraftReview,
+  createDraftReviewSession,
+  getDraftReviewWarnings,
+  updateDraftReviewDocument,
+  type DraftReviewDocumentType,
+  type DraftReviewSession,
+} from '../lib/ai/draft-assistant/draftReviewSession';
 
 const EXAMPLES = [
   {
@@ -48,6 +56,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
   const [saving, setSaving] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [aiDigest, setAiDigest] = useState<ScopeDigestOutput | null>(null);
+  const [draftReview, setDraftReview] = useState<DraftReviewSession | null>(null);
   const [conflictPath, setConflictPath] = useState<string | null>(null);
   const [conflictProjectPath, setConflictProjectPath] = useState<string | null>(null);
   const [conflictProjectId, setConflictProjectId] = useState<string | null>(null);
@@ -162,11 +171,11 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
     }
   };
 
-  const handleCreateBriefAndScopeDrafts = async () => {
+  const prepareDraftReview = async () => {
     setError('');
 
     if (!formData.raw_request.trim()) {
-      setError('กรุณาใส่ข้อความ/คำพูดจากลูกค้าก่อนสร้าง Brief + Scope Draft');
+      setError('กรุณาใส่ข้อความ/คำพูดจากลูกค้าก่อนสร้าง Draft Preview');
       return;
     }
 
@@ -198,25 +207,48 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
         digest,
       });
 
-      const briefPath = `${target.finalProjectPath}/${draftPack.suggestedBriefPath}`;
-      const scopePath = `${target.finalProjectPath}/${draftPack.suggestedScopePath}`;
+      const session = createDraftReviewSession(target.finalProjectPath, draftPack);
       const existingPaths = [];
-      if (await pathExists(briefPath)) existingPaths.push('brief-v1.0.md');
-      if (await pathExists(scopePath)) existingPaths.push('scope-v1.0.md');
+      for (const doc of session.documents) {
+        if (await pathExists(doc.path)) existingPaths.push(doc.path.split(/[/\\]/).pop() || doc.path);
+      }
 
       if (existingPaths.length > 0) {
-        setError(`ไม่สามารถสร้าง Brief + Scope Draft ได้ เพราะมีไฟล์อยู่แล้ว: ${existingPaths.join(', ')} กรุณาเปิดไฟล์เดิมหรือสร้างเวอร์ชันใหม่`);
-        setConflictPath(briefPath);
+        setError(`ไม่สามารถสร้าง Draft ได้ เพราะมีไฟล์อยู่แล้ว: ${existingPaths.join(', ')} กรุณาเปิดไฟล์เดิมหรือสร้างเวอร์ชันใหม่`);
+        setConflictPath(session.documents[0].path);
         setConflictProjectPath(target.finalProjectPath);
         setConflictProjectId(target.finalProjectId);
         setSaving(false);
         return;
       }
 
-      await createDocument(briefPath, draftPack.briefMarkdown);
-      await createDocument(scopePath, draftPack.scopeMarkdown);
+      setDraftReview(session);
+      setSaving(false);
+    } catch (err) {
+      setError(String(err));
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateDraftReview = (documentId: DraftReviewDocumentType, markdown: string) => {
+    if (!draftReview) return;
+    setDraftReview(updateDraftReviewDocument(draftReview, documentId, markdown));
+  };
+
+  const handleApplyDraftReview = async () => {
+    if (!draftReview || !canApplyDraftReview(draftReview)) return;
+
+    try {
+      setSaving(true);
+      setError('');
+
+      for (const doc of draftReview.documents) {
+        await createDocument(doc.path, doc.markdown);
+      }
+
       await refreshTree();
-      setSelectedFile(scopePath);
+      const scopeDoc = draftReview.documents.find(doc => doc.id === 'scope');
+      setSelectedFile(scopeDoc?.path || draftReview.documents[0].path);
       onClose();
     } catch (err) {
       setError(String(err));
@@ -320,6 +352,73 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
     );
   }
 
+  if (draftReview) {
+    const warnings = getDraftReviewWarnings(draftReview);
+
+    return (
+      <div className="modal-overlay">
+        <div className="modal-container !max-w-6xl">
+          <div className="modal-header">
+            <div className="modal-header-content">
+              <h2 className="modal-title flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                ตรวจ Draft ก่อนสร้างเอกสารจริง
+              </h2>
+              <p className="modal-subtitle">แก้ข้อความใน Brief/Scope ได้ก่อนกด Apply ระบบยังไม่เขียนไฟล์จนกว่าคุณจะยืนยัน</p>
+            </div>
+            <button onClick={onClose} className="modal-close">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="modal-body overflow-y-auto space-y-5">
+            {error && <div className="p-3 rounded-xl bg-error/10 border border-error/30 text-error text-sm">{error}</div>}
+            {warnings.length > 0 && (
+              <div className="rounded-2xl border border-warning/20 bg-warning/10 p-4">
+                <h3 className="text-sm font-bold text-warning mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> ควรตรวจเป็นพิเศษ</h3>
+                <ul className="space-y-1 text-xs text-text-muted leading-relaxed">
+                  {warnings.map(warning => <li key={warning}>- {warning}</li>)}
+                </ul>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              {draftReview.documents.map(doc => (
+                <div key={doc.id} className="rounded-2xl border border-border bg-surface-2 overflow-hidden flex flex-col min-h-[520px]">
+                  <div className="p-4 border-b border-border bg-surface-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="font-bold text-text">{doc.label}</h3>
+                      <span className="badge badge-muted font-mono text-[11px] break-all">{doc.path.split(/[/\\]/).pop()}</span>
+                    </div>
+                    <p className="text-xs text-text-muted font-mono mt-2 break-all">{doc.path}</p>
+                  </div>
+                  <textarea
+                    value={doc.markdown}
+                    onChange={(e) => handleUpdateDraftReview(doc.id, e.target.value)}
+                    className="flex-1 w-full min-h-[420px] bg-surface text-text font-mono text-xs leading-relaxed p-4 outline-none resize-y"
+                    spellCheck={false}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="modal-footer flex-col sm:flex-row gap-3 justify-between">
+            <button type="button" onClick={() => setDraftReview(null)} className="btn btn-ghost">
+              กลับไปแก้คำขอ
+            </button>
+            <div className="flex gap-3 flex-wrap justify-end">
+              <button type="button" onClick={onClose} className="btn btn-ghost">ยกเลิก</button>
+              <button type="button" onClick={handleApplyDraftReview} disabled={saving || !canApplyDraftReview(draftReview)} className="btn btn-primary px-8">
+                {saving ? 'กำลังสร้างเอกสาร...' : 'Apply และสร้างเอกสารจริง'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="modal-overlay">
       <div className="modal-container !max-w-5xl">
@@ -334,11 +433,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
         </div>
 
         <div className="modal-body !p-0 overflow-hidden flex flex-col">
-          {error && (
-            <div className="m-6 mb-0 p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
-              {error}
-            </div>
-          )}
+          {error && <div className="m-6 mb-0 p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">{error}</div>}
 
           <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] flex-1 overflow-hidden">
             <form id="brief-intake-form" onSubmit={handleSubmit} className="p-6 flex flex-col gap-5 overflow-y-auto">
@@ -442,8 +537,8 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
           </div>
           <div className="flex gap-3 flex-wrap justify-end">
             <button type="button" onClick={onClose} className="btn btn-ghost">ยกเลิก</button>
-            <button type="button" onClick={handleCreateBriefAndScopeDrafts} disabled={!formData.raw_request.trim() || saving || isGeneratingAi} className="btn btn-outline px-5" style={{ minHeight: '48px' }}>
-              {saving ? 'กำลังสร้าง...' : 'สร้าง Brief + Scope Draft'}
+            <button type="button" onClick={prepareDraftReview} disabled={!formData.raw_request.trim() || saving || isGeneratingAi} className="btn btn-outline px-5" style={{ minHeight: '48px' }}>
+              {saving ? 'กำลังเตรียม...' : 'Preview Brief + Scope'}
             </button>
             <button type="submit" form="brief-intake-form" disabled={!formData.raw_request.trim() || saving} className="btn btn-primary px-8" style={{ minHeight: '48px' }}>
               {saving ? 'กำลังสร้าง...' : 'สร้างร่าง Brief'}
