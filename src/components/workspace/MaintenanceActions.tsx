@@ -1,21 +1,29 @@
-import { Plus, Play, ShieldCheck, Download, ExternalLink } from 'lucide-react';
+import { Plus, Play, ShieldCheck, Download, ExternalLink, CheckCircle2 } from 'lucide-react';
 
 interface MaintenanceActionsProps {
   onCreateClient: () => void;
   onRunHealthCheck: () => void;
   onBackupWorkspace: () => void;
   handleCreateDemo: () => void;
+  handleCreateCompleteDemoFlow: () => void;
   handleOpenWorkspaceFolder: () => void;
 }
 
-export default function MaintenanceActions({ onCreateClient, onRunHealthCheck, onBackupWorkspace, handleCreateDemo, handleOpenWorkspaceFolder }: MaintenanceActionsProps) {
+export default function MaintenanceActions({
+  onCreateClient,
+  onRunHealthCheck,
+  onBackupWorkspace,
+  handleCreateDemo,
+  handleCreateCompleteDemoFlow,
+  handleOpenWorkspaceFolder,
+}: MaintenanceActionsProps) {
   return (
     <div className="card flex flex-col gap-4">
       <h3 className="text-base font-bold text-text border-b border-white/5 pb-3">
         การดูแล Workspace
       </h3>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         <button onClick={onCreateClient} className="btn btn-ghost hover:bg-primary/5 hover:border-primary/20 flex flex-col items-center justify-center p-5 gap-2 text-center rounded-xl min-h-[100px]">
           <Plus className="w-5 h-5 text-accent" />
           <span className="text-xs font-bold">สร้างลูกค้าใหม่</span>
@@ -23,6 +31,10 @@ export default function MaintenanceActions({ onCreateClient, onRunHealthCheck, o
         <button onClick={handleCreateDemo} className="btn btn-ghost hover:bg-primary/5 hover:border-primary/20 flex flex-col items-center justify-center p-5 gap-2 text-center rounded-xl min-h-[100px]">
           <Play className="w-5 h-5 text-primary-light" />
           <span className="text-xs font-bold">สร้าง Demo</span>
+        </button>
+        <button onClick={handleCreateCompleteDemoFlow} className="btn btn-ghost hover:bg-success/5 hover:border-success/20 flex flex-col items-center justify-center p-5 gap-2 text-center rounded-xl min-h-[100px]">
+          <CheckCircle2 className="w-5 h-5 text-success" />
+          <span className="text-xs font-bold">Demo จบครบ Flow</span>
         </button>
         <button onClick={onRunHealthCheck} className="btn btn-ghost hover:bg-primary/5 hover:border-primary/20 flex flex-col items-center justify-center p-5 gap-2 text-center rounded-xl min-h-[100px]">
           <ShieldCheck className="w-5 h-5 text-warning" />
