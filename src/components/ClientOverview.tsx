@@ -1,5 +1,6 @@
 import { Briefcase, Plus, User, ArrowRight } from 'lucide-react';
 import type { FileEntry } from '../lib/tauri-commands';
+import { getProjectNodesForClient } from '../lib/workspace-scanner';
 import PageShell from './ui/PageShell';
 
 interface ClientOverviewProps {
@@ -10,16 +11,6 @@ interface ClientOverviewProps {
   onStartBriefIntake: (clientId: string) => void;
 }
 
-function getProjects(clientNode: FileEntry): FileEntry[] {
-  const projectsFolder = clientNode.children?.find(c => c.name === 'projects' && c.is_dir);
-  if (projectsFolder?.children) return projectsFolder.children.filter(p => p.is_dir);
-
-  return (clientNode.children || []).filter(child => {
-    if (!child.is_dir) return false;
-    return !['_client.yaml', 'attachments', 'exports'].includes(child.name);
-  });
-}
-
 export default function ClientOverview({
   clientNode,
   clientId,
@@ -27,7 +18,7 @@ export default function ClientOverview({
   onOpenProject,
   onStartBriefIntake,
 }: ClientOverviewProps) {
-  const projects = getProjects(clientNode);
+  const projects = getProjectNodesForClient(clientNode);
 
   const Header = (
     <div className="page-header-inner page-container-wide">
