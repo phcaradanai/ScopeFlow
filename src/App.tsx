@@ -137,7 +137,8 @@ function AppContent() {
       await refreshTree();
       alert('สร้าง Demo Workspace สำเร็จ!');
     } catch (err) {
-      alert(`สร้าง Demo ไม่สำเร็จ: ${err}`);
+      await refreshTree();
+      alert(`สร้าง Demo ไม่สำเร็จ: ${err}\n\nรีเฟรช Workspace แล้ว กรุณาตรวจรายการลูกค้าด้านซ้ายอีกครั้ง`);
     }
   };
 
