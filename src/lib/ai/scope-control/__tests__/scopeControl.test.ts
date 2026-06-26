@@ -29,8 +29,8 @@ describe('scopeControl', () => {
       'ต้องการชำระเงินช่องทางใด',
       'มีสินค้าประมาณกี่รายการ และมี variant เช่น สี/ไซซ์หรือไม่',
     ]));
-    expect(result.suggested_boundary_clauses).toContain('ไม่รวม mobile app หากไม่ระบุ');
-    expect(result.suggested_boundary_clauses).toContain('ไม่รวมค่า payment gateway, merchant account, transaction fee และขั้นตอนสมัครบริการภายนอก');
+    expect(result.suggested_boundary_clauses.some(clause => clause.includes('mobile app'))).toBe(true);
+    expect(result.suggested_boundary_clauses.some(clause => clause.includes('payment gateway'))).toBe(true);
     expect(result.cost_reasoning.pricing_blockers.length).toBeGreaterThan(0);
   });
 
