@@ -166,6 +166,29 @@
   font-weight: 400;
 }
 
+.form-input-with-icon {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+}
+
+.form-input-leading-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translateY(-50%);
+  color: var(--color-text-dim);
+  pointer-events: none;
+  z-index: 1;
+  transition: color 0.2s ease;
+}
+
+.form-input.form-input-has-leading-icon {
+  padding-left: 48px;
+}
+
 .form-textarea {
   min-height: 140px;
   resize: vertical;
