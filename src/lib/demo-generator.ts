@@ -1,13 +1,19 @@
 import { invoke } from '@tauri-apps/api/core';
 
+export interface DemoWorkspaceResult {
+  clientId: string;
+  projectIds: string[];
+  primaryProjectPath: string;
+  maintenanceProjectPath: string;
+}
+
 function demoSuffix() {
   return new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
 }
 
-export async function generateDemoWorkspace(workspacePath: string, workspaceName: string) {
+export async function generateDemoWorkspace(workspacePath: string, workspaceName: string): Promise<DemoWorkspaceResult> {
   const suffix = demoSuffix();
 
-  // 1. Create Workspace
   const workspaceConfig = `workspace:
   name: "${workspaceName}"
   created: "${new Date().toISOString()}"
@@ -30,7 +36,6 @@ settings:
     configContent: workspaceConfig
   });
 
-  // 2. Create Client
   const clientId = `demo-client-${suffix}`;
   const clientYaml = `name: "บริษัท เดโม จำกัด ${suffix}"
 contact_person: "คุณ สมชาย ใจดี"
@@ -47,7 +52,6 @@ notes: "ลูกค้ารายใหญ่"`;
     clientYaml
   });
 
-  // 3. Create Projects
   const proj1Id = `website-revamp-${suffix}`;
   const proj1Yaml = `name: "ปรับปรุงเว็บไซต์องค์กร"
 client: "${clientId}"
@@ -84,11 +88,12 @@ notes: "สัญญาดูแลรายปี"`;
     currentSystemFiles: [['architecture.md', '# Current ERP Architecture\n- Server: Ubuntu\n- DB: PostgreSQL']]
   });
 
-  // 4. Create Documents for proj1 (website-revamp)
   const proj1Path = `${workspacePath}/clients/${clientId}/projects/${proj1Id}`;
+  const proj2Path = `${workspacePath}/clients/${clientId}/projects/${proj2Id}`;
 
-  // Scope (Approved)
-  const scopeFrontmatter = `---
+  await invoke('create_document', {
+    path: `${proj1Path}/baseline/scope-v1.0.md`,
+    content: `---
 type: scope
 title: ขอบเขตระบบเว็บไซต์องค์กร
 version: "1.0"
@@ -104,15 +109,12 @@ updated: "2026-06-05"
 - หน้าแรก (Home)
 - เกี่ยวกับเรา (About)
 - สินค้า (Products)
-- ติดต่อเรา (Contact)`;
-
-  await invoke('create_document', {
-    path: `${proj1Path}/baseline/scope-v1.0.md`,
-    content: scopeFrontmatter
+- ติดต่อเรา (Contact)`
   });
 
-  // Quotation
-  const quoteFrontmatter = `---
+  await invoke('create_document', {
+    path: `${proj1Path}/baseline/quotation-v1.0.md`,
+    content: `---
 type: quotation
 title: ใบเสนอราคาทำเว็บไซต์
 version: "1.0"
@@ -141,15 +143,12 @@ line_items:
 ---
 # เงื่อนไขการชำระเงิน
 - งวดที่ 1: 30% ณ วันเซ็นสัญญา
-- งวดที่ 2: 70% เมื่อส่งมอบงาน`;
-
-  await invoke('create_document', {
-    path: `${proj1Path}/baseline/quotation-v1.0.md`,
-    content: quoteFrontmatter
+- งวดที่ 2: 70% เมื่อส่งมอบงาน`
   });
 
-  // CR
-  const crFrontmatter = `---
+  await invoke('create_document', {
+    path: `${proj1Path}/change-requests/CR-001-add-careers.md`,
+    content: `---
 type: cr
 title: ขอเพิ่มหน้าสมัครงงาน
 version: "1.0"
@@ -160,15 +159,12 @@ created: "2026-06-20"
 updated: "2026-06-20"
 ---
 # รายละเอียดการเปลี่ยนแปลง
-ลูกค้าต้องการให้เพิ่มเมนู "สมัครงาน" และฟอร์มกรอกข้อมูลพร้อมแนบ Resume`;
-
-  await invoke('create_document', {
-    path: `${proj1Path}/change-requests/CR-001-add-careers.md`,
-    content: crFrontmatter
+ลูกค้าต้องการให้เพิ่มเมนู "สมัครงาน" และฟอร์มกรอกข้อมูลพร้อมแนบ Resume`
   });
 
-  // Acceptance Checklist
-  const acFrontmatter = `---
+  await invoke('create_document', {
+    path: `${proj1Path}/acceptance/acceptance-checklist-v1.0.md`,
+    content: `---
 type: acceptance
 title: รายการตรวจรับงานเว็บไซต์
 version: "1.0"
@@ -180,15 +176,12 @@ created: "2026-06-21"
 # รายการตรวจสอบ
 - [ ] ทดสอบการแสดงผลบนมือถือ
 - [ ] ทดสอบแบบฟอร์มติดต่อ
-- [ ] โหลดหน้าเว็บต่ำกว่า 3 วินาที`;
-
-  await invoke('create_document', {
-    path: `${proj1Path}/acceptance/acceptance-checklist-v1.0.md`,
-    content: acFrontmatter
+- [ ] โหลดหน้าเว็บต่ำกว่า 3 วินาที`
   });
 
-  // Approval Record
-  const aprFrontmatter = `---
+  await invoke('create_document', {
+    path: `${proj1Path}/approvals/APR-001-scope-v1.0-approved.md`,
+    content: `---
 type: approval-record
 title: "บันทึกการอนุมัติ ขอบเขตระบบเว็บไซต์องค์กร"
 approval_number: "APR-001"
@@ -201,30 +194,22 @@ evidence_files: ["email-confirmation.txt"]
 created: "2026-06-05"
 ---
 # บันทึกการอนุมัติ: APR-001
-ลูกค้ายืนยันทางอีเมลเมื่อวันที่ 5 มิถุนายน 2026`;
-
-  await invoke('create_document', {
-    path: `${proj1Path}/approvals/APR-001-scope-v1.0-approved.md`,
-    content: aprFrontmatter
+ลูกค้ายืนยันทางอีเมลเมื่อวันที่ 5 มิถุนายน 2026`
   });
 
-  // Evidence file
   await invoke('write_file_content', {
     path: `${proj1Path}/attachments/email-confirmation.txt`,
     content: `From: somchai@demo-client.com\nTo: contact@demo-company.com\nSubject: ยืนยันสโคปงาน\n\nตกลงตามนี้ครับ ดำเนินการต่อได้เลย`
   });
 
-  // Export file
   await invoke('write_file_content', {
     path: `${proj1Path}/exports/scope-pack-20260605.html`,
     content: `<html><body><h1>เอกสาร Scope ที่ถูกนำออกแล้ว</h1></body></html>`
   });
 
-  // 5. Create Documents for proj2 (system-maintenance)
-  const proj2Path = `${workspacePath}/clients/${clientId}/projects/${proj2Id}`;
-
-  // Support Request
-  const supFrontmatter = `---
+  await invoke('create_document', {
+    path: `${proj2Path}/support-requests/SUP-001-report-error.md`,
+    content: `---
 type: sup
 title: ไม่สามารถออกรายงานประจำเดือนได้
 version: "1.0"
@@ -234,15 +219,12 @@ document_number: SUP-001
 created: "2026-06-22"
 ---
 # อาการ
-เมื่อกดปุ่ม Export Excel ระบบแสดงหน้าขาวและไม่มีไฟล์ถูกดาวน์โหลด`;
-
-  await invoke('create_document', {
-    path: `${proj2Path}/support-requests/SUP-001-report-error.md`,
-    content: supFrontmatter
+เมื่อกดปุ่ม Export Excel ระบบแสดงหน้าขาวและไม่มีไฟล์ถูกดาวน์โหลด`
   });
 
-  // Maintenance Note
-  const maFrontmatter = `---
+  await invoke('create_document', {
+    path: `${proj2Path}/support-requests/MA-001-db-patch.md`,
+    content: `---
 type: ma
 title: อัปเดตแพตช์ความปลอดภัย PostgreSQL
 version: "1.0"
@@ -254,10 +236,13 @@ created: "2026-06-23"
 # แผนการทำงาน
 - [ ] สำรองฐานข้อมูล (23:00)
 - [ ] ติดตั้งแพตช์ (23:30)
-- [ ] รีสตาร์ทเซอร์วิส (23:45)`;
-
-  await invoke('create_document', {
-    path: `${proj2Path}/support-requests/MA-001-db-patch.md`,
-    content: maFrontmatter
+- [ ] รีสตาร์ทเซอร์วิส (23:45)`
   });
+
+  return {
+    clientId,
+    projectIds: [proj1Id, proj2Id],
+    primaryProjectPath: proj1Path,
+    maintenanceProjectPath: proj2Path,
+  };
 }
