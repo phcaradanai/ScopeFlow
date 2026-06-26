@@ -5,6 +5,7 @@ import { checkWorkspaceHealth } from '../lib/workspace-health';
 import { getCompanyProfile } from '../lib/settings';
 import { pathExists, readFileContent, writeFileContent } from '../lib/tauri-commands';
 import { generateDemoWorkspace } from '../lib/demo-generator';
+import { generateCompletedDemoFlow } from '../lib/demo-flow-generator';
 import { openPath } from '@tauri-apps/plugin-opener';
 import YAML from 'yaml';
 import {
@@ -190,6 +191,23 @@ export default function WorkspaceOverview({
     }
   };
 
+  const handleCreateCompleteDemoFlow = async () => {
+    if (!workspacePath) return;
+    if (window.confirm('สร้าง Demo ที่จบครบทั้ง Flow ตั้งแต่ Brief → Scope → Quote → Approval → Acceptance → Export ใช่หรือไม่?')) {
+      try {
+        setLoading(true);
+        const result = await generateCompletedDemoFlow(workspacePath);
+        await refreshTree();
+        setSelectedFile(result.projectPath);
+        alert('สร้าง Demo จบครบ Flow สำเร็จ!');
+      } catch (err) {
+        alert(`สร้าง Demo จบครบ Flow ไม่สำเร็จ: ${err}`);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const handleTriggerBackup = () => {
     onBackupWorkspace();
     setTimeout(() => {
@@ -286,6 +304,7 @@ export default function WorkspaceOverview({
         onRunHealthCheck={onRunHealthCheck}
         onBackupWorkspace={handleTriggerBackup}
         handleCreateDemo={handleCreateDemo}
+        handleCreateCompleteDemoFlow={handleCreateCompleteDemoFlow}
         handleOpenWorkspaceFolder={handleOpenWorkspaceFolder}
       />
     </PageShell>
