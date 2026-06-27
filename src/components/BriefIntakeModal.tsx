@@ -28,6 +28,7 @@ import {
   createDraftReviewSession,
   getDraftReviewWarnings,
   updateDraftReviewDocument,
+  upsertDraftReviewDocument,
   type DraftReviewDocumentType,
   type DraftReviewSession,
 } from '../lib/ai/draft-assistant/draftReviewSession';
@@ -62,6 +63,11 @@ const defaultData: BriefFormData = {
   raw_request: '',
   project_type: 'อื่น ๆ',
 };
+
+function safeChangeRequestFilename(requestId: string): string {
+  const safeId = requestId.trim().replace(/[^a-zA-Z0-9-_]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  return `${safeId || `CR-${Date.now()}`}-draft.md`;
+}
 
 export default function BriefIntakeModal({ clientId, projectId, projectPath, onClose }: BriefIntakeModalProps) {
   const { workspacePath, refreshTree, setSelectedFile } = useWorkspace();
@@ -389,6 +395,20 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
     setError('Applied Scope Baseline เข้า Quotation Draft แล้ว');
   };
 
+  const handleApplyChangeRequestDraft = (requestId: string, markdown: string) => {
+    if (!draftReview) return;
+    const filename = safeChangeRequestFilename(requestId);
+    const path = `${draftReview.projectPath}/changes/${filename}`;
+
+    setDraftReview(upsertDraftReviewDocument(draftReview, {
+      id: 'change_request',
+      label: 'Change Request / DCR Draft',
+      path,
+      markdown,
+    }));
+    setError(`Applied CR/DCR Draft เข้า Draft Review แล้ว: ${filename}`);
+  };
+
   const handleApplyDraftReview = async () => {
     if (!draftReview || !canApplyDraftReview(draftReview)) return;
     const applyPlan = draftReview.applyPlan;
@@ -437,9 +457,10 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
       }
 
       await refreshTree();
+      const changeRequestDoc = applyPlan.documents.find(doc => doc.id === 'change_request');
       const quotationDoc = applyPlan.documents.find(doc => doc.id === 'quotation');
       const scopeDoc = applyPlan.documents.find(doc => doc.id === 'scope');
-      setSelectedFile(quotationDoc?.path || scopeDoc?.path || applyPlan.documents[0].path);
+      setSelectedFile(changeRequestDoc?.path || quotationDoc?.path || scopeDoc?.path || applyPlan.documents[0].path);
       onClose();
     } catch (err) {
       setError(String(err));
@@ -570,7 +591,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
             {customerQuestionPack && <CustomerQuestionPanel pack={customerQuestionPack} />}
             {customerQuestionPack && scopeClosure && <CustomerAnswerPanel questionPack={customerQuestionPack} gate={scopeClosure} />}
             {quoteReadiness && <QuoteReadinessPanel brief={quoteReadiness} />}
-            {quotationDraft && <QuotationDraftPanel draft={quotationDraft} onApplyFinalQuoteSummary={handleApplyFinalQuoteSummary} onApplyApprovalLock={handleApplyApprovalLock} onApplyScopeBaseline={handleApplyScopeBaseline} />}
+            {quotationDraft && <QuotationDraftPanel draft={quotationDraft} onApplyFinalQuoteSummary={handleApplyFinalQuoteSummary} onApplyApprovalLock={handleApplyApprovalLock} onApplyScopeBaseline={handleApplyScopeBaseline} onApplyChangeRequestDraft={handleApplyChangeRequestDraft} />}
             {plannedActions.length > 0 && (
               <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4">
                 <h3 className="text-sm font-bold text-primary-light mb-2">สิ่งที่จะเกิดขึ้นเมื่อกด Apply</h3>
