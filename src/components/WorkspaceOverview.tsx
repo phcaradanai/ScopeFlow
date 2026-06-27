@@ -55,6 +55,11 @@ interface LifecycleSyncStatus {
   description: string;
 }
 
+interface LifecycleNextActionFocus {
+  filter: 'closeout_ready' | 'export_ready';
+  projectPath: string;
+}
+
 function refreshLifecycleRow(row: ProjectLifecycleRow, nextScanFiles: LifecycleScanFile[]): ProjectLifecycleRow {
   const lifecycleInput = scanDocumentLifecycleFromFiles(nextScanFiles);
   const summary = buildDocumentLifecycleSummary(lifecycleInput);
@@ -101,6 +106,7 @@ export default function WorkspaceOverview({
   const [projectLifecycleRows, setProjectLifecycleRows] = useState<ProjectLifecycleRow[]>([]);
   const [lifecycleActionLogs, setLifecycleActionLogs] = useState<ProjectLifecycleActionLogEntry[]>([]);
   const [lifecycleSyncStatus, setLifecycleSyncStatus] = useState<LifecycleSyncStatus | null>(null);
+  const [nextActionFocus, setNextActionFocus] = useState<LifecycleNextActionFocus | null>(null);
 
   const [clientsCount, setClientsCount] = useState(0);
   const [projectsCount, setProjectsCount] = useState(0);
@@ -141,6 +147,7 @@ export default function WorkspaceOverview({
     const actionLogKey = getProjectLifecycleActionLogStorageKey(currentPath);
     setLifecycleActionLogs(parseProjectLifecycleActionLogs(localStorage.getItem(actionLogKey)));
     setLifecycleSyncStatus(null);
+    setNextActionFocus(null);
 
     async function loadWorkspaceInfo() {
       setLoading(true);
@@ -300,9 +307,10 @@ export default function WorkspaceOverview({
       await refreshTree();
       setSelectedFile(plan.files[0].path);
       recordLifecycleAction(row, 'created_closeout_pack');
+      setNextActionFocus({ filter: 'closeout_ready', projectPath: row.projectPath });
       setLifecycleSyncStatus({
         title: 'Closeout Pack created — Lifecycle updated',
-        description: `${row.projectName} ถูก sync จากไฟล์จริงแล้ว และควรย้ายไป Closeout Ready ถ้า closeout files ครบ`,
+        description: `${row.projectName} ถูก sync จากไฟล์จริงแล้ว และระบบพาไปดู Closeout Ready อัตโนมัติ`,
       });
       alert('สร้าง Closeout Pack สำเร็จแล้ว สถานะ Lifecycle ถูกอัปเดตแล้ว');
     } catch (err) {
@@ -328,9 +336,10 @@ export default function WorkspaceOverview({
       await refreshTree();
       setSelectedFile(plan.path);
       recordLifecycleAction(row, 'created_export_index');
+      setNextActionFocus({ filter: 'export_ready', projectPath: row.projectPath });
       setLifecycleSyncStatus({
         title: 'Export Index created — Project moved to Export Ready',
-        description: `${row.projectName} ถูก sync จากไฟล์จริงแล้ว และพร้อมส่งต่อผ่าน closeout package index`,
+        description: `${row.projectName} ถูก sync จากไฟล์จริงแล้ว และระบบพาไปดู Export Ready อัตโนมัติ`,
       });
       alert('สร้าง Closeout Export Index สำเร็จแล้ว สถานะ Lifecycle ถูกอัปเดตแล้ว');
     } catch (err) {
@@ -453,7 +462,17 @@ export default function WorkspaceOverview({
 
       <WorkspaceStats clientsCount={clientsCount} projectsCount={projectsCount} documentsCount={documentsCount} approvedCount={approvedCount} lockedCount={lockedCount} healthStatus={healthStatus} />
 
-      <ProjectLifecycleList rows={projectLifecycleRows} actionLogs={lifecycleActionLogs} onLifecycleAction={recordLifecycleAction} onSelectProject={setSelectedFile} onSelectFile={setSelectedFile} onCreateCloseoutPack={handleCreateCloseoutPack} onCreateCloseoutExport={handleCreateCloseoutExport} />
+      <ProjectLifecycleList
+        rows={projectLifecycleRows}
+        actionLogs={lifecycleActionLogs}
+        autofocusFilter={nextActionFocus?.filter}
+        highlightedProjectPath={nextActionFocus?.projectPath}
+        onLifecycleAction={recordLifecycleAction}
+        onSelectProject={setSelectedFile}
+        onSelectFile={setSelectedFile}
+        onCreateCloseoutPack={handleCreateCloseoutPack}
+        onCreateCloseoutExport={handleCreateCloseoutExport}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ClientList clientsWithProjects={workspaceClients} onCreateClient={onCreateClient} onCreateProject={onCreateProject} onSelectClient={setSelectedFile} />
