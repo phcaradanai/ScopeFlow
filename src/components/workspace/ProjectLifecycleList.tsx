@@ -31,7 +31,7 @@ export interface ProjectLifecycleRow {
   priority: ProjectLifecyclePriority;
 }
 
-type FinalStatusFilter = 'ready_to_deliver' | 'delivery_sent' | 'awaiting_customer_acceptance';
+type FinalStatusFilter = 'ready_to_deliver' | 'delivery_sent' | 'awaiting_customer_acceptance' | 'finalized';
 type LifecycleFilter = 'all' | ProjectLifecyclePriorityCategory | FinalStatusFilter;
 
 interface ProjectLifecycleListProps {
@@ -57,6 +57,7 @@ const FILTERS: { id: LifecycleFilter; label: string }[] = [
   { id: 'ready_to_deliver', label: 'Ready to Deliver' },
   { id: 'delivery_sent', label: 'Delivery Sent' },
   { id: 'awaiting_customer_acceptance', label: 'Awaiting Acceptance' },
+  { id: 'finalized', label: 'Finalized / Closed' },
 ];
 
 const SUMMARY_CARDS: { id: ProjectLifecyclePriorityCategory; label: string; description: string }[] = [
@@ -71,6 +72,7 @@ const FINAL_STATUS_CARDS: { id: FinalStatusFilter; label: string; description: s
   { id: 'ready_to_deliver', label: 'Ready to Deliver', description: 'package พร้อมส่ง' },
   { id: 'delivery_sent', label: 'Delivery Sent', description: 'ส่ง package แล้ว' },
   { id: 'awaiting_customer_acceptance', label: 'Awaiting Acceptance', description: 'รอลูกค้ารับรอง' },
+  { id: 'finalized', label: 'Finalized / Closed', description: 'ปิดงานแล้ว' },
 ];
 
 function statusClass(status: LifecycleItemStatus): string {
@@ -111,7 +113,7 @@ function priorityBadgeClass(category: ProjectLifecyclePriority['category']): str
 function summaryCardClass(category: ProjectLifecyclePriorityCategory | FinalStatusFilter): string {
   if (category === 'blocked') return 'border-error/20 bg-error/10 hover:border-error/40';
   if (category === 'missing_docs') return 'border-warning/20 bg-warning/10 hover:border-warning/40';
-  if (category === 'can_close' || category === 'closeout_ready' || category === 'delivery_sent' || category === 'awaiting_customer_acceptance') return 'border-success/20 bg-success/10 hover:border-success/40';
+  if (category === 'can_close' || category === 'closeout_ready' || category === 'delivery_sent' || category === 'awaiting_customer_acceptance' || category === 'finalized') return 'border-success/20 bg-success/10 hover:border-success/40';
   if (category === 'export_ready' || category === 'ready_to_deliver') return 'border-primary/20 bg-primary/10 hover:border-primary/40';
   return 'border-border bg-surface-2 hover:border-primary/30';
 }
@@ -126,7 +128,7 @@ function getWorkspaceKeyPath(rows: ProjectLifecycleRow[]): string {
 }
 
 function isFinalStatusFilter(filter: LifecycleFilter): filter is FinalStatusFilter {
-  return filter === 'ready_to_deliver' || filter === 'delivery_sent' || filter === 'awaiting_customer_acceptance';
+  return filter === 'ready_to_deliver' || filter === 'delivery_sent' || filter === 'awaiting_customer_acceptance' || filter === 'finalized';
 }
 
 function getLifecycleFilterEmptyGuidance(activeFilter: LifecycleFilter) {
@@ -149,6 +151,13 @@ function getLifecycleFilterEmptyGuidance(activeFilter: LifecycleFilter) {
       title: 'ยังไม่มี project ที่รอ customer acceptance',
       description: 'ยังไม่มี project ที่ถูก mark เป็น Pending customer acceptance',
       recommended_next_action: 'หลังส่ง package แล้ว ให้กด Mark pending customer acceptance เพื่อคุมงานรอรับรอง',
+    };
+  }
+  if (activeFilter === 'finalized') {
+    return {
+      title: 'ยังไม่มี project ที่ปิดงานแบบ finalized',
+      description: 'ยังไม่มี project ที่ถูก mark ว่าได้รับ customer acceptance แล้ว',
+      recommended_next_action: 'เมื่อได้รับ acceptance จากลูกค้าแล้ว ให้กด Mark acceptance received',
     };
   }
   return getProjectLifecycleEmptyGuidance(activeFilter);
@@ -220,7 +229,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
 
   const projectNameByPath = useMemo(() => new Map(rows.map(row => [row.projectPath, row.projectName])), [rows]);
   const totalNeedsAttention = (filterCounts.get('blocked') || 0) + (filterCounts.get('missing_docs') || 0) + (filterCounts.get('can_close') || 0) + (filterCounts.get('closeout_ready') || 0);
-  const totalDeliveryFollowUp = (filterCounts.get('ready_to_deliver') || 0) + (filterCounts.get('delivery_sent') || 0) + (filterCounts.get('awaiting_customer_acceptance') || 0);
+  const totalDeliveryFollowUp = (filterCounts.get('ready_to_deliver') || 0) + (filterCounts.get('delivery_sent') || 0) + (filterCounts.get('awaiting_customer_acceptance') || 0) + (filterCounts.get('finalized') || 0);
 
   return (
     <div className="card flex flex-col gap-4">
@@ -264,7 +273,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
             <p className="text-xs font-bold text-text">หลังส่งมอบ / Final close</p>
             <span className="badge badge-muted text-[10px]">{totalDeliveryFollowUp} projects</span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
             {FINAL_STATUS_CARDS.map(card => {
               const count = filterCounts.get(card.id) || 0;
               return (
@@ -332,8 +341,8 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
             const deliveryChecklist = getCloseoutDeliveryChecklist(closeoutStatus);
             const savedDeliveryStatus = getCloseoutDeliveryStatus(deliveryStatuses, row.projectPath);
             const finalStatus = getCloseoutFinalStatus(closeoutStatus, savedDeliveryStatus);
-            const packageSent = savedDeliveryStatus?.status === 'package_sent' || savedDeliveryStatus?.status === 'pending_customer_acceptance';
-            const pendingAcceptance = savedDeliveryStatus?.status === 'pending_customer_acceptance';
+            const packageSent = savedDeliveryStatus?.status === 'package_sent' || savedDeliveryStatus?.status === 'pending_customer_acceptance' || savedDeliveryStatus?.status === 'acceptance_received';
+            const pendingAcceptance = savedDeliveryStatus?.status === 'pending_customer_acceptance' || savedDeliveryStatus?.status === 'acceptance_received';
             const deliveryItems = deliveryChecklist.items.map(item => {
               if (item.id === 'attach_package_to_customer_message') return { ...item, done: packageSent };
               if (item.id === 'record_delivery_or_pending_acceptance') return { ...item, done: pendingAcceptance };
@@ -514,6 +523,9 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                         </button>
                         <button type="button" onClick={() => recordDeliveryStatus(row, 'pending_customer_acceptance')} className="btn btn-outline text-xs gap-2 shrink-0">
                           <FileClock className="w-3.5 h-3.5" /> Mark pending customer acceptance
+                        </button>
+                        <button type="button" onClick={() => recordDeliveryStatus(row, 'acceptance_received')} className="btn btn-primary text-xs gap-2 shrink-0">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Mark acceptance received
                         </button>
                       </div>
                     )}
