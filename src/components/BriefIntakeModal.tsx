@@ -314,15 +314,20 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
     setDraftReview(updateDraftReviewDocument(draftReview, documentId, markdown));
   };
 
-  const handleApplyFinalQuoteSummary = (summaryMarkdown: string) => {
-    if (!draftReview) return;
-    const quotationDoc = draftReview.documents.find(doc => doc.id === 'quotation');
+  const getQuotationDocumentMarkdown = () => {
+    const quotationDoc = draftReview?.documents.find(doc => doc.id === 'quotation');
     if (!quotationDoc) {
       setError('ไม่พบ Quotation Draft ใน Review Session');
-      return;
+      return null;
     }
+    return quotationDoc.markdown;
+  };
 
-    const updatedMarkdown = injectFinalQuoteSummaryMarkdown(quotationDoc.markdown, {
+  const handleApplyFinalQuoteSummary = (summaryMarkdown: string) => {
+    const currentMarkdown = getQuotationDocumentMarkdown();
+    if (!draftReview || currentMarkdown === null) return;
+
+    const updatedMarkdown = injectFinalQuoteSummaryMarkdown(currentMarkdown, {
       price_basis: 'manual_fixed',
       currency: 'THB',
       billable_hours: 0,
@@ -338,6 +343,27 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
 
     setDraftReview(updateDraftReviewDocument(draftReview, 'quotation', updatedMarkdown));
     setError('Applied Final Quote Summary เข้า Quotation Draft แล้ว');
+  };
+
+  const handleApplyApprovalLock = (approvalMarkdown: string) => {
+    const currentMarkdown = getQuotationDocumentMarkdown();
+    if (!draftReview || currentMarkdown === null) return;
+
+    const existingSectionPattern = /<!-- quotation-approval-lock:start -->[\s\S]*?<!-- quotation-approval-lock:end -->/m;
+    let updatedMarkdown = currentMarkdown;
+
+    if (existingSectionPattern.test(updatedMarkdown)) {
+      updatedMarkdown = updatedMarkdown.replace(existingSectionPattern, approvalMarkdown);
+    } else if (updatedMarkdown.includes('<!-- final-quote-summary:end -->')) {
+      updatedMarkdown = updatedMarkdown.replace('<!-- final-quote-summary:end -->', `<!-- final-quote-summary:end -->\n\n${approvalMarkdown}`);
+    } else if (updatedMarkdown.includes('## Quote Status')) {
+      updatedMarkdown = updatedMarkdown.replace('## Quote Status', `${approvalMarkdown}\n\n## Quote Status`);
+    } else {
+      updatedMarkdown = `${updatedMarkdown.trimEnd()}\n\n${approvalMarkdown}\n`;
+    }
+
+    setDraftReview(updateDraftReviewDocument(draftReview, 'quotation', updatedMarkdown));
+    setError('Applied Quotation Approval Lock เข้า Quotation Draft แล้ว');
   };
 
   const handleApplyDraftReview = async () => {
@@ -521,7 +547,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
             {customerQuestionPack && <CustomerQuestionPanel pack={customerQuestionPack} />}
             {customerQuestionPack && scopeClosure && <CustomerAnswerPanel questionPack={customerQuestionPack} gate={scopeClosure} />}
             {quoteReadiness && <QuoteReadinessPanel brief={quoteReadiness} />}
-            {quotationDraft && <QuotationDraftPanel draft={quotationDraft} onApplyFinalQuoteSummary={handleApplyFinalQuoteSummary} />}
+            {quotationDraft && <QuotationDraftPanel draft={quotationDraft} onApplyFinalQuoteSummary={handleApplyFinalQuoteSummary} onApplyApprovalLock={handleApplyApprovalLock} />}
             {plannedActions.length > 0 && (
               <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4">
                 <h3 className="text-sm font-bold text-primary-light mb-2">สิ่งที่จะเกิดขึ้นเมื่อกด Apply</h3>
