@@ -37,6 +37,14 @@ const FILTERS: { id: LifecycleFilter; label: string }[] = [
   { id: 'missing_docs', label: 'Missing Docs' },
 ];
 
+const SUMMARY_CARDS: { id: ProjectLifecyclePriorityCategory; label: string; description: string }[] = [
+  { id: 'blocked', label: 'Blocked', description: 'ต้องแก้ blocker ก่อน' },
+  { id: 'missing_docs', label: 'Missing Docs', description: 'ต้องเติมเอกสารหลัก' },
+  { id: 'can_close', label: 'Can Close', description: 'พร้อมสร้าง closeout' },
+  { id: 'closeout_ready', label: 'Closeout Ready', description: 'พร้อมสร้าง export index' },
+  { id: 'export_ready', label: 'Export Ready', description: 'พร้อมส่งต่อ' },
+];
+
 function statusClass(status: LifecycleItemStatus): string {
   if (status === 'signed_off' || status === 'approved' || status === 'ready') return 'text-success';
   if (status === 'blocked') return 'text-error';
@@ -66,6 +74,14 @@ function priorityBadgeClass(category: ProjectLifecyclePriority['category']): str
   return 'bg-surface-2 text-text-muted border border-border';
 }
 
+function summaryCardClass(category: ProjectLifecyclePriorityCategory): string {
+  if (category === 'blocked') return 'border-error/20 bg-error/10 hover:border-error/40';
+  if (category === 'missing_docs') return 'border-warning/20 bg-warning/10 hover:border-warning/40';
+  if (category === 'can_close' || category === 'closeout_ready') return 'border-success/20 bg-success/10 hover:border-success/40';
+  if (category === 'export_ready') return 'border-primary/20 bg-primary/10 hover:border-primary/40';
+  return 'border-border bg-surface-2 hover:border-primary/30';
+}
+
 export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFile, onCreateCloseoutPack, onCreateCloseoutExport }: ProjectLifecycleListProps) {
   const [activeFilter, setActiveFilter] = useState<LifecycleFilter>('all');
   const filteredRows = useMemo(() => (
@@ -80,6 +96,8 @@ export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFi
     return counts;
   }, [rows]);
 
+  const totalNeedsAttention = (filterCounts.get('blocked') || 0) + (filterCounts.get('missing_docs') || 0) + (filterCounts.get('can_close') || 0) + (filterCounts.get('closeout_ready') || 0);
+
   return (
     <div className="card flex flex-col gap-4">
       <div className="flex items-center justify-between border-b border-white/5 pb-3">
@@ -88,6 +106,35 @@ export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFi
           Project Lifecycle จากไฟล์จริง
         </h3>
         <span className="badge badge-muted text-xs">{filteredRows.length}/{rows.length} projects</span>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-surface-2/60 p-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+          <div>
+            <p className="text-sm font-bold text-text">วันนี้ควรทำอะไรต่อ</p>
+            <p className="text-xs text-text-muted">{totalNeedsAttention} projects need attention จาก lifecycle จริง</p>
+          </div>
+          <button type="button" onClick={() => setActiveFilter('all')} className="btn btn-outline text-xs shrink-0">
+            ดูทั้งหมด
+          </button>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+          {SUMMARY_CARDS.map(card => {
+            const count = filterCounts.get(card.id) || 0;
+            return (
+              <button
+                key={card.id}
+                type="button"
+                onClick={() => setActiveFilter(card.id)}
+                className={`rounded-xl border p-3 text-left transition-all ${summaryCardClass(card.id)}`}
+              >
+                <p className="text-xl font-bold text-text">{count}</p>
+                <p className="text-xs font-bold text-text">{card.label}</p>
+                <p className="text-[10px] text-text-muted mt-1">{card.description}</p>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
