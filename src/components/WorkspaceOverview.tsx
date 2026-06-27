@@ -24,7 +24,7 @@ import {
   type ProjectLifecycleActionLogType,
 } from '../lib/ai/document-lifecycle/documentLifecycleActionLog';
 import { getProjectLifecyclePriority } from '../lib/ai/document-lifecycle/documentLifecyclePriority';
-import { scanDocumentLifecycleFromFiles } from '../lib/ai/document-lifecycle/documentLifecycleFileScan';
+import { scanDocumentLifecycleFromFiles, type LifecycleScanFile } from '../lib/ai/document-lifecycle/documentLifecycleFileScan';
 import {
   getWorkspaceClients,
   getProjectPaths,
@@ -48,6 +48,37 @@ interface WorkspaceOverviewProps {
   onBackupWorkspace: () => void;
   onCreateProject: (clientId: string) => void;
   onDemoFlowCreated?: (projectPath: string, artifactPaths?: Record<string, string>) => void;
+}
+
+function refreshLifecycleRow(row: ProjectLifecycleRow, nextScanFiles: LifecycleScanFile[]): ProjectLifecycleRow {
+  const lifecycleInput = scanDocumentLifecycleFromFiles(nextScanFiles);
+  const summary = buildDocumentLifecycleSummary(lifecycleInput);
+  const actionTarget = getDocumentLifecycleActionTarget(nextScanFiles, lifecycleInput);
+  const priority = getProjectLifecyclePriority(summary, nextScanFiles);
+
+  return {
+    ...row,
+    summary,
+    actionTarget,
+    scanFiles: nextScanFiles,
+    priority,
+  };
+}
+
+function sortLifecycleRows(rows: ProjectLifecycleRow[]): ProjectLifecycleRow[] {
+  return [...rows].sort((a, b) => {
+    if (a.priority.score !== b.priority.score) return a.priority.score - b.priority.score;
+    if (a.summary.blocked_count !== b.summary.blocked_count) return b.summary.blocked_count - a.summary.blocked_count;
+    if (a.summary.missing_count !== b.summary.missing_count) return b.summary.missing_count - a.summary.missing_count;
+    return a.projectName.localeCompare(b.projectName);
+  });
+}
+
+function mergeLifecycleScanFiles(existing: LifecycleScanFile[], added: LifecycleScanFile[]): LifecycleScanFile[] {
+  const byPath = new Map<string, LifecycleScanFile>();
+  for (const file of existing) byPath.set(file.path, file);
+  for (const file of added) byPath.set(file.path, file);
+  return Array.from(byPath.values());
 }
 
 export default function WorkspaceOverview({
@@ -88,6 +119,14 @@ export default function WorkspaceOverview({
       }
       return next;
     });
+  };
+
+  const syncLifecycleRowAfterFiles = (row: ProjectLifecycleRow, addedFiles: LifecycleScanFile[]) => {
+    setProjectLifecycleRows(current => sortLifecycleRows(current.map(item => (
+      item.projectPath === row.projectPath
+        ? refreshLifecycleRow(item, mergeLifecycleScanFiles(item.scanFiles, addedFiles))
+        : item
+    ))));
   };
 
   useEffect(() => {
@@ -151,13 +190,8 @@ export default function WorkspaceOverview({
               scanFiles,
               priority,
             };
-          }).sort((a, b) => {
-            if (a.priority.score !== b.priority.score) return a.priority.score - b.priority.score;
-            if (a.summary.blocked_count !== b.summary.blocked_count) return b.summary.blocked_count - a.summary.blocked_count;
-            if (a.summary.missing_count !== b.summary.missing_count) return b.summary.missing_count - a.summary.missing_count;
-            return a.projectName.localeCompare(b.projectName);
           });
-          setProjectLifecycleRows(lifecycleRows);
+          setProjectLifecycleRows(sortLifecycleRows(lifecycleRows));
 
           const exportDocs = allDocs.filter((d: any) => d.type === 'export' || d.folder === 'exports');
           if (exportDocs.length > 0) {
@@ -254,10 +288,12 @@ export default function WorkspaceOverview({
       for (const file of plan.files) {
         await createDocument(file.path, file.markdown);
       }
+      const createdFiles = plan.files.map(file => ({ path: file.path, markdown: file.markdown }));
+      syncLifecycleRowAfterFiles(row, createdFiles);
       await refreshTree();
       setSelectedFile(plan.files[0].path);
       recordLifecycleAction(row, 'created_closeout_pack');
-      alert('สร้าง Closeout Pack สำเร็จแล้ว');
+      alert('สร้าง Closeout Pack สำเร็จแล้ว สถานะ Lifecycle ถูกอัปเดตแล้ว');
     } catch (err) {
       alert(`สร้าง Closeout Pack ไม่สำเร็จ: ${err}`);
     }
@@ -277,10 +313,11 @@ export default function WorkspaceOverview({
         return;
       }
       await createDocument(plan.path, plan.markdown);
+      syncLifecycleRowAfterFiles(row, [{ path: plan.path, markdown: plan.markdown }]);
       await refreshTree();
       setSelectedFile(plan.path);
       recordLifecycleAction(row, 'created_export_index');
-      alert('สร้าง Closeout Export Index สำเร็จแล้ว');
+      alert('สร้าง Closeout Export Index สำเร็จแล้ว สถานะ Lifecycle ถูกอัปเดตแล้ว');
     } catch (err) {
       alert(`สร้าง Closeout Export Index ไม่สำเร็จ: ${err}`);
     }
