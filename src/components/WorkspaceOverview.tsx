@@ -8,6 +8,8 @@ import { generateDemoWorkspace } from '../lib/demo-generator';
 import { generateCompletedDemoFlow } from '../lib/demo-flow-generator';
 import { openPath } from '@tauri-apps/plugin-opener';
 import YAML from 'yaml';
+import { buildDocumentLifecycleSummary } from '../lib/ai/document-lifecycle/documentLifecycle';
+import { scanDocumentLifecycleFromFiles } from '../lib/ai/document-lifecycle/documentLifecycleFileScan';
 import {
   getWorkspaceClients,
   getProjectPaths,
@@ -23,6 +25,7 @@ import WorkspaceStats from './workspace/WorkspaceStats';
 import ClientList from './workspace/ClientList';
 import WorkspaceStatus from './workspace/WorkspaceStatus';
 import MaintenanceActions from './workspace/MaintenanceActions';
+import ProjectLifecycleList, { type ProjectLifecycleRow } from './workspace/ProjectLifecycleList';
 
 interface WorkspaceOverviewProps {
   onCreateClient: () => void;
@@ -44,6 +47,7 @@ export default function WorkspaceOverview({
   const [workspaceVersion, setWorkspaceVersion] = useState('1.0');
   const [createdDate, setCreatedDate] = useState('');
   const [workspaceClients, setWorkspaceClients] = useState<ClientPathInfo[]>([]);
+  const [projectLifecycleRows, setProjectLifecycleRows] = useState<ProjectLifecycleRow[]>([]);
 
   const [clientsCount, setClientsCount] = useState(0);
   const [projectsCount, setProjectsCount] = useState(0);
@@ -98,6 +102,26 @@ export default function WorkspaceOverview({
           setDocumentsCount(stats.documentsCount);
           setApprovedCount(stats.approvedCount);
           setLockedCount(stats.lockedCount);
+
+          const lifecycleRows = projects.map((project, index) => {
+            const docs = allDocsLists[index] || [];
+            const lifecycleInput = scanDocumentLifecycleFromFiles(docs.map(doc => ({
+              path: doc.file_path,
+              markdown: doc.markdown || '',
+            })));
+            const summary = buildDocumentLifecycleSummary(lifecycleInput);
+            return {
+              projectPath: project.path,
+              projectName: project.projectName,
+              clientName: project.clientName,
+              summary,
+            };
+          }).sort((a, b) => {
+            if (a.summary.can_close_work !== b.summary.can_close_work) return a.summary.can_close_work ? 1 : -1;
+            if (a.summary.blocked_count !== b.summary.blocked_count) return b.summary.blocked_count - a.summary.blocked_count;
+            return a.projectName.localeCompare(b.projectName);
+          });
+          setProjectLifecycleRows(lifecycleRows);
 
           const exportDocs = allDocs.filter((d: any) => d.type === 'export' || d.folder === 'exports');
           if (exportDocs.length > 0) {
@@ -271,6 +295,8 @@ export default function WorkspaceOverview({
       )}
 
       <WorkspaceStats clientsCount={clientsCount} projectsCount={projectsCount} documentsCount={documentsCount} approvedCount={approvedCount} lockedCount={lockedCount} healthStatus={healthStatus} />
+
+      <ProjectLifecycleList rows={projectLifecycleRows} onSelectProject={setSelectedFile} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ClientList clientsWithProjects={workspaceClients} onCreateClient={onCreateClient} onCreateProject={onCreateProject} onSelectClient={setSelectedFile} />
