@@ -54,4 +54,17 @@ describe('closeoutFinalStatus', () => {
     expect(finalStatus.label).toBe('Awaiting Acceptance');
     expect(finalStatus.is_terminal_ready).toBe(true);
   });
+
+  it('returns finalized when customer acceptance was received', () => {
+    const finalStatus = getCloseoutFinalStatus(status({ export_ready: true, status_label: 'export_ready' }), {
+      project_path: '/workspace/project',
+      status: 'acceptance_received',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    });
+
+    expect(finalStatus.kind).toBe('finalized');
+    expect(finalStatus.label).toBe('Finalized / Closed');
+    expect(finalStatus.description).toContain('ปิดได้');
+    expect(finalStatus.is_terminal_ready).toBe(true);
+  });
 });
