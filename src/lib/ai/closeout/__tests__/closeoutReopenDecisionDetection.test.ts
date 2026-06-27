@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getCloseoutReopenDecisionSummary } from '../closeoutReopenDecisionDetection';
+import { getCloseoutReopenDecisionSummary, getLatestCloseoutReopenDecisionSummary } from '../closeoutReopenDecisionDetection';
 
 describe('closeoutReopenDecisionDetection', () => {
   it('returns undecided when no checkbox is selected', () => {
@@ -56,5 +56,33 @@ describe('closeoutReopenDecisionDetection', () => {
 
     expect(summary.has_decision).toBe(true);
     expect(summary.selected_decision_id).toBe('need_more_information');
+  });
+
+  it('detects decision from latest reopen request file', () => {
+    const summary = getLatestCloseoutReopenDecisionSummary([
+      {
+        path: '/workspace/project/changes/reopen-request-2026-01-01T00-00-00-000Z.md',
+        markdown: '- [x] Reject request',
+      },
+      {
+        path: '/workspace/project/changes/reopen-request-2026-01-02T00-00-00-000Z.md',
+        markdown: '- [x] Quote as Change Request',
+      },
+    ]);
+
+    expect(summary.has_reopen_request).toBe(true);
+    expect(summary.source_path).toBe('/workspace/project/changes/reopen-request-2026-01-02T00-00-00-000Z.md');
+    expect(summary.has_decision).toBe(true);
+    expect(summary.selected_decision_id).toBe('quote_change_request');
+  });
+
+  it('returns no reopen request when scanned files have none', () => {
+    const summary = getLatestCloseoutReopenDecisionSummary([
+      { path: '/workspace/project/changes/other.md', markdown: '- [x] Reject request' },
+    ]);
+
+    expect(summary.has_reopen_request).toBe(false);
+    expect(summary.has_decision).toBe(false);
+    expect(summary.source_path).toBeUndefined();
   });
 });
