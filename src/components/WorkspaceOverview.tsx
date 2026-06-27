@@ -9,6 +9,8 @@ import { generateCompletedDemoFlow } from '../lib/demo-flow-generator';
 import { openPath } from '@tauri-apps/plugin-opener';
 import YAML from 'yaml';
 import { createCloseoutApplyPlan } from '../lib/ai/closeout/closeoutApplyPlan';
+import { createCloseoutExportApplyPlan } from '../lib/ai/closeout/closeoutExportApplyPlan';
+import { buildCloseoutPackageExport } from '../lib/ai/closeout/closeoutExport';
 import { buildProjectCloseoutPack } from '../lib/ai/closeout/closeoutPack';
 import { buildDocumentLifecycleSummary } from '../lib/ai/document-lifecycle/documentLifecycle';
 import { getDocumentLifecycleActionTarget } from '../lib/ai/document-lifecycle/documentLifecycleAction';
@@ -233,6 +235,28 @@ export default function WorkspaceOverview({
     }
   };
 
+  const handleCreateCloseoutExport = async (row: ProjectLifecycleRow) => {
+    try {
+      const result = buildCloseoutPackageExport({
+        project_name: row.projectName,
+        project_path: row.projectPath,
+        closeout_files: row.scanFiles,
+      });
+      const exists = await pathExists(result.path);
+      const plan = createCloseoutExportApplyPlan(result, exists);
+      if (!plan.can_apply || !plan.path || !plan.markdown) {
+        alert(`ยังสร้าง Closeout Export Index ไม่ได้:\n- ${plan.warnings.join('\n- ')}`);
+        return;
+      }
+      await createDocument(plan.path, plan.markdown);
+      await refreshTree();
+      setSelectedFile(plan.path);
+      alert('สร้าง Closeout Export Index สำเร็จแล้ว');
+    } catch (err) {
+      alert(`สร้าง Closeout Export Index ไม่สำเร็จ: ${err}`);
+    }
+  };
+
   const handleCreateDemo = async () => {
     if (!workspacePath) return;
     if (window.confirm('สร้าง Demo Workspace พร้อมลูกค้า โครงการ และเอกสารตัวอย่างใช่หรือไม่?')) {
@@ -331,7 +355,7 @@ export default function WorkspaceOverview({
 
       <WorkspaceStats clientsCount={clientsCount} projectsCount={projectsCount} documentsCount={documentsCount} approvedCount={approvedCount} lockedCount={lockedCount} healthStatus={healthStatus} />
 
-      <ProjectLifecycleList rows={projectLifecycleRows} onSelectProject={setSelectedFile} onSelectFile={setSelectedFile} onCreateCloseoutPack={handleCreateCloseoutPack} />
+      <ProjectLifecycleList rows={projectLifecycleRows} onSelectProject={setSelectedFile} onSelectFile={setSelectedFile} onCreateCloseoutPack={handleCreateCloseoutPack} onCreateCloseoutExport={handleCreateCloseoutExport} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ClientList clientsWithProjects={workspaceClients} onCreateClient={onCreateClient} onCreateProject={onCreateProject} onSelectClient={setSelectedFile} />
