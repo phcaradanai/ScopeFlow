@@ -8,6 +8,7 @@ import { generateDemoWorkspace } from '../lib/demo-generator';
 import { generateCompletedDemoFlow } from '../lib/demo-flow-generator';
 import { openPath } from '@tauri-apps/plugin-opener';
 import YAML from 'yaml';
+import { buildCloseoutExportConfirmationMessage, buildCloseoutPackConfirmationMessage } from '../lib/ai/closeout/closeoutActionConfirmation';
 import { createCloseoutApplyPlan } from '../lib/ai/closeout/closeoutApplyPlan';
 import { createCloseoutExportApplyPlan } from '../lib/ai/closeout/closeoutExportApplyPlan';
 import { buildCloseoutPackageExport } from '../lib/ai/closeout/closeoutExport';
@@ -299,6 +300,8 @@ export default function WorkspaceOverview({
         alert(`ยังสร้าง Closeout Pack ไม่ได้:\n- ${plan.warnings.join('\n- ')}`);
         return;
       }
+      const confirmed = window.confirm(buildCloseoutPackConfirmationMessage(row.projectName, row.projectPath, plan.files));
+      if (!confirmed) return;
       for (const file of plan.files) {
         await createDocument(file.path, file.markdown);
       }
@@ -331,6 +334,8 @@ export default function WorkspaceOverview({
         alert(`ยังสร้าง Closeout Export Index ไม่ได้:\n- ${plan.warnings.join('\n- ')}`);
         return;
       }
+      const confirmed = window.confirm(buildCloseoutExportConfirmationMessage(row.projectName, row.projectPath, plan.path));
+      if (!confirmed) return;
       await createDocument(plan.path, plan.markdown);
       syncLifecycleRowAfterFiles(row, [{ path: plan.path, markdown: plan.markdown }]);
       await refreshTree();
