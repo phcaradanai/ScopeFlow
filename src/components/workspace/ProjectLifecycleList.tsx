@@ -12,9 +12,11 @@ import {
   type CloseoutDeliveryStatusType,
 } from '../../lib/ai/closeout/closeoutDeliveryStatus';
 import { getCloseoutFinalizedGuard } from '../../lib/ai/closeout/closeoutFinalizedGuard';
-import { getCloseoutFinalStatus } from '../../lib/ai/closeout/closeoutFinalStatus';
+import { getCloseoutFinalStatus, type CloseoutFinalStatus } from '../../lib/ai/closeout/closeoutFinalStatus';
+import { buildCloseoutReopenRequest, canCreateCloseoutReopenRequest } from '../../lib/ai/closeout/closeoutReopenRequest';
 import { getCloseoutActionAvailability, getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget';
+import { createDocument, pathExists } from '../../lib/tauri-commands';
 import type { DocumentLifecycleSummary, LifecycleItemStatus } from '../../lib/ai/document-lifecycle/documentLifecycle';
 import type { DocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
 import { formatProjectLifecycleActionLogTime, type ProjectLifecycleActionLogEntry, type ProjectLifecycleActionLogType } from '../../lib/ai/document-lifecycle/documentLifecycleActionLog';
@@ -200,6 +202,28 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
       localStorage.setItem(deliveryStatusStorageKey, serializeCloseoutDeliveryStatuses(next));
       return next;
     });
+  };
+
+  const createReopenRequest = async (row: ProjectLifecycleRow, finalStatus: CloseoutFinalStatus) => {
+    if (!canCreateCloseoutReopenRequest(finalStatus)) {
+      alert('สร้าง Reopen / Change Request ได้เฉพาะ project ที่เป็น Finalized / Closed แล้วเท่านั้น');
+      return;
+    }
+    const reason = window.prompt('ระบุเหตุผลที่ต้อง reopen หลังปิดงานแล้ว เช่น ลูกค้าขอแก้หลัง sign-off');
+    if (reason === null) return;
+    const request = buildCloseoutReopenRequest({
+      project_name: row.projectName,
+      project_path: row.projectPath,
+      reason,
+    });
+    if (await pathExists(request.path)) {
+      alert(`มีไฟล์ reopen request นี้อยู่แล้ว:\n${request.path}`);
+      onSelectFile(request.path);
+      return;
+    }
+    await createDocument(request.path, request.markdown);
+    onSelectFile(request.path);
+    alert('สร้าง Reopen / Change Request แล้ว ระบบเปิดไฟล์ให้กรอกรายละเอียดต่อ');
   };
 
   const getFinalStatusKindForRow = (row: ProjectLifecycleRow) => {
@@ -536,6 +560,11 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                           <button type="button" onClick={() => recordDeliveryStatus(row, 'acceptance_received')} disabled={finalizedGuard.delivery_actions_disabled} title={finalizedGuard.lock_reason || undefined} className="btn btn-primary text-xs gap-2 shrink-0 disabled:opacity-50">
                             <CheckCircle2 className="w-3.5 h-3.5" /> Mark acceptance received
                           </button>
+                          {finalizedGuard.is_finalized && (
+                            <button type="button" onClick={() => createReopenRequest(row, finalStatus)} className="btn btn-outline text-xs gap-2 shrink-0">
+                              <FileOutput className="w-3.5 h-3.5" /> Create reopen / CR
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
