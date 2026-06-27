@@ -1,0 +1,116 @@
+import { useMemo, useState } from 'react';
+import { Clipboard, FileWarning, ShieldQuestion, TriangleAlert } from 'lucide-react';
+import type { ScopeBaselineFromQuote } from '../lib/ai/scope-baseline/scopeBaselineFromQuote';
+import { detectChangeRequest } from '../lib/ai/change-request/changeRequestDetection';
+import { buildChangeRequestDetectionMarkdown } from '../lib/ai/change-request/changeRequestMarkdown';
+
+interface ChangeRequestDetectionPanelProps {
+  baseline: ScopeBaselineFromQuote;
+}
+
+function decisionClass(decision: string) {
+  if (decision === 'likely_change_request') return 'border-error/30 bg-error/10 text-error';
+  if (decision === 'needs_review') return 'border-warning/30 bg-warning/10 text-warning';
+  return 'border-success/30 bg-success/10 text-success';
+}
+
+export default function ChangeRequestDetectionPanel({ baseline }: ChangeRequestDetectionPanelProps) {
+  const [newRequest, setNewRequest] = useState('');
+
+  const result = useMemo(() => detectChangeRequest({ new_request: newRequest, baseline }), [newRequest, baseline]);
+  const markdown = useMemo(() => buildChangeRequestDetectionMarkdown(newRequest, result), [newRequest, result]);
+
+  const copyMarkdown = async () => {
+    await navigator.clipboard.writeText(markdown);
+  };
+
+  return (
+    <div className="rounded-2xl border border-border bg-surface-2 overflow-hidden">
+      <div className="p-4 border-b border-border bg-surface-3 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-bold text-text flex items-center gap-2">
+            <ShieldQuestion className="w-4 h-4 text-primary" /> Change Request Detection
+          </h3>
+          <p className="text-xs text-text-muted mt-1">ตรวจคำขอใหม่ของลูกค้าเทียบกับ scope baseline ที่ approved แล้ว</p>
+        </div>
+        <div className={`px-3 py-2 rounded-xl border text-xs font-bold uppercase w-fit ${decisionClass(result.decision)}`}>
+          {result.decision}
+        </div>
+      </div>
+
+      <div className="p-4 grid grid-cols-1 xl:grid-cols-[0.85fr_1.15fr] gap-4">
+        <div className="rounded-xl border border-border bg-surface p-4">
+          <label className="text-xs font-bold text-text mb-1 block">New Customer Request</label>
+          <textarea
+            value={newRequest}
+            onChange={(event) => setNewRequest(event.target.value)}
+            placeholder="วางคำขอใหม่จากลูกค้า เช่น ขอเพิ่ม mobile app, ขอเพิ่ม payment gateway, ขอเพิ่ม dashboard..."
+            className="w-full min-h-[180px] bg-surface-2 border border-border rounded-lg px-3 py-2 text-xs text-text outline-none focus:border-primary resize-y"
+          />
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-xl border border-border bg-surface p-3">
+              <p className="text-[11px] text-text-muted">Change Request</p>
+              <p className={`text-lg font-bold ${result.is_change_request ? 'text-error' : 'text-success'}`}>{result.is_change_request ? 'yes' : 'no'}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-surface p-3">
+              <p className="text-[11px] text-text-muted">Impact</p>
+              <p className="text-lg font-bold text-text">{result.impact}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-surface p-3">
+              <p className="text-[11px] text-text-muted">Matches</p>
+              <p className="text-lg font-bold text-text">{result.matched.length}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-surface p-3">
+              <p className="text-[11px] text-text-muted">Warnings</p>
+              <p className={`text-lg font-bold ${result.warnings.length > 0 ? 'text-warning' : 'text-success'}`}>{result.warnings.length}</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-primary/20 bg-primary/10 p-3 text-xs text-text-muted leading-relaxed">
+            <FileWarning className="w-4 h-4 text-primary inline-block mr-1" />
+            {result.recommended_next_action}
+          </div>
+
+          {result.matched.length > 0 && (
+            <div className="rounded-xl border border-border bg-surface p-4">
+              <h4 className="text-xs font-bold text-text mb-2">Matched Baseline Items</h4>
+              <ul className="space-y-2 text-xs text-text-muted leading-relaxed list-disc pl-4">
+                {result.matched.map((match, index) => (
+                  <li key={`${match.source}-${index}`}>
+                    <span className="font-semibold text-text">{match.source}</span>: {match.matched_text}
+                    <p className="text-text-dim">{match.reason}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {result.warnings.length > 0 && (
+            <div className="rounded-xl border border-warning/20 bg-warning/10 p-4">
+              <h4 className="text-xs font-bold text-warning mb-2 flex items-center gap-2"><TriangleAlert className="w-4 h-4" /> Detection Warnings</h4>
+              <ul className="space-y-1 text-xs text-text-muted leading-relaxed list-disc pl-4">
+                {result.warnings.map(warning => <li key={warning}>{warning}</li>)}
+              </ul>
+            </div>
+          )}
+
+          <div className="rounded-xl border border-primary/20 bg-primary/10 overflow-hidden">
+            <div className="p-3 border-b border-primary/20 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+              <div>
+                <h4 className="text-xs font-bold text-primary-light">Change Request Detection Markdown</h4>
+                <p className="text-[11px] text-text-muted mt-1">copy รายงานนี้ไปใช้เปิด CR/DCR document ได้</p>
+              </div>
+              <button type="button" onClick={copyMarkdown} className="btn btn-outline text-xs gap-2 w-full md:w-auto">
+                <Clipboard className="w-4 h-4" /> Copy Detection
+              </button>
+            </div>
+            <pre className="whitespace-pre-wrap text-xs leading-relaxed text-text-muted font-mono p-3 max-h-[240px] overflow-y-auto">{markdown}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
