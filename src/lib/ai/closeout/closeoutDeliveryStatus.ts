@@ -1,4 +1,4 @@
-export type CloseoutDeliveryStatusType = 'package_sent' | 'pending_customer_acceptance';
+export type CloseoutDeliveryStatusType = 'package_sent' | 'pending_customer_acceptance' | 'acceptance_received';
 
 export interface CloseoutDeliveryStatusEntry {
   project_path: string;
@@ -7,7 +7,7 @@ export interface CloseoutDeliveryStatusEntry {
 }
 
 const DELIVERY_STATUS_PREFIX = 'scopeflow:closeout_delivery_status:';
-const DELIVERY_STATUS_TYPES: CloseoutDeliveryStatusType[] = ['package_sent', 'pending_customer_acceptance'];
+const DELIVERY_STATUS_TYPES: CloseoutDeliveryStatusType[] = ['package_sent', 'pending_customer_acceptance', 'acceptance_received'];
 
 export function getCloseoutDeliveryStatusStorageKey(workspacePath: string): string {
   return `${DELIVERY_STATUS_PREFIX}${workspacePath}`;
@@ -54,5 +54,6 @@ export function getCloseoutDeliveryStatus(entries: CloseoutDeliveryStatusEntry[]
 
 export function formatCloseoutDeliveryStatusLabel(status: CloseoutDeliveryStatusType): string {
   if (status === 'package_sent') return 'Package sent';
-  return 'Pending customer acceptance';
+  if (status === 'pending_customer_acceptance') return 'Pending customer acceptance';
+  return 'Acceptance received';
 }
