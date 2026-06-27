@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { addProjectLifecycleActionLogEntry, createProjectLifecycleActionLogEntry, formatProjectLifecycleActionLogTime } from '../documentLifecycleActionLog';
+import {
+  addProjectLifecycleActionLogEntry,
+  createProjectLifecycleActionLogEntry,
+  formatProjectLifecycleActionLogTime,
+  getProjectLifecycleActionLogStorageKey,
+  parseProjectLifecycleActionLogs,
+  serializeProjectLifecycleActionLogs,
+} from '../documentLifecycleActionLog';
 
 const projectPath = '/workspace/clients/client-1/projects/project-1';
 
@@ -11,6 +18,32 @@ describe('documentLifecycleActionLog', () => {
     expect(entry.type).toBe('created_closeout_pack');
     expect(entry.label).toBe('Created Closeout Pack');
     expect(entry.id).toContain('created_closeout_pack');
+  });
+
+  it('creates a workspace scoped localStorage key', () => {
+    expect(getProjectLifecycleActionLogStorageKey('/workspace/a')).toBe('scopeflow:lifecycle_action_log:/workspace/a');
+  });
+
+  it('serializes and parses action log entries', () => {
+    const entry = createProjectLifecycleActionLogEntry(projectPath, 'opened_export', '2026-06-27T12:00:00.000Z');
+    const raw = serializeProjectLifecycleActionLogs([entry]);
+    const parsed = parseProjectLifecycleActionLogs(raw);
+
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].type).toBe('opened_export');
+  });
+
+  it('returns an empty list for malformed stored data', () => {
+    expect(parseProjectLifecycleActionLogs('not-json')).toEqual([]);
+    expect(parseProjectLifecycleActionLogs('{"bad": true}')).toEqual([]);
+  });
+
+  it('filters malformed entries from stored data', () => {
+    const entry = createProjectLifecycleActionLogEntry(projectPath, 'opened_export', '2026-06-27T12:00:00.000Z');
+    const parsed = parseProjectLifecycleActionLogs(JSON.stringify([entry, { id: 'bad', type: 'unknown' }]));
+
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].id).toBe(entry.id);
   });
 
   it('deduplicates entries by id', () => {
