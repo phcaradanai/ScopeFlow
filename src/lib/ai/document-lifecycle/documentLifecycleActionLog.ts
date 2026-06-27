@@ -12,6 +12,18 @@ export interface ProjectLifecycleActionLogEntry {
   created_at: string;
 }
 
+const ACTION_LOG_PREFIX = 'scopeflow:lifecycle_action_log:';
+const ACTION_LOG_TYPES: ProjectLifecycleActionLogType[] = [
+  'created_closeout_pack',
+  'created_export_index',
+  'opened_closeout',
+  'opened_export',
+];
+
+export function getProjectLifecycleActionLogStorageKey(workspacePath: string): string {
+  return `${ACTION_LOG_PREFIX}${workspacePath}`;
+}
+
 export function createProjectLifecycleActionLogEntry(projectPath: string, type: ProjectLifecycleActionLogType, createdAt = new Date().toISOString()): ProjectLifecycleActionLogEntry {
   const labelByType: Record<ProjectLifecycleActionLogType, string> = {
     created_closeout_pack: 'Created Closeout Pack',
@@ -27,6 +39,34 @@ export function createProjectLifecycleActionLogEntry(projectPath: string, type: 
     label: labelByType[type],
     created_at: createdAt,
   };
+}
+
+function isActionLogEntry(value: unknown): value is ProjectLifecycleActionLogEntry {
+  if (!value || typeof value !== 'object') return false;
+  const entry = value as Partial<ProjectLifecycleActionLogEntry>;
+  return (
+    typeof entry.id === 'string' &&
+    typeof entry.project_path === 'string' &&
+    typeof entry.created_at === 'string' &&
+    typeof entry.label === 'string' &&
+    typeof entry.type === 'string' &&
+    ACTION_LOG_TYPES.includes(entry.type as ProjectLifecycleActionLogType)
+  );
+}
+
+export function parseProjectLifecycleActionLogs(raw: string | null): ProjectLifecycleActionLogEntry[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isActionLogEntry);
+  } catch {
+    return [];
+  }
+}
+
+export function serializeProjectLifecycleActionLogs(entries: ProjectLifecycleActionLogEntry[]): string {
+  return JSON.stringify(entries);
 }
 
 export function addProjectLifecycleActionLogEntry(entries: ProjectLifecycleActionLogEntry[], entry: ProjectLifecycleActionLogEntry, maxEntries = 20): ProjectLifecycleActionLogEntry[] {
