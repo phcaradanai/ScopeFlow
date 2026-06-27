@@ -8,6 +8,7 @@ interface QuotationDraftPanelProps {
   onApplyFinalQuoteSummary?: (markdown: string) => void;
   onApplyApprovalLock?: (markdown: string) => void;
   onApplyScopeBaseline?: (markdown: string) => void;
+  onApplyChangeRequestDraft?: (requestId: string, markdown: string) => void;
 }
 
 function statusClass(status: QuotationDraft['status']) {
@@ -21,7 +22,7 @@ function emptyAwareList(items: string[], empty: string) {
   return items.map(item => <li key={item}>{item}</li>);
 }
 
-export default function QuotationDraftPanel({ draft, onApplyFinalQuoteSummary, onApplyApprovalLock, onApplyScopeBaseline }: QuotationDraftPanelProps) {
+export default function QuotationDraftPanel({ draft, onApplyFinalQuoteSummary, onApplyApprovalLock, onApplyScopeBaseline, onApplyChangeRequestDraft }: QuotationDraftPanelProps) {
   return (
     <div className="rounded-2xl border border-border bg-surface-2 overflow-hidden">
       <div className="p-4 border-b border-border bg-surface-3 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
@@ -125,7 +126,7 @@ export default function QuotationDraftPanel({ draft, onApplyFinalQuoteSummary, o
       </div>
 
       <div className="px-4 pb-4 space-y-4">
-        <QuotationPriceInputPanel draft={draft} onApplyFinalQuoteSummary={onApplyFinalQuoteSummary} onApplyScopeBaseline={onApplyScopeBaseline} />
+        <QuotationPriceInputPanel draft={draft} onApplyFinalQuoteSummary={onApplyFinalQuoteSummary} onApplyScopeBaseline={onApplyScopeBaseline} onApplyChangeRequestDraft={onApplyChangeRequestDraft} />
         <QuotationApprovalPanel onApplyApprovalLock={onApplyApprovalLock} />
       </div>
     </div>
