@@ -24,10 +24,10 @@ export interface BriefScopeDraftInput {
 export interface BriefScopeDraftPack {
   briefMarkdown: string;
   scopeMarkdown: string;
-  quotationMarkdown: string;
+  quotationMarkdown?: string;
   suggestedBriefPath: string;
   suggestedScopePath: string;
-  suggestedQuotationPath: string;
+  suggestedQuotationPath?: string;
   missingInformation: string[];
   scopeRisks: string[];
   confidence: ScopeDigestOutput['confidence'];
