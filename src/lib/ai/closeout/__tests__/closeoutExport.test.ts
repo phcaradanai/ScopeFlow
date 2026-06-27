@@ -25,7 +25,7 @@ describe('closeoutExport', () => {
     expect(result.markdown).toContain('Export ID: **CLOSEOUT-EXPORT-001**');
     expect(result.markdown).toContain('Ready To Share: **yes**');
     expect(result.markdown).toContain('| closeout-summary.md | ready |');
-    expect(result.markdown).toContain('Status: signedoff').toBe(false);
+    expect(result.markdown).toContain('Acceptance Reference');
   });
 
   it('warns when a required closeout file is missing', () => {
