@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, FileSpreadsheet, ListChecks, ShieldCheck, WalletCards } from 'lucide-react';
 import type { QuotationDraft } from '../lib/ai/quotation/quotationDraft';
+import AcceptanceArtifactPanel from './AcceptanceArtifactPanel';
 import QuotationApprovalPanel from './QuotationApprovalPanel';
 import QuotationPriceInputPanel from './QuotationPriceInputPanel';
 
@@ -72,7 +73,7 @@ export default function QuotationDraftPanel({ draft, onApplyFinalQuoteSummary, o
             <div className="space-y-2">
               {draft.line_items.map((item, index) => (
                 <div key={`${item.title}-${index}`} className="rounded-lg border border-border bg-surface-2 p-3 text-xs text-text-muted leading-relaxed">
-                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-2">
+                  <div className="flex flex-col lg:items-start lg:justify-between gap-2">
                     <div>
                       <p className="font-semibold text-text">{index + 1}. {item.title}</p>
                       <p>{item.description}</p>
@@ -128,6 +129,7 @@ export default function QuotationDraftPanel({ draft, onApplyFinalQuoteSummary, o
       <div className="px-4 pb-4 space-y-4">
         <QuotationPriceInputPanel draft={draft} onApplyFinalQuoteSummary={onApplyFinalQuoteSummary} onApplyScopeBaseline={onApplyScopeBaseline} onApplyChangeRequestDraft={onApplyChangeRequestDraft} />
         <QuotationApprovalPanel onApplyApprovalLock={onApplyApprovalLock} />
+        <AcceptanceArtifactPanel />
       </div>
     </div>
   );
