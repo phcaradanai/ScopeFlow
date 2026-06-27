@@ -6,6 +6,8 @@ import { buildChangeRequestDetectionMarkdown } from '../lib/ai/change-request/ch
 import { buildChangeRequestDocument, buildChangeRequestDocumentMarkdown } from '../lib/ai/change-request/changeRequestDocument';
 import { evaluateChangeRequestApproval, type ChangeRequestApprovalStatus } from '../lib/ai/change-request/changeRequestApproval';
 import { injectChangeRequestApprovalMarkdown } from '../lib/ai/change-request/changeRequestApprovalMarkdown';
+import { buildChangeRequestBaseline } from '../lib/ai/change-request/changeRequestBaseline';
+import { injectChangeRequestBaselineMarkdown } from '../lib/ai/change-request/changeRequestBaselineMarkdown';
 
 interface ChangeRequestDetectionPanelProps {
   baseline: ScopeBaselineFromQuote;
@@ -55,13 +57,22 @@ export default function ChangeRequestDetectionPanel({ baseline, onApplyChangeReq
     () => injectChangeRequestApprovalMarkdown(crDocumentMarkdown, approval),
     [crDocumentMarkdown, approval]
   );
+  const changeBaseline = useMemo(() => buildChangeRequestBaseline({
+    source_change_request_path: `changes/${crDocument.request_id}-draft.md`,
+    document: crDocument,
+    approval,
+  }), [crDocument, approval]);
+  const crDocumentWithBaselineMarkdown = useMemo(
+    () => injectChangeRequestBaselineMarkdown(crDocumentWithApprovalMarkdown, changeBaseline),
+    [crDocumentWithApprovalMarkdown, changeBaseline]
+  );
 
   const copyMarkdown = async () => {
     await navigator.clipboard.writeText(markdown);
   };
 
   const copyCrDocumentMarkdown = async () => {
-    await navigator.clipboard.writeText(crDocumentWithApprovalMarkdown);
+    await navigator.clipboard.writeText(crDocumentWithBaselineMarkdown);
   };
 
   return (
@@ -155,22 +166,22 @@ export default function ChangeRequestDetectionPanel({ baseline, onApplyChangeReq
               <p className={`text-lg font-bold ${result.is_change_request ? 'text-error' : 'text-success'}`}>{result.is_change_request ? 'yes' : 'no'}</p>
             </div>
             <div className="rounded-xl border border-border bg-surface p-3">
-              <p className="text-[11px] text-text-muted">Impact</p>
-              <p className="text-lg font-bold text-text">{result.impact}</p>
+              <p className="text-[11px] text-text-muted">Can Start</p>
+              <p className={`text-lg font-bold ${approval.can_start_work ? 'text-success' : 'text-warning'}`}>{approval.can_start_work ? 'yes' : 'no'}</p>
             </div>
             <div className="rounded-xl border border-border bg-surface p-3">
               <p className="text-[11px] text-text-muted">CR Status</p>
               <p className={`text-sm font-bold ${crDocument.approval_required_before_work ? 'text-error' : 'text-success'}`}>{crDocument.status}</p>
             </div>
             <div className="rounded-xl border border-border bg-surface p-3">
-              <p className="text-[11px] text-text-muted">Can Start</p>
-              <p className={`text-lg font-bold ${approval.can_start_work ? 'text-success' : 'text-warning'}`}>{approval.can_start_work ? 'yes' : 'no'}</p>
+              <p className="text-[11px] text-text-muted">Change Baseline</p>
+              <p className={`text-sm font-bold ${changeBaseline.status === 'baseline_ready' ? 'text-success' : 'text-warning'}`}>{changeBaseline.status}</p>
             </div>
           </div>
 
           <div className="rounded-xl border border-primary/20 bg-primary/10 p-3 text-xs text-text-muted leading-relaxed">
             <FileWarning className="w-4 h-4 text-primary inline-block mr-1" />
-            {approval.recommended_next_action}
+            {changeBaseline.recommended_next_action}
           </div>
 
           {result.matched.length > 0 && (
@@ -187,11 +198,11 @@ export default function ChangeRequestDetectionPanel({ baseline, onApplyChangeReq
             </div>
           )}
 
-          {approval.warnings.length > 0 && (
+          {[...approval.warnings, ...changeBaseline.warnings].length > 0 && (
             <div className="rounded-xl border border-warning/20 bg-warning/10 p-4">
-              <h4 className="text-xs font-bold text-warning mb-2 flex items-center gap-2"><TriangleAlert className="w-4 h-4" /> Approval Warnings</h4>
+              <h4 className="text-xs font-bold text-warning mb-2 flex items-center gap-2"><TriangleAlert className="w-4 h-4" /> Approval / Baseline Warnings</h4>
               <ul className="space-y-1 text-xs text-text-muted leading-relaxed list-disc pl-4">
-                {approval.warnings.map(warning => <li key={warning}>{warning}</li>)}
+                {[...approval.warnings, ...changeBaseline.warnings].map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}
               </ul>
             </div>
           )}
@@ -199,12 +210,12 @@ export default function ChangeRequestDetectionPanel({ baseline, onApplyChangeReq
           <div className="rounded-xl border border-primary/20 bg-primary/10 overflow-hidden">
             <div className="p-3 border-b border-primary/20 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               <div>
-                <h4 className="text-xs font-bold text-primary-light">Change Request / DCR Draft + Approval Lock</h4>
-                <p className="text-[11px] text-text-muted mt-1">copy หรือ apply เอกสารนี้เป็น CR/DCR draft พร้อม approval gate</p>
+                <h4 className="text-xs font-bold text-primary-light">Change Request / DCR Draft + Change Baseline</h4>
+                <p className="text-[11px] text-text-muted mt-1">copy หรือ apply เอกสารนี้เป็น CR/DCR draft พร้อม approval lock และ change baseline</p>
               </div>
               <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                 {onApplyChangeRequestDraft && (
-                  <button type="button" onClick={() => onApplyChangeRequestDraft(crDocument.request_id, crDocumentWithApprovalMarkdown)} className="btn btn-primary text-xs gap-2 w-full md:w-auto">
+                  <button type="button" onClick={() => onApplyChangeRequestDraft(crDocument.request_id, crDocumentWithBaselineMarkdown)} className="btn btn-primary text-xs gap-2 w-full md:w-auto">
                     <FileInput className="w-4 h-4" /> Apply CR/DCR Draft
                   </button>
                 )}
@@ -216,7 +227,7 @@ export default function ChangeRequestDetectionPanel({ baseline, onApplyChangeReq
                 </button>
               </div>
             </div>
-            <pre className="whitespace-pre-wrap text-xs leading-relaxed text-text-muted font-mono p-3 max-h-[240px] overflow-y-auto">{crDocumentWithApprovalMarkdown}</pre>
+            <pre className="whitespace-pre-wrap text-xs leading-relaxed text-text-muted font-mono p-3 max-h-[240px] overflow-y-auto">{crDocumentWithBaselineMarkdown}</pre>
           </div>
         </div>
       </div>
