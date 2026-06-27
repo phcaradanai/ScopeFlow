@@ -32,24 +32,28 @@ describe('closeoutDeliveryStatus', () => {
   it('filters malformed entries', () => {
     const parsed = parseCloseoutDeliveryStatuses(JSON.stringify([
       { project_path: projectPath, status: 'package_sent', updated_at: '2026-01-01T00:00:00.000Z' },
+      { project_path: projectPath, status: 'acceptance_received', updated_at: '2026-01-02T00:00:00.000Z' },
       { project_path: projectPath, status: 'invalid', updated_at: '2026-01-01T00:00:00.000Z' },
       { status: 'package_sent' },
     ]));
 
-    expect(parsed).toHaveLength(1);
+    expect(parsed).toHaveLength(2);
     expect(parsed[0].status).toBe('package_sent');
+    expect(parsed[1].status).toBe('acceptance_received');
   });
 
   it('sets only the latest status per project', () => {
     const sent = setCloseoutDeliveryStatus([], projectPath, 'package_sent', '2026-01-01T00:00:00.000Z');
     const pending = setCloseoutDeliveryStatus(sent, projectPath, 'pending_customer_acceptance', '2026-01-02T00:00:00.000Z');
+    const accepted = setCloseoutDeliveryStatus(pending, projectPath, 'acceptance_received', '2026-01-03T00:00:00.000Z');
 
-    expect(pending).toHaveLength(1);
-    expect(getCloseoutDeliveryStatus(pending, projectPath)?.status).toBe('pending_customer_acceptance');
+    expect(accepted).toHaveLength(1);
+    expect(getCloseoutDeliveryStatus(accepted, projectPath)?.status).toBe('acceptance_received');
   });
 
   it('formats user-facing labels', () => {
     expect(formatCloseoutDeliveryStatusLabel('package_sent')).toBe('Package sent');
     expect(formatCloseoutDeliveryStatusLabel('pending_customer_acceptance')).toBe('Pending customer acceptance');
+    expect(formatCloseoutDeliveryStatusLabel('acceptance_received')).toBe('Acceptance received');
   });
 });
