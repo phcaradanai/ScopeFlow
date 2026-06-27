@@ -9,6 +9,7 @@ import ScopeDigestPreview from './ScopeDigestPreview';
 import ScopeControlPanel from './ScopeControlPanel';
 import ScopeClosurePanel from './ScopeClosurePanel';
 import CustomerQuestionPanel from './CustomerQuestionPanel';
+import CustomerAnswerPanel from './CustomerAnswerPanel';
 import { processScopeDigest } from '../lib/ai/scope-digest/scopeDigestSkill';
 import { ScopeDigestOutput } from '../lib/ai/scope-digest/scopeDigestSchema';
 import { processScopeControl } from '../lib/ai/scope-control/scopeControlSkill';
@@ -468,7 +469,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
                 <Sparkles className="w-5 h-5 text-primary" />
                 ตรวจ Draft ก่อนสร้างเอกสารจริง
               </h2>
-              <p className="modal-subtitle">ตรวจ Scope Control, Scope Closure และคำถามลูกค้าก่อนแก้ Brief/Scope และกด Apply</p>
+              <p className="modal-subtitle">ตรวจ Scope Control, Scope Closure, คำถามลูกค้า และทดลอง apply คำตอบก่อนสร้างเอกสารจริง</p>
             </div>
             <button onClick={onClose} className="modal-close">
               <X className="w-5 h-5" />
@@ -480,6 +481,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
             {scopeControl && <ScopeControlPanel control={scopeControl} />}
             {scopeClosure && <ScopeClosurePanel gate={scopeClosure} />}
             {customerQuestionPack && <CustomerQuestionPanel pack={customerQuestionPack} />}
+            {customerQuestionPack && scopeClosure && <CustomerAnswerPanel questionPack={customerQuestionPack} gate={scopeClosure} />}
             {plannedActions.length > 0 && (
               <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4">
                 <h3 className="text-sm font-bold text-primary-light mb-2">สิ่งที่จะเกิดขึ้นเมื่อกด Apply</h3>
