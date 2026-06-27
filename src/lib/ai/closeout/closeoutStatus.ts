@@ -9,6 +9,14 @@ export interface CloseoutStatusSummary {
   recommended_next_action: string;
 }
 
+export interface CloseoutEvidenceSummary {
+  required_file_count: number;
+  found_file_count: number;
+  missing_files: string[];
+  closeout_evidence_label: string;
+  export_evidence_label: string;
+}
+
 const REQUIRED_CLOSEOUT_FILES = [
   'closeout-summary.md',
   'delivery-evidence.md',
@@ -72,5 +80,16 @@ export function getCloseoutStatusSummary(files: LifecycleScanFile[]): CloseoutSt
     export_ready: false,
     status_label: 'not_started',
     recommended_next_action: 'ยังไม่มี Closeout Pack ให้สร้าง Closeout Pack หลัง Can close เป็น yes',
+  };
+}
+
+export function getCloseoutEvidenceSummary(status: CloseoutStatusSummary): CloseoutEvidenceSummary {
+  const foundFileCount = REQUIRED_CLOSEOUT_FILES.length - status.closeout_pack_missing_files.length;
+  return {
+    required_file_count: REQUIRED_CLOSEOUT_FILES.length,
+    found_file_count: foundFileCount,
+    missing_files: status.closeout_pack_missing_files,
+    closeout_evidence_label: `Closeout files: ${foundFileCount}/${REQUIRED_CLOSEOUT_FILES.length}`,
+    export_evidence_label: status.export_index_created ? 'Export index: found' : 'Export index: missing',
   };
 }
