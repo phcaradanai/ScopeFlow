@@ -1,7 +1,7 @@
 import type { BriefScopeDraftPack } from './briefScopeDraftAssistant';
-import type { DraftApplyPlan } from './draftApplyPlan';
+import type { DraftApplyDocument, DraftApplyPlan } from './draftApplyPlan';
 
-export type DraftReviewDocumentType = 'brief' | 'scope' | 'quotation';
+export type DraftReviewDocumentType = 'brief' | 'scope' | 'quotation' | 'change_request';
 
 export interface DraftReviewDocument {
   id: DraftReviewDocumentType;
@@ -76,6 +76,32 @@ export function updateDraftReviewDocument(
       ...session.applyPlan,
       documents: session.applyPlan.documents.map(doc => doc.id === documentId ? { ...doc, markdown } : doc),
     } : undefined,
+  };
+}
+
+export function upsertDraftReviewDocument(session: DraftReviewSession, document: DraftApplyDocument): DraftReviewSession {
+  const reviewDocument: DraftReviewDocument = {
+    ...document,
+    originalMarkdown: document.markdown,
+    required: true,
+  };
+
+  const hasExisting = session.documents.some(doc => doc.id === document.id);
+  const documents = hasExisting
+    ? session.documents.map(doc => doc.id === document.id ? { ...doc, ...reviewDocument } : doc)
+    : [...session.documents, reviewDocument];
+
+  const applyPlan = session.applyPlan ? {
+    ...session.applyPlan,
+    documents: session.applyPlan.documents.some(doc => doc.id === document.id)
+      ? session.applyPlan.documents.map(doc => doc.id === document.id ? document : doc)
+      : [...session.applyPlan.documents, document],
+  } : undefined;
+
+  return {
+    ...session,
+    documents,
+    applyPlan,
   };
 }
 
