@@ -33,7 +33,7 @@ function normalize(value: string): string {
 
 function tokenize(value: string): string[] {
   return normalize(value)
-    .replace(/[|\\/()[\]{}.,:;!?"'`*_#>-]/g, ' ')
+    .replace(/[|\/()[\]{}.,:;!?"'`*_#>-]/g, ' ')
     .split(/\s+/)
     .map(token => token.trim())
     .filter(token => token.length >= 3);
@@ -93,7 +93,8 @@ export function detectChangeRequest(input: ChangeRequestDetectionInput): ChangeR
     warnings.push('ยังไม่มีคำขอใหม่สำหรับตรวจ change request');
   }
 
-  if (input.baseline.status !== 'baseline_ready') {
+  const baselineReady = input.baseline.status === 'baseline_ready';
+  if (!baselineReady) {
     warnings.push('Scope Baseline ยังไม่พร้อมใช้ตรวจ change request');
   }
 
@@ -106,23 +107,27 @@ export function detectChangeRequest(input: ChangeRequestDetectionInput): ChangeR
   const expansionKeywords = ['เพิ่ม', 'ใหม่', 'อีก', 'เสริม', 'change', 'เพิ่มเติม', 'เพิ่มหน้า', 'เพิ่มระบบ', 'integrate', 'integration', 'เชื่อมต่อ', 'api', 'mobile app', 'report', 'dashboard', 'payment', 'gateway'];
   const soundsLikeExpansion = expansionKeywords.some(keyword => text.includes(keyword));
 
-  const isChangeRequest = hasExclusion || hasCrTrigger || hasLockedItem || (soundsLikeExpansion && matched.length > 0);
-  const decision: ChangeRequestDecision = isChangeRequest
-    ? 'likely_change_request'
-    : matched.length > 0 || warnings.length > 0
-      ? 'needs_review'
+  const isChangeRequest = baselineReady && (hasExclusion || hasCrTrigger || hasLockedItem || (soundsLikeExpansion && matched.length > 0));
+  const decision: ChangeRequestDecision = !baselineReady || !text
+    ? 'needs_review'
+    : isChangeRequest
+      ? 'likely_change_request'
       : 'in_scope';
 
-  const impact: ChangeRequestImpact = hasExclusion || hasCrTrigger
-    ? 'high'
-    : hasLockedItem || hasAcceptanceImpact
-      ? 'medium'
-      : matched.length > 0
-        ? 'low'
-        : 'none';
+  const impact: ChangeRequestImpact = !baselineReady
+    ? 'medium'
+    : hasExclusion || hasCrTrigger
+      ? 'high'
+      : hasLockedItem || (hasAcceptanceImpact && soundsLikeExpansion)
+        ? 'medium'
+        : matched.length > 0
+          ? 'low'
+          : 'none';
 
   const possibleInScopeReasons = decision === 'in_scope'
-    ? ['ไม่พบคำที่ชนกับ exclusions, CR triggers, locked items หรือ acceptance criteria ที่ล็อกไว้']
+    ? matched.length > 0
+      ? ['พบคำที่เกี่ยวข้องกับ baseline แต่ไม่พบ exclusion, CR trigger หรือรายการล็อกที่ทำให้เป็น change request']
+      : ['ไม่พบคำที่ชนกับ exclusions, CR triggers, locked items หรือ acceptance criteria ที่ล็อกไว้']
     : [];
 
   return {
