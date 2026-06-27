@@ -30,6 +30,10 @@ describe('closeoutReopenRequest', () => {
     expect(request.markdown).toContain('# Reopen / Change Request — CRM Revamp');
     expect(request.markdown).toContain('Source status: Finalized / Closed');
     expect(request.markdown).toContain('Customer requested extra report after sign-off.');
+    expect(request.markdown).toContain('## Recommended action plan');
+    expect(request.markdown).toContain('Review reopen request');
+    expect(request.markdown).toContain('Decide: reject / quote CR / create new scope');
+    expect(request.markdown).toContain('Protect accepted baseline');
     expect(request.markdown).toContain('not a silent edit');
   });
 
