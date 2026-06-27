@@ -8,7 +8,6 @@ import { generateDemoWorkspace } from '../lib/demo-generator';
 import { generateCompletedDemoFlow } from '../lib/demo-flow-generator';
 import { openPath } from '@tauri-apps/plugin-opener';
 import YAML from 'yaml';
-import { buildCloseoutExportConfirmationMessage, buildCloseoutPackConfirmationMessage } from '../lib/ai/closeout/closeoutActionConfirmation';
 import { createCloseoutApplyPlan } from '../lib/ai/closeout/closeoutApplyPlan';
 import { createCloseoutExportApplyPlan } from '../lib/ai/closeout/closeoutExportApplyPlan';
 import { buildCloseoutPackageExport } from '../lib/ai/closeout/closeoutExport';
@@ -61,6 +60,25 @@ interface LifecycleNextActionFocus {
   projectPath: string;
 }
 
+interface PendingLifecycleActionFile {
+  path: string;
+  markdown: string;
+}
+
+interface PendingLifecycleAction {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  successAlert: string;
+  successTitle: string;
+  successDescription: string;
+  row: ProjectLifecycleRow;
+  files: PendingLifecycleActionFile[];
+  primaryPath: string;
+  actionType: ProjectLifecycleActionLogType;
+  focusFilter: LifecycleNextActionFocus['filter'];
+}
+
 function refreshLifecycleRow(row: ProjectLifecycleRow, nextScanFiles: LifecycleScanFile[]): ProjectLifecycleRow {
   const lifecycleInput = scanDocumentLifecycleFromFiles(nextScanFiles);
   const summary = buildDocumentLifecycleSummary(lifecycleInput);
@@ -92,6 +110,15 @@ function mergeLifecycleScanFiles(existing: LifecycleScanFile[], added: Lifecycle
   return Array.from(byPath.values());
 }
 
+function relativeProjectPath(projectPath: string, filePath: string): string {
+  const normalizedProjectPath = projectPath.replace(/\\/g, '/');
+  const normalizedFilePath = filePath.replace(/\\/g, '/');
+  if (normalizedFilePath.startsWith(`${normalizedProjectPath}/`)) {
+    return normalizedFilePath.slice(normalizedProjectPath.length + 1);
+  }
+  return normalizedFilePath;
+}
+
 export default function WorkspaceOverview({
   onCreateClient,
   onRunHealthCheck,
@@ -108,6 +135,8 @@ export default function WorkspaceOverview({
   const [lifecycleActionLogs, setLifecycleActionLogs] = useState<ProjectLifecycleActionLogEntry[]>([]);
   const [lifecycleSyncStatus, setLifecycleSyncStatus] = useState<LifecycleSyncStatus | null>(null);
   const [nextActionFocus, setNextActionFocus] = useState<LifecycleNextActionFocus | null>(null);
+  const [pendingLifecycleAction, setPendingLifecycleAction] = useState<PendingLifecycleAction | null>(null);
+  const [submittingLifecycleAction, setSubmittingLifecycleAction] = useState(false);
 
   const [clientsCount, setClientsCount] = useState(0);
   const [projectsCount, setProjectsCount] = useState(0);
@@ -149,6 +178,7 @@ export default function WorkspaceOverview({
     setLifecycleActionLogs(parseProjectLifecycleActionLogs(localStorage.getItem(actionLogKey)));
     setLifecycleSyncStatus(null);
     setNextActionFocus(null);
+    setPendingLifecycleAction(null);
 
     async function loadWorkspaceInfo() {
       setLoading(true);
@@ -300,24 +330,21 @@ export default function WorkspaceOverview({
         alert(`ยังสร้าง Closeout Pack ไม่ได้:\n- ${plan.warnings.join('\n- ')}`);
         return;
       }
-      const confirmed = window.confirm(buildCloseoutPackConfirmationMessage(row.projectName, row.projectPath, plan.files));
-      if (!confirmed) return;
-      for (const file of plan.files) {
-        await createDocument(file.path, file.markdown);
-      }
-      const createdFiles = plan.files.map(file => ({ path: file.path, markdown: file.markdown }));
-      syncLifecycleRowAfterFiles(row, createdFiles);
-      await refreshTree();
-      setSelectedFile(plan.files[0].path);
-      recordLifecycleAction(row, 'created_closeout_pack');
-      setNextActionFocus({ filter: 'closeout_ready', projectPath: row.projectPath });
-      setLifecycleSyncStatus({
-        title: 'Closeout Pack created — Lifecycle updated',
-        description: `${row.projectName} ถูก sync จากไฟล์จริงแล้ว และระบบพาไปดู Closeout Ready อัตโนมัติ`,
+      setPendingLifecycleAction({
+        title: `สร้าง Closeout Pack สำหรับ ${row.projectName}`,
+        description: 'ตรวจรายการไฟล์ที่จะถูกสร้างก่อนยืนยัน ระบบจะยังไม่เขียนไฟล์จนกว่าจะกดยืนยัน',
+        confirmLabel: 'ยืนยันสร้าง Closeout Pack',
+        successAlert: 'สร้าง Closeout Pack สำเร็จแล้ว สถานะ Lifecycle ถูกอัปเดตแล้ว',
+        successTitle: 'Closeout Pack created — Lifecycle updated',
+        successDescription: `${row.projectName} ถูก sync จากไฟล์จริงแล้ว และระบบพาไปดู Closeout Ready อัตโนมัติ`,
+        row,
+        files: plan.files.map(file => ({ path: file.path, markdown: file.markdown })),
+        primaryPath: plan.files[0].path,
+        actionType: 'created_closeout_pack',
+        focusFilter: 'closeout_ready',
       });
-      alert('สร้าง Closeout Pack สำเร็จแล้ว สถานะ Lifecycle ถูกอัปเดตแล้ว');
     } catch (err) {
-      alert(`สร้าง Closeout Pack ไม่สำเร็จ: ${err}`);
+      alert(`เตรียมสร้าง Closeout Pack ไม่สำเร็จ: ${err}`);
     }
   };
 
@@ -334,21 +361,46 @@ export default function WorkspaceOverview({
         alert(`ยังสร้าง Closeout Export Index ไม่ได้:\n- ${plan.warnings.join('\n- ')}`);
         return;
       }
-      const confirmed = window.confirm(buildCloseoutExportConfirmationMessage(row.projectName, row.projectPath, plan.path));
-      if (!confirmed) return;
-      await createDocument(plan.path, plan.markdown);
-      syncLifecycleRowAfterFiles(row, [{ path: plan.path, markdown: plan.markdown }]);
-      await refreshTree();
-      setSelectedFile(plan.path);
-      recordLifecycleAction(row, 'created_export_index');
-      setNextActionFocus({ filter: 'export_ready', projectPath: row.projectPath });
-      setLifecycleSyncStatus({
-        title: 'Export Index created — Project moved to Export Ready',
-        description: `${row.projectName} ถูก sync จากไฟล์จริงแล้ว และระบบพาไปดู Export Ready อัตโนมัติ`,
+      setPendingLifecycleAction({
+        title: `สร้าง Closeout Export Index สำหรับ ${row.projectName}`,
+        description: 'ตรวจไฟล์ export index ที่จะถูกสร้างก่อนยืนยัน ระบบจะยังไม่เขียนไฟล์จนกว่าจะกดยืนยัน',
+        confirmLabel: 'ยืนยันสร้าง Export Index',
+        successAlert: 'สร้าง Closeout Export Index สำเร็จแล้ว สถานะ Lifecycle ถูกอัปเดตแล้ว',
+        successTitle: 'Export Index created — Project moved to Export Ready',
+        successDescription: `${row.projectName} ถูก sync จากไฟล์จริงแล้ว และระบบพาไปดู Export Ready อัตโนมัติ`,
+        row,
+        files: [{ path: plan.path, markdown: plan.markdown }],
+        primaryPath: plan.path,
+        actionType: 'created_export_index',
+        focusFilter: 'export_ready',
       });
-      alert('สร้าง Closeout Export Index สำเร็จแล้ว สถานะ Lifecycle ถูกอัปเดตแล้ว');
     } catch (err) {
-      alert(`สร้าง Closeout Export Index ไม่สำเร็จ: ${err}`);
+      alert(`เตรียมสร้าง Closeout Export Index ไม่สำเร็จ: ${err}`);
+    }
+  };
+
+  const executePendingLifecycleAction = async () => {
+    if (!pendingLifecycleAction) return;
+    try {
+      setSubmittingLifecycleAction(true);
+      for (const file of pendingLifecycleAction.files) {
+        await createDocument(file.path, file.markdown);
+      }
+      syncLifecycleRowAfterFiles(pendingLifecycleAction.row, pendingLifecycleAction.files);
+      await refreshTree();
+      setSelectedFile(pendingLifecycleAction.primaryPath);
+      recordLifecycleAction(pendingLifecycleAction.row, pendingLifecycleAction.actionType);
+      setNextActionFocus({ filter: pendingLifecycleAction.focusFilter, projectPath: pendingLifecycleAction.row.projectPath });
+      setLifecycleSyncStatus({
+        title: pendingLifecycleAction.successTitle,
+        description: pendingLifecycleAction.successDescription,
+      });
+      alert(pendingLifecycleAction.successAlert);
+      setPendingLifecycleAction(null);
+    } catch (err) {
+      alert(`สร้างไฟล์ไม่สำเร็จ: ${err}`);
+    } finally {
+      setSubmittingLifecycleAction(false);
     }
   };
 
@@ -485,6 +537,40 @@ export default function WorkspaceOverview({
       </div>
 
       <MaintenanceActions onCreateClient={onCreateClient} onRunHealthCheck={onRunHealthCheck} onBackupWorkspace={handleTriggerBackup} handleCreateDemo={handleCreateDemo} handleCreateCompleteDemoFlow={handleCreateCompleteDemoFlow} handleOpenWorkspaceFolder={handleOpenWorkspaceFolder} />
+
+      {pendingLifecycleAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-2xl rounded-3xl border border-border bg-surface shadow-2xl">
+            <div className="border-b border-border p-5">
+              <p className="text-sm font-bold text-text">{pendingLifecycleAction.title}</p>
+              <p className="text-xs text-text-muted mt-2 leading-relaxed">{pendingLifecycleAction.description}</p>
+            </div>
+            <div className="p-5 space-y-3">
+              <div className="rounded-2xl border border-primary/20 bg-primary/10 p-3">
+                <p className="text-[11px] font-bold text-primary-light uppercase tracking-wide">Files to create</p>
+                <div className="mt-3 space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {pendingLifecycleAction.files.map(file => (
+                    <div key={file.path} className="rounded-xl border border-border bg-surface-2 px-3 py-2">
+                      <p className="text-xs font-mono text-text break-all">{relativeProjectPath(pendingLifecycleAction.row.projectPath, file.path)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                ScopeFlow จะเขียนไฟล์จริงหลังจากกด “{pendingLifecycleAction.confirmLabel}” เท่านั้น หากกดยกเลิก จะไม่มีไฟล์ถูกสร้าง
+              </p>
+            </div>
+            <div className="flex flex-col md:flex-row md:justify-end gap-2 border-t border-border p-5">
+              <button type="button" disabled={submittingLifecycleAction} onClick={() => setPendingLifecycleAction(null)} className="btn btn-outline text-xs disabled:opacity-50">
+                ยกเลิก
+              </button>
+              <button type="button" disabled={submittingLifecycleAction} onClick={executePendingLifecycleAction} className="btn btn-primary text-xs disabled:opacity-50">
+                {submittingLifecycleAction ? 'กำลังสร้างไฟล์...' : pendingLifecycleAction.confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageShell>
   );
 }
