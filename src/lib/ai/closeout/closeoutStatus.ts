@@ -17,6 +17,11 @@ export interface CloseoutEvidenceSummary {
   export_evidence_label: string;
 }
 
+export interface CloseoutActionAvailability {
+  closeout_disabled_reason: string | null;
+  export_disabled_reason: string | null;
+}
+
 const REQUIRED_CLOSEOUT_FILES = [
   'closeout-summary.md',
   'delivery-evidence.md',
@@ -91,5 +96,26 @@ export function getCloseoutEvidenceSummary(status: CloseoutStatusSummary): Close
     missing_files: status.closeout_pack_missing_files,
     closeout_evidence_label: `Closeout files: ${foundFileCount}/${REQUIRED_CLOSEOUT_FILES.length}`,
     export_evidence_label: status.export_index_created ? 'Export index: found' : 'Export index: missing',
+  };
+}
+
+export function getCloseoutActionAvailability(canCloseWork: boolean, status: CloseoutStatusSummary): CloseoutActionAvailability {
+  let closeoutDisabledReason: string | null = null;
+  if (status.closeout_pack_created) {
+    closeoutDisabledReason = 'Closeout Pack ถูกสร้างแล้ว';
+  } else if (!canCloseWork) {
+    closeoutDisabledReason = 'ยังสร้าง Closeout Pack ไม่ได้ เพราะ Can close ยังเป็น no';
+  }
+
+  let exportDisabledReason: string | null = null;
+  if (status.export_index_created) {
+    exportDisabledReason = 'Export Index ถูกสร้างแล้ว';
+  } else if (!status.closeout_pack_created) {
+    exportDisabledReason = 'ยังสร้าง Export Index ไม่ได้ เพราะ Closeout Pack ยังไม่ครบ';
+  }
+
+  return {
+    closeout_disabled_reason: closeoutDisabledReason,
+    export_disabled_reason: exportDisabledReason,
   };
 }
