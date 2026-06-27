@@ -11,6 +11,7 @@ import ScopeClosurePanel from './ScopeClosurePanel';
 import CustomerQuestionPanel from './CustomerQuestionPanel';
 import CustomerAnswerPanel from './CustomerAnswerPanel';
 import QuoteReadinessPanel from './QuoteReadinessPanel';
+import QuotationDraftPanel from './QuotationDraftPanel';
 import { processScopeDigest } from '../lib/ai/scope-digest/scopeDigestSkill';
 import { ScopeDigestOutput } from '../lib/ai/scope-digest/scopeDigestSchema';
 import { processScopeControl } from '../lib/ai/scope-control/scopeControlSkill';
@@ -18,6 +19,7 @@ import type { ScopeControlOutput } from '../lib/ai/scope-control/scopeControlSch
 import { evaluateScopeClosureGate, type ScopeClosureGateResult } from '../lib/ai/scope-closure/scopeClosureGate';
 import { buildCustomerQuestionPack, type CustomerQuestionPack } from '../lib/ai/scope-closure/customerQuestionLoop';
 import { buildQuoteReadinessBrief, type QuoteReadinessBrief } from '../lib/ai/quotation-readiness/quoteReadinessBridge';
+import { buildQuotationDraft, type QuotationDraft } from '../lib/ai/quotation/quotationDraft';
 import { buildBriefScopeDraftPack } from '../lib/ai/draft-assistant/briefScopeDraftAssistant';
 import { createDraftApplyPlan, summarizeDraftApplyPlan, validateDraftApplyPlan, type DraftApplyProjectTarget } from '../lib/ai/draft-assistant/draftApplyPlan';
 import {
@@ -71,6 +73,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
   const [scopeClosure, setScopeClosure] = useState<ScopeClosureGateResult | null>(null);
   const [customerQuestionPack, setCustomerQuestionPack] = useState<CustomerQuestionPack | null>(null);
   const [quoteReadiness, setQuoteReadiness] = useState<QuoteReadinessBrief | null>(null);
+  const [quotationDraft, setQuotationDraft] = useState<QuotationDraft | null>(null);
   const [draftReview, setDraftReview] = useState<DraftReviewSession | null>(null);
   const [conflictPath, setConflictPath] = useState<string | null>(null);
   const [conflictProjectPath, setConflictProjectPath] = useState<string | null>(null);
@@ -291,10 +294,12 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
       const closure = evaluateScopeClosureGate({ scopeControl: control });
       const questionPack = buildCustomerQuestionPack(closure, target.projectName);
       const quoteBrief = buildQuoteReadinessBrief(control, closure);
+      const quotation = buildQuotationDraft(target.projectName, quoteBrief);
       setScopeControl(control);
       setScopeClosure(closure);
       setCustomerQuestionPack(questionPack);
       setQuoteReadiness(quoteBrief);
+      setQuotationDraft(quotation);
       setDraftReview(createDraftReviewSession(target.projectPath, draftPack, applyPlan));
       setSaving(false);
     } catch (err) {
@@ -356,8 +361,9 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
       }
 
       await refreshTree();
+      const quotationDoc = applyPlan.documents.find(doc => doc.id === 'quotation');
       const scopeDoc = applyPlan.documents.find(doc => doc.id === 'scope');
-      setSelectedFile(scopeDoc?.path || applyPlan.documents[0].path);
+      setSelectedFile(quotationDoc?.path || scopeDoc?.path || applyPlan.documents[0].path);
       onClose();
     } catch (err) {
       setError(String(err));
@@ -474,7 +480,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
                 <Sparkles className="w-5 h-5 text-primary" />
                 ตรวจ Draft ก่อนสร้างเอกสารจริง
               </h2>
-              <p className="modal-subtitle">ตรวจ Scope Control, Scope Closure, คำถามลูกค้า, คำตอบลูกค้า และความพร้อมก่อนทำใบเสนอราคา</p>
+              <p className="modal-subtitle">ตรวจ Scope Control, Scope Closure, คำถามลูกค้า, คำตอบลูกค้า และ quotation draft ก่อนสร้างเอกสารจริง</p>
             </div>
             <button onClick={onClose} className="modal-close">
               <X className="w-5 h-5" />
@@ -488,6 +494,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
             {customerQuestionPack && <CustomerQuestionPanel pack={customerQuestionPack} />}
             {customerQuestionPack && scopeClosure && <CustomerAnswerPanel questionPack={customerQuestionPack} gate={scopeClosure} />}
             {quoteReadiness && <QuoteReadinessPanel brief={quoteReadiness} />}
+            {quotationDraft && <QuotationDraftPanel draft={quotationDraft} />}
             {plannedActions.length > 0 && (
               <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4">
                 <h3 className="text-sm font-bold text-primary-light mb-2">สิ่งที่จะเกิดขึ้นเมื่อกด Apply</h3>
@@ -527,7 +534,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
           </div>
 
           <div className="modal-footer flex-col sm:flex-row gap-3 justify-between">
-            <button type="button" onClick={() => { setDraftReview(null); setScopeControl(null); setScopeClosure(null); setCustomerQuestionPack(null); setQuoteReadiness(null); }} className="btn btn-ghost">
+            <button type="button" onClick={() => { setDraftReview(null); setScopeControl(null); setScopeClosure(null); setCustomerQuestionPack(null); setQuoteReadiness(null); setQuotationDraft(null); }} className="btn btn-ghost">
               กลับไปแก้คำขอ
             </button>
             <div className="flex gap-3 flex-wrap justify-end">
