@@ -11,6 +11,7 @@ import {
   type CloseoutDeliveryStatusEntry,
   type CloseoutDeliveryStatusType,
 } from '../../lib/ai/closeout/closeoutDeliveryStatus';
+import { getCloseoutFinalizedGuard } from '../../lib/ai/closeout/closeoutFinalizedGuard';
 import { getCloseoutFinalStatus } from '../../lib/ai/closeout/closeoutFinalStatus';
 import { getCloseoutActionAvailability, getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget';
@@ -341,6 +342,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
             const deliveryChecklist = getCloseoutDeliveryChecklist(closeoutStatus);
             const savedDeliveryStatus = getCloseoutDeliveryStatus(deliveryStatuses, row.projectPath);
             const finalStatus = getCloseoutFinalStatus(closeoutStatus, savedDeliveryStatus);
+            const finalizedGuard = getCloseoutFinalizedGuard(finalStatus);
             const packageSent = savedDeliveryStatus?.status === 'package_sent' || savedDeliveryStatus?.status === 'pending_customer_acceptance' || savedDeliveryStatus?.status === 'acceptance_received';
             const pendingAcceptance = savedDeliveryStatus?.status === 'pending_customer_acceptance' || savedDeliveryStatus?.status === 'acceptance_received';
             const deliveryItems = deliveryChecklist.items.map(item => {
@@ -418,6 +420,9 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                     <p className="text-[10px] font-bold uppercase tracking-wide text-text-muted mb-1">Final close status</p>
                     <p className="text-xs font-bold text-text">{finalStatus.label}</p>
                     <p className="text-[10px] text-text-muted mt-1 leading-relaxed">{finalStatus.description}</p>
+                    {finalizedGuard.lock_reason && (
+                      <p className="mt-2 rounded-lg border border-success/20 bg-success/10 px-2 py-1.5 text-[10px] text-success leading-relaxed">{finalizedGuard.lock_reason}</p>
+                    )}
                   </div>
 
                   <p className="text-xs text-text-muted leading-relaxed">
@@ -517,16 +522,21 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                       ))}
                     </div>
                     {deliveryChecklist.ready_for_delivery && (
-                      <div className="flex flex-wrap gap-2 mt-3 border-t border-success/10 pt-3">
-                        <button type="button" onClick={() => recordDeliveryStatus(row, 'package_sent')} className="btn btn-outline text-xs gap-2 shrink-0">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Mark package sent
-                        </button>
-                        <button type="button" onClick={() => recordDeliveryStatus(row, 'pending_customer_acceptance')} className="btn btn-outline text-xs gap-2 shrink-0">
-                          <FileClock className="w-3.5 h-3.5" /> Mark pending customer acceptance
-                        </button>
-                        <button type="button" onClick={() => recordDeliveryStatus(row, 'acceptance_received')} className="btn btn-primary text-xs gap-2 shrink-0">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Mark acceptance received
-                        </button>
+                      <div className="flex flex-col gap-2 mt-3 border-t border-success/10 pt-3">
+                        {finalizedGuard.lock_reason && (
+                          <p className="text-[10px] text-success leading-relaxed">{finalizedGuard.lock_reason}</p>
+                        )}
+                        <div className="flex flex-wrap gap-2">
+                          <button type="button" onClick={() => recordDeliveryStatus(row, 'package_sent')} disabled={finalizedGuard.delivery_actions_disabled} title={finalizedGuard.lock_reason || undefined} className="btn btn-outline text-xs gap-2 shrink-0 disabled:opacity-50">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Mark package sent
+                          </button>
+                          <button type="button" onClick={() => recordDeliveryStatus(row, 'pending_customer_acceptance')} disabled={finalizedGuard.delivery_actions_disabled} title={finalizedGuard.lock_reason || undefined} className="btn btn-outline text-xs gap-2 shrink-0 disabled:opacity-50">
+                            <FileClock className="w-3.5 h-3.5" /> Mark pending customer acceptance
+                          </button>
+                          <button type="button" onClick={() => recordDeliveryStatus(row, 'acceptance_received')} disabled={finalizedGuard.delivery_actions_disabled} title={finalizedGuard.lock_reason || undefined} className="btn btn-primary text-xs gap-2 shrink-0 disabled:opacity-50">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Mark acceptance received
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
