@@ -85,9 +85,14 @@ export function buildDocumentLifecycleSummary(input: DocumentLifecycleInput): Do
   const canCloseWork = Boolean(input.acceptanceSignedOff && blockedCount === 0);
   const firstBlocked = items.find(doc => doc.status === 'blocked');
   const firstMissingRequired = items.find(doc => doc.id !== 'change_request' && doc.id !== 'change_baseline' && doc.status === 'missing');
+  const acceptanceItem = items.find(doc => doc.id === 'acceptance');
   const nextAction = canCloseWork
     ? 'งานรอบนี้ปิดได้แล้ว เพราะ Acceptance ถูก sign-off และไม่มี blocker หลัก'
-    : firstBlocked?.recommended_next_action || firstMissingRequired?.recommended_next_action || items.find(doc => doc.status === 'draft')?.recommended_next_action || 'ตรวจเอกสารรอบนี้และอัปเดตสถานะให้ครบ';
+    : firstBlocked?.recommended_next_action
+      || firstMissingRequired?.recommended_next_action
+      || (input.acceptanceReadyForSignoff ? acceptanceItem?.recommended_next_action : undefined)
+      || items.find(doc => doc.status === 'draft')?.recommended_next_action
+      || 'ตรวจเอกสารรอบนี้และอัปเดตสถานะให้ครบ';
 
   return {
     items,
