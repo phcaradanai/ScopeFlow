@@ -11,7 +11,7 @@ export interface DraftApplyProjectTarget {
 export interface DraftApplyPlan {
   target: DraftApplyProjectTarget;
   documents: {
-    id: 'brief' | 'scope';
+    id: 'brief' | 'scope' | 'quotation';
     label: string;
     path: string;
     markdown: string;
@@ -33,6 +33,12 @@ export function createDraftApplyPlan(target: DraftApplyProjectTarget, pack: Brie
         label: 'Scope Draft',
         path: `${target.projectPath}/${pack.suggestedScopePath}`,
         markdown: pack.scopeMarkdown,
+      },
+      {
+        id: 'quotation',
+        label: 'Quotation Draft',
+        path: `${target.projectPath}/${pack.suggestedQuotationPath}`,
+        markdown: pack.quotationMarkdown,
       },
     ],
   };
