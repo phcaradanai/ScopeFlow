@@ -1,6 +1,7 @@
 import type { DocumentLifecycleActionTarget } from '../document-lifecycle/documentLifecycleAction';
 import type { CloseoutReopenRequestSummary } from './closeoutReopenDetection';
 import type { CloseoutLatestReopenDecisionSummary } from './closeoutReopenDecisionDetection';
+import { getCloseoutReopenSelectedDecisionGuidance } from './closeoutReopenSelectedDecisionGuidance';
 
 export function getCloseoutReopenActionTarget(
   baseTarget: DocumentLifecycleActionTarget,
@@ -9,10 +10,11 @@ export function getCloseoutReopenActionTarget(
 ): DocumentLifecycleActionTarget {
   if (!reopenSummary.latest_request_path) return baseTarget;
 
+  const selectedGuidance = getCloseoutReopenSelectedDecisionGuidance(decisionSummary);
   const decisionLabel = decisionSummary.is_ambiguous
     ? 'Fix reopen decision'
     : decisionSummary.has_decision
-      ? `Continue: ${decisionSummary.selected_decision_label}`
+      ? selectedGuidance.title
       : 'Review reopen request';
 
   return {
@@ -21,7 +23,7 @@ export function getCloseoutReopenActionTarget(
     reason: decisionSummary.is_ambiguous
       ? 'Reopen / CR decision has multiple selected options. Open the latest reopen request and fix it to exactly one decision.'
       : decisionSummary.has_decision
-        ? 'Reopen / CR has a selected decision. Open the latest reopen request and continue from that decision.'
+        ? selectedGuidance.recommended_next_action
         : 'Reopen / CR is pending decision. Open the latest reopen request and choose exactly one decision.',
   };
 }
