@@ -14,7 +14,15 @@ import { buildCloseoutPackageExport } from '../lib/ai/closeout/closeoutExport';
 import { buildProjectCloseoutPack } from '../lib/ai/closeout/closeoutPack';
 import { buildDocumentLifecycleSummary } from '../lib/ai/document-lifecycle/documentLifecycle';
 import { getDocumentLifecycleActionTarget } from '../lib/ai/document-lifecycle/documentLifecycleAction';
-import { addProjectLifecycleActionLogEntry, createProjectLifecycleActionLogEntry, type ProjectLifecycleActionLogEntry, type ProjectLifecycleActionLogType } from '../lib/ai/document-lifecycle/documentLifecycleActionLog';
+import {
+  addProjectLifecycleActionLogEntry,
+  createProjectLifecycleActionLogEntry,
+  getProjectLifecycleActionLogStorageKey,
+  parseProjectLifecycleActionLogs,
+  serializeProjectLifecycleActionLogs,
+  type ProjectLifecycleActionLogEntry,
+  type ProjectLifecycleActionLogType,
+} from '../lib/ai/document-lifecycle/documentLifecycleActionLog';
 import { getProjectLifecyclePriority } from '../lib/ai/document-lifecycle/documentLifecyclePriority';
 import { scanDocumentLifecycleFromFiles } from '../lib/ai/document-lifecycle/documentLifecycleFileScan';
 import {
@@ -73,12 +81,20 @@ export default function WorkspaceOverview({
 
   const recordLifecycleAction = (row: ProjectLifecycleRow, type: ProjectLifecycleActionLogType) => {
     const entry = createProjectLifecycleActionLogEntry(row.projectPath, type);
-    setLifecycleActionLogs(current => addProjectLifecycleActionLogEntry(current, entry));
+    setLifecycleActionLogs(current => {
+      const next = addProjectLifecycleActionLogEntry(current, entry);
+      if (workspacePath) {
+        localStorage.setItem(getProjectLifecycleActionLogStorageKey(workspacePath), serializeProjectLifecycleActionLogs(next));
+      }
+      return next;
+    });
   };
 
   useEffect(() => {
     if (!workspacePath) return;
     const currentPath = workspacePath;
+    const actionLogKey = getProjectLifecycleActionLogStorageKey(currentPath);
+    setLifecycleActionLogs(parseProjectLifecycleActionLogs(localStorage.getItem(actionLogKey)));
 
     async function loadWorkspaceInfo() {
       setLoading(true);
