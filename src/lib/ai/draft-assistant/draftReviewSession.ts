@@ -1,7 +1,7 @@
 import type { BriefScopeDraftPack } from './briefScopeDraftAssistant';
 import type { DraftApplyPlan } from './draftApplyPlan';
 
-export type DraftReviewDocumentType = 'brief' | 'scope';
+export type DraftReviewDocumentType = 'brief' | 'scope' | 'quotation';
 
 export interface DraftReviewDocument {
   id: DraftReviewDocumentType;
@@ -35,6 +35,12 @@ export function createDraftReviewSession(projectPath: string, pack: BriefScopeDr
       label: 'Scope Draft',
       path: `${projectPath}/${pack.suggestedScopePath}`,
       markdown: pack.scopeMarkdown,
+    },
+    {
+      id: 'quotation' as const,
+      label: 'Quotation Draft',
+      path: `${projectPath}/${pack.suggestedQuotationPath}`,
+      markdown: pack.quotationMarkdown,
     },
   ];
 
