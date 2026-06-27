@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Clipboard, FileSignature, FileWarning, ShieldQuestion, TriangleAlert } from 'lucide-react';
+import { Clipboard, FileInput, FileSignature, FileWarning, ShieldQuestion, TriangleAlert } from 'lucide-react';
 import type { ScopeBaselineFromQuote } from '../lib/ai/scope-baseline/scopeBaselineFromQuote';
 import { detectChangeRequest } from '../lib/ai/change-request/changeRequestDetection';
 import { buildChangeRequestDetectionMarkdown } from '../lib/ai/change-request/changeRequestMarkdown';
@@ -7,6 +7,7 @@ import { buildChangeRequestDocument, buildChangeRequestDocumentMarkdown } from '
 
 interface ChangeRequestDetectionPanelProps {
   baseline: ScopeBaselineFromQuote;
+  onApplyChangeRequestDraft?: (requestId: string, markdown: string) => void;
 }
 
 function decisionClass(decision: string) {
@@ -15,7 +16,7 @@ function decisionClass(decision: string) {
   return 'border-success/30 bg-success/10 text-success';
 }
 
-export default function ChangeRequestDetectionPanel({ baseline }: ChangeRequestDetectionPanelProps) {
+export default function ChangeRequestDetectionPanel({ baseline, onApplyChangeRequestDraft }: ChangeRequestDetectionPanelProps) {
   const [newRequest, setNewRequest] = useState('');
   const [requestId, setRequestId] = useState('');
   const [requestedBy, setRequestedBy] = useState('');
@@ -135,10 +136,15 @@ export default function ChangeRequestDetectionPanel({ baseline }: ChangeRequestD
             <div className="p-3 border-b border-primary/20 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               <div>
                 <h4 className="text-xs font-bold text-primary-light">Change Request / DCR Draft</h4>
-                <p className="text-[11px] text-text-muted mt-1">copy เอกสารนี้ไปใช้เป็น CR/DCR draft ให้ลูกค้าอนุมัติได้</p>
+                <p className="text-[11px] text-text-muted mt-1">copy หรือ apply เอกสารนี้เป็น CR/DCR draft ให้ลูกค้าอนุมัติได้</p>
               </div>
               <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-                <button type="button" onClick={copyCrDocumentMarkdown} className="btn btn-primary text-xs gap-2 w-full md:w-auto">
+                {onApplyChangeRequestDraft && (
+                  <button type="button" onClick={() => onApplyChangeRequestDraft(crDocument.request_id, crDocumentMarkdown)} className="btn btn-primary text-xs gap-2 w-full md:w-auto">
+                    <FileInput className="w-4 h-4" /> Apply CR/DCR Draft
+                  </button>
+                )}
+                <button type="button" onClick={copyCrDocumentMarkdown} className="btn btn-outline text-xs gap-2 w-full md:w-auto">
                   <FileSignature className="w-4 h-4" /> Copy CR/DCR Draft
                 </button>
                 <button type="button" onClick={copyMarkdown} className="btn btn-outline text-xs gap-2 w-full md:w-auto">
