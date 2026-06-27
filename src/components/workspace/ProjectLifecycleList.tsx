@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, CircleDashed, ExternalLink, FileArchive, FileClock, FileOutput, FolderOpen, LockKeyhole, OctagonAlert } from 'lucide-react';
+import { getCloseoutDeliveryChecklist } from '../../lib/ai/closeout/closeoutDeliveryChecklist';
 import { getCloseoutActionAvailability, getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget';
 import type { DocumentLifecycleSummary, LifecycleItemStatus } from '../../lib/ai/document-lifecycle/documentLifecycle';
@@ -211,6 +212,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
           {filteredRows.map(row => {
             const closeoutStatus = getCloseoutStatusSummary(row.scanFiles);
             const closeoutEvidence = getCloseoutEvidenceSummary(closeoutStatus);
+            const deliveryChecklist = getCloseoutDeliveryChecklist(closeoutStatus);
             const actionAvailability = getCloseoutActionAvailability(row.summary.can_close_work, closeoutStatus);
             const openTarget = getCloseoutOpenTarget(row.scanFiles);
             const highlighted = highlightedProjectPath === row.projectPath;
@@ -348,6 +350,25 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                     {actionAvailability.export_disabled_reason && (
                       <p className="text-[10px] text-text-muted leading-relaxed">ทำไมกดไม่ได้: {actionAvailability.export_disabled_reason}</p>
                     )}
+                  </div>
+                  <div className={`rounded-xl border p-3 ${deliveryChecklist.ready_for_delivery ? 'border-success/20 bg-success/10' : 'border-border bg-surface-2/60'}`}>
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-2">
+                      <div>
+                        <p className="text-[11px] font-bold text-text">{deliveryChecklist.title}</p>
+                        <p className="text-[10px] text-text-muted mt-1 leading-relaxed">{deliveryChecklist.description}</p>
+                      </div>
+                      <span className={`badge text-[10px] shrink-0 ${deliveryChecklist.ready_for_delivery ? 'bg-success/10 text-success border border-success/20' : 'badge-muted'}`}>
+                        {deliveryChecklist.ready_for_delivery ? 'Ready' : 'Locked'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {deliveryChecklist.items.map(item => (
+                        <div key={item.id} className="flex items-start gap-2 rounded-lg border border-border bg-surface px-2 py-1.5">
+                          {item.done ? <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0 mt-0.5" /> : <CircleDashed className="w-3.5 h-3.5 text-text-muted shrink-0 mt-0.5" />}
+                          <span className="text-[10px] text-text-muted leading-relaxed">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
