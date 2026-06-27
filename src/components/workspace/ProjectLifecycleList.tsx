@@ -31,7 +31,8 @@ export interface ProjectLifecycleRow {
   priority: ProjectLifecyclePriority;
 }
 
-type LifecycleFilter = 'all' | ProjectLifecyclePriorityCategory;
+type FinalStatusFilter = 'ready_to_deliver' | 'delivery_sent' | 'awaiting_customer_acceptance';
+type LifecycleFilter = 'all' | ProjectLifecyclePriorityCategory | FinalStatusFilter;
 
 interface ProjectLifecycleListProps {
   rows: ProjectLifecycleRow[];
@@ -53,6 +54,9 @@ const FILTERS: { id: LifecycleFilter; label: string }[] = [
   { id: 'export_ready', label: 'Export Ready' },
   { id: 'blocked', label: 'Blocked' },
   { id: 'missing_docs', label: 'Missing Docs' },
+  { id: 'ready_to_deliver', label: 'Ready to Deliver' },
+  { id: 'delivery_sent', label: 'Delivery Sent' },
+  { id: 'awaiting_customer_acceptance', label: 'Awaiting Acceptance' },
 ];
 
 const SUMMARY_CARDS: { id: ProjectLifecyclePriorityCategory; label: string; description: string }[] = [
@@ -61,6 +65,12 @@ const SUMMARY_CARDS: { id: ProjectLifecyclePriorityCategory; label: string; desc
   { id: 'can_close', label: 'Can Close', description: 'พร้อมสร้าง closeout' },
   { id: 'closeout_ready', label: 'Closeout Ready', description: 'พร้อมสร้าง export index' },
   { id: 'export_ready', label: 'Export Ready', description: 'พร้อมส่งต่อ' },
+];
+
+const FINAL_STATUS_CARDS: { id: FinalStatusFilter; label: string; description: string }[] = [
+  { id: 'ready_to_deliver', label: 'Ready to Deliver', description: 'package พร้อมส่ง' },
+  { id: 'delivery_sent', label: 'Delivery Sent', description: 'ส่ง package แล้ว' },
+  { id: 'awaiting_customer_acceptance', label: 'Awaiting Acceptance', description: 'รอลูกค้ารับรอง' },
 ];
 
 function statusClass(status: LifecycleItemStatus): string {
@@ -98,11 +108,11 @@ function priorityBadgeClass(category: ProjectLifecyclePriority['category']): str
   return 'bg-surface-2 text-text-muted border border-border';
 }
 
-function summaryCardClass(category: ProjectLifecyclePriorityCategory): string {
+function summaryCardClass(category: ProjectLifecyclePriorityCategory | FinalStatusFilter): string {
   if (category === 'blocked') return 'border-error/20 bg-error/10 hover:border-error/40';
   if (category === 'missing_docs') return 'border-warning/20 bg-warning/10 hover:border-warning/40';
-  if (category === 'can_close' || category === 'closeout_ready') return 'border-success/20 bg-success/10 hover:border-success/40';
-  if (category === 'export_ready') return 'border-primary/20 bg-primary/10 hover:border-primary/40';
+  if (category === 'can_close' || category === 'closeout_ready' || category === 'delivery_sent' || category === 'awaiting_customer_acceptance') return 'border-success/20 bg-success/10 hover:border-success/40';
+  if (category === 'export_ready' || category === 'ready_to_deliver') return 'border-primary/20 bg-primary/10 hover:border-primary/40';
   return 'border-border bg-surface-2 hover:border-primary/30';
 }
 
@@ -115,8 +125,37 @@ function getWorkspaceKeyPath(rows: ProjectLifecycleRow[]): string {
   return normalized.split('/projects/')[0] || normalized;
 }
 
+function isFinalStatusFilter(filter: LifecycleFilter): filter is FinalStatusFilter {
+  return filter === 'ready_to_deliver' || filter === 'delivery_sent' || filter === 'awaiting_customer_acceptance';
+}
+
+function getLifecycleFilterEmptyGuidance(activeFilter: LifecycleFilter) {
+  if (activeFilter === 'ready_to_deliver') {
+    return {
+      title: 'ยังไม่มี project ที่พร้อมส่งมอบ',
+      description: 'ยังไม่มี project ที่สร้าง Closeout Pack และ Export Index ครบแต่ยังไม่ได้ mark delivery',
+      recommended_next_action: 'ไปดู Closeout Ready หรือ Export Ready เพื่อสร้าง package ให้ครบก่อน',
+    };
+  }
+  if (activeFilter === 'delivery_sent') {
+    return {
+      title: 'ยังไม่มี project ที่ mark ว่าส่ง package แล้ว',
+      description: 'ยังไม่มี project ที่ถูกบันทึกเป็น Delivery Sent ใน workspace นี้',
+      recommended_next_action: 'ไปดู Ready to Deliver แล้วกด Mark package sent หลังส่งงานจริง',
+    };
+  }
+  if (activeFilter === 'awaiting_customer_acceptance') {
+    return {
+      title: 'ยังไม่มี project ที่รอ customer acceptance',
+      description: 'ยังไม่มี project ที่ถูก mark เป็น Pending customer acceptance',
+      recommended_next_action: 'หลังส่ง package แล้ว ให้กด Mark pending customer acceptance เพื่อคุมงานรอรับรอง',
+    };
+  }
+  return getProjectLifecycleEmptyGuidance(activeFilter);
+}
+
 function EmptyGuidanceCard({ activeFilter, onShowAll }: { activeFilter: LifecycleFilter; onShowAll: () => void }) {
-  const guidance = getProjectLifecycleEmptyGuidance(activeFilter);
+  const guidance = getLifecycleFilterEmptyGuidance(activeFilter);
   return (
     <div className="text-center py-10 text-text-dim bg-surface-2/50 border border-border border-dashed rounded-xl px-6">
       <CircleDashed className="w-8 h-8 mx-auto mb-3 opacity-50" />
@@ -153,20 +192,35 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
     });
   };
 
-  const filteredRows = useMemo(() => (
-    activeFilter === 'all' ? rows : rows.filter(row => row.priority.category === activeFilter)
-  ), [activeFilter, rows]);
+  const getFinalStatusKindForRow = (row: ProjectLifecycleRow) => {
+    const closeoutStatus = getCloseoutStatusSummary(row.scanFiles);
+    const savedDeliveryStatus = getCloseoutDeliveryStatus(deliveryStatuses, row.projectPath);
+    return getCloseoutFinalStatus(closeoutStatus, savedDeliveryStatus).kind;
+  };
+
+  const filteredRows = useMemo(() => {
+    if (activeFilter === 'all') return rows;
+    if (isFinalStatusFilter(activeFilter)) {
+      return rows.filter(row => getFinalStatusKindForRow(row) === activeFilter);
+    }
+    return rows.filter(row => row.priority.category === activeFilter);
+  }, [activeFilter, rows, deliveryStatuses]);
 
   const filterCounts = useMemo(() => {
     const counts = new Map<LifecycleFilter, number>([['all', rows.length]]);
     for (const row of rows) {
       counts.set(row.priority.category, (counts.get(row.priority.category) || 0) + 1);
+      const finalKind = getFinalStatusKindForRow(row);
+      if (isFinalStatusFilter(finalKind as LifecycleFilter)) {
+        counts.set(finalKind as FinalStatusFilter, (counts.get(finalKind as FinalStatusFilter) || 0) + 1);
+      }
     }
     return counts;
-  }, [rows]);
+  }, [rows, deliveryStatuses]);
 
   const projectNameByPath = useMemo(() => new Map(rows.map(row => [row.projectPath, row.projectName])), [rows]);
   const totalNeedsAttention = (filterCounts.get('blocked') || 0) + (filterCounts.get('missing_docs') || 0) + (filterCounts.get('can_close') || 0) + (filterCounts.get('closeout_ready') || 0);
+  const totalDeliveryFollowUp = (filterCounts.get('ready_to_deliver') || 0) + (filterCounts.get('delivery_sent') || 0) + (filterCounts.get('awaiting_customer_acceptance') || 0);
 
   return (
     <div className="card flex flex-col gap-4">
@@ -204,6 +258,29 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
               </button>
             );
           })}
+        </div>
+        <div className="mt-3 border-t border-border pt-3">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
+            <p className="text-xs font-bold text-text">หลังส่งมอบ / Final close</p>
+            <span className="badge badge-muted text-[10px]">{totalDeliveryFollowUp} projects</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            {FINAL_STATUS_CARDS.map(card => {
+              const count = filterCounts.get(card.id) || 0;
+              return (
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => setActiveFilter(card.id)}
+                  className={`rounded-xl border p-3 text-left transition-all ${summaryCardClass(card.id)}`}
+                >
+                  <p className="text-xl font-bold text-text">{count}</p>
+                  <p className="text-xs font-bold text-text">{card.label}</p>
+                  <p className="text-[10px] text-text-muted mt-1">{card.description}</p>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
