@@ -36,7 +36,8 @@ export interface ProjectLifecycleRow {
 }
 
 type FinalStatusFilter = 'ready_to_deliver' | 'delivery_sent' | 'awaiting_customer_acceptance' | 'finalized';
-type LifecycleFilter = 'all' | ProjectLifecyclePriorityCategory | FinalStatusFilter;
+type ReopenStatusFilter = 'reopen_cr';
+type LifecycleFilter = 'all' | ProjectLifecyclePriorityCategory | FinalStatusFilter | ReopenStatusFilter;
 
 interface ProjectLifecycleListProps {
   rows: ProjectLifecycleRow[];
@@ -62,6 +63,7 @@ const FILTERS: { id: LifecycleFilter; label: string }[] = [
   { id: 'delivery_sent', label: 'Delivery Sent' },
   { id: 'awaiting_customer_acceptance', label: 'Awaiting Acceptance' },
   { id: 'finalized', label: 'Finalized / Closed' },
+  { id: 'reopen_cr', label: 'Reopen / CR' },
 ];
 
 const SUMMARY_CARDS: { id: ProjectLifecyclePriorityCategory; label: string; description: string }[] = [
@@ -77,6 +79,10 @@ const FINAL_STATUS_CARDS: { id: FinalStatusFilter; label: string; description: s
   { id: 'delivery_sent', label: 'Delivery Sent', description: 'ส่ง package แล้ว' },
   { id: 'awaiting_customer_acceptance', label: 'Awaiting Acceptance', description: 'รอลูกค้ารับรอง' },
   { id: 'finalized', label: 'Finalized / Closed', description: 'ปิดงานแล้ว' },
+];
+
+const REOPEN_STATUS_CARDS: { id: ReopenStatusFilter; label: string; description: string }[] = [
+  { id: 'reopen_cr', label: 'Reopen / CR', description: 'ปิดแล้วแต่กลับมาแก้' },
 ];
 
 function statusClass(status: LifecycleItemStatus): string {
@@ -114,9 +120,9 @@ function priorityBadgeClass(category: ProjectLifecyclePriority['category']): str
   return 'bg-surface-2 text-text-muted border border-border';
 }
 
-function summaryCardClass(category: ProjectLifecyclePriorityCategory | FinalStatusFilter): string {
+function summaryCardClass(category: ProjectLifecyclePriorityCategory | FinalStatusFilter | ReopenStatusFilter): string {
   if (category === 'blocked') return 'border-error/20 bg-error/10 hover:border-error/40';
-  if (category === 'missing_docs') return 'border-warning/20 bg-warning/10 hover:border-warning/40';
+  if (category === 'missing_docs' || category === 'reopen_cr') return 'border-warning/20 bg-warning/10 hover:border-warning/40';
   if (category === 'can_close' || category === 'closeout_ready' || category === 'delivery_sent' || category === 'awaiting_customer_acceptance' || category === 'finalized') return 'border-success/20 bg-success/10 hover:border-success/40';
   if (category === 'export_ready' || category === 'ready_to_deliver') return 'border-primary/20 bg-primary/10 hover:border-primary/40';
   return 'border-border bg-surface-2 hover:border-primary/30';
@@ -133,6 +139,10 @@ function getWorkspaceKeyPath(rows: ProjectLifecycleRow[]): string {
 
 function isFinalStatusFilter(filter: LifecycleFilter): filter is FinalStatusFilter {
   return filter === 'ready_to_deliver' || filter === 'delivery_sent' || filter === 'awaiting_customer_acceptance' || filter === 'finalized';
+}
+
+function isReopenStatusFilter(filter: LifecycleFilter): filter is ReopenStatusFilter {
+  return filter === 'reopen_cr';
 }
 
 function getLifecycleFilterEmptyGuidance(activeFilter: LifecycleFilter) {
@@ -162,6 +172,13 @@ function getLifecycleFilterEmptyGuidance(activeFilter: LifecycleFilter) {
       title: 'ยังไม่มี project ที่ปิดงานแบบ finalized',
       description: 'ยังไม่มี project ที่ถูก mark ว่าได้รับ customer acceptance แล้ว',
       recommended_next_action: 'เมื่อได้รับ acceptance จากลูกค้าแล้ว ให้กด Mark acceptance received',
+    };
+  }
+  if (activeFilter === 'reopen_cr') {
+    return {
+      title: 'ยังไม่มี project ที่มี Reopen / CR หลังปิดงาน',
+      description: 'ยังไม่พบไฟล์ changes/reopen-request-*.md ใน workspace นี้',
+      recommended_next_action: 'เมื่อ project ที่ Finalized / Closed ต้องกลับมาแก้ ให้กด Create reopen / CR เพื่อสร้างไฟล์ควบคุม scope',
     };
   }
   return getProjectLifecycleEmptyGuidance(activeFilter);
@@ -238,6 +255,9 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
     if (isFinalStatusFilter(activeFilter)) {
       return rows.filter(row => getFinalStatusKindForRow(row) === activeFilter);
     }
+    if (isReopenStatusFilter(activeFilter)) {
+      return rows.filter(row => getCloseoutReopenRequestSummary(row.scanFiles).has_reopen_request);
+    }
     return rows.filter(row => row.priority.category === activeFilter);
   }, [activeFilter, rows, deliveryStatuses]);
 
@@ -249,6 +269,9 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
       if (isFinalStatusFilter(finalKind as LifecycleFilter)) {
         counts.set(finalKind as FinalStatusFilter, (counts.get(finalKind as FinalStatusFilter) || 0) + 1);
       }
+      if (getCloseoutReopenRequestSummary(row.scanFiles).has_reopen_request) {
+        counts.set('reopen_cr', (counts.get('reopen_cr') || 0) + 1);
+      }
     }
     return counts;
   }, [rows, deliveryStatuses]);
@@ -256,6 +279,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
   const projectNameByPath = useMemo(() => new Map(rows.map(row => [row.projectPath, row.projectName])), [rows]);
   const totalNeedsAttention = (filterCounts.get('blocked') || 0) + (filterCounts.get('missing_docs') || 0) + (filterCounts.get('can_close') || 0) + (filterCounts.get('closeout_ready') || 0);
   const totalDeliveryFollowUp = (filterCounts.get('ready_to_deliver') || 0) + (filterCounts.get('delivery_sent') || 0) + (filterCounts.get('awaiting_customer_acceptance') || 0) + (filterCounts.get('finalized') || 0);
+  const totalReopenRequests = filterCounts.get('reopen_cr') || 0;
 
   return (
     <div className="card flex flex-col gap-4">
@@ -301,6 +325,29 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
             {FINAL_STATUS_CARDS.map(card => {
+              const count = filterCounts.get(card.id) || 0;
+              return (
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => setActiveFilter(card.id)}
+                  className={`rounded-xl border p-3 text-left transition-all ${summaryCardClass(card.id)}`}
+                >
+                  <p className="text-xl font-bold text-text">{count}</p>
+                  <p className="text-xs font-bold text-text">{card.label}</p>
+                  <p className="text-[10px] text-text-muted mt-1">{card.description}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="mt-3 border-t border-border pt-3">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
+            <p className="text-xs font-bold text-text">ปิดแล้วกลับมาแก้ / Reopen control</p>
+            <span className="badge badge-muted text-[10px]">{totalReopenRequests} projects</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            {REOPEN_STATUS_CARDS.map(card => {
               const count = filterCounts.get(card.id) || 0;
               return (
                 <button
