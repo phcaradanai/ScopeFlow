@@ -1,7 +1,7 @@
 import type { CloseoutDeliveryStatusEntry } from './closeoutDeliveryStatus';
 import type { CloseoutStatusSummary } from './closeoutStatus';
 
-export type CloseoutFinalStatusKind = 'not_ready' | 'ready_to_deliver' | 'delivery_sent' | 'awaiting_customer_acceptance';
+export type CloseoutFinalStatusKind = 'not_ready' | 'ready_to_deliver' | 'delivery_sent' | 'awaiting_customer_acceptance' | 'finalized';
 
 export interface CloseoutFinalStatus {
   kind: CloseoutFinalStatusKind;
@@ -11,6 +11,15 @@ export interface CloseoutFinalStatus {
 }
 
 export function getCloseoutFinalStatus(status: CloseoutStatusSummary, deliveryStatus?: CloseoutDeliveryStatusEntry): CloseoutFinalStatus {
+  if (deliveryStatus?.status === 'acceptance_received') {
+    return {
+      kind: 'finalized',
+      label: 'Finalized / Closed',
+      description: 'ลูกค้ารับรองแล้ว งานนี้ปิดได้เป็น final close',
+      is_terminal_ready: true,
+    };
+  }
+
   if (deliveryStatus?.status === 'pending_customer_acceptance') {
     return {
       kind: 'awaiting_customer_acceptance',
