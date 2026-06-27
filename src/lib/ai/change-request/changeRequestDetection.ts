@@ -33,7 +33,7 @@ function normalize(value: string): string {
 
 function tokenize(value: string): string[] {
   return normalize(value)
-    .replace(/[|\/()[\]{}.,:;!?"'`*_#>-]/g, ' ')
+    .replace(/[|/()[\]{}.,:;!?"'`*_#>-]/g, ' ')
     .split(/\s+/)
     .map(token => token.trim())
     .filter(token => token.length >= 3);
@@ -120,7 +120,7 @@ export function detectChangeRequest(input: ChangeRequestDetectionInput): ChangeR
       ? 'high'
       : hasLockedItem || (hasAcceptanceImpact && soundsLikeExpansion)
         ? 'medium'
-        : matched.length > 0
+        : isChangeRequest
           ? 'low'
           : 'none';
 
