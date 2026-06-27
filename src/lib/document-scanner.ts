@@ -22,6 +22,7 @@ export interface ProjectDocument {
   updated?: string;
   document_number?: string;
   excerpt: string;
+  markdown?: string;
   parse_status: 'success' | 'warning';
   content_flags?: {
     hasGoal: boolean;
@@ -38,6 +39,7 @@ const ALLOWED_FOLDERS = [
   'baseline',
   'current-system',
   'change-requests',
+  'changes',
   'support-requests',
   'approvals',
   'acceptance',
@@ -105,6 +107,7 @@ export function extractDocumentMetadata(filePath: string, content: string, proje
     version: '1.0',
     locked: false,
     excerpt,
+    markdown: content,
     parse_status: 'warning',
   };
 
@@ -146,6 +149,7 @@ export function extractDocumentMetadata(filePath: string, content: string, proje
       updated: yaml.updated,
       document_number: yaml.document_number || yaml.id?.toString(),
       excerpt,
+      markdown: content,
       parse_status: 'success',
       content_flags: {
         hasGoal: /##.*(?:ความเป็นมา|เป้าหมาย|Overview|Goal)/.test(content) && content.split(/##.*(?:ความเป็นมา|เป้าหมาย|Overview|Goal)/)[1].trim().length > 10,
