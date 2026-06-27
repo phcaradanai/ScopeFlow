@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, CircleDashed, ExternalLink, FileArchive, FileClock, FileOutput, LockKeyhole, OctagonAlert } from 'lucide-react';
+import { getCloseoutActionAvailability, getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget';
-import { getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import type { DocumentLifecycleSummary, LifecycleItemStatus } from '../../lib/ai/document-lifecycle/documentLifecycle';
 import type { DocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
 import { formatProjectLifecycleActionLogTime, type ProjectLifecycleActionLogEntry, type ProjectLifecycleActionLogType } from '../../lib/ai/document-lifecycle/documentLifecycleActionLog';
@@ -211,6 +211,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
           {filteredRows.map(row => {
             const closeoutStatus = getCloseoutStatusSummary(row.scanFiles);
             const closeoutEvidence = getCloseoutEvidenceSummary(closeoutStatus);
+            const actionAvailability = getCloseoutActionAvailability(row.summary.can_close_work, closeoutStatus);
             const openTarget = getCloseoutOpenTarget(row.scanFiles);
             const highlighted = highlightedProjectPath === row.projectPath;
             return (
@@ -291,45 +292,57 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                       <ExternalLink className="w-3.5 h-3.5" /> {row.actionTarget.label}
                     </button>
                   </div>
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-t border-primary/10 pt-2">
-                    <p className="text-[11px] text-text-muted leading-relaxed">
-                      <span className="font-bold text-success">Closeout:</span> {closeoutStatus.closeout_pack_created ? 'Closeout Pack Created' : closeoutStatus.recommended_next_action}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {openTarget.closeout_summary_path && (
-                        <button type="button" onClick={() => { onLifecycleAction(row, 'opened_closeout'); onSelectFile(openTarget.closeout_summary_path!); }} className="btn btn-primary text-xs gap-2 shrink-0">
-                          <ExternalLink className="w-3.5 h-3.5" /> เปิด Closeout
+                  <div className="flex flex-col gap-2 border-t border-primary/10 pt-2">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                      <p className="text-[11px] text-text-muted leading-relaxed">
+                        <span className="font-bold text-success">Closeout:</span> {closeoutStatus.closeout_pack_created ? 'Closeout Pack Created' : closeoutStatus.recommended_next_action}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {openTarget.closeout_summary_path && (
+                          <button type="button" onClick={() => { onLifecycleAction(row, 'opened_closeout'); onSelectFile(openTarget.closeout_summary_path!); }} className="btn btn-primary text-xs gap-2 shrink-0">
+                            <ExternalLink className="w-3.5 h-3.5" /> เปิด Closeout
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => onCreateCloseoutPack(row)}
+                          disabled={!!actionAvailability.closeout_disabled_reason}
+                          title={actionAvailability.closeout_disabled_reason || undefined}
+                          className="btn btn-outline text-xs gap-2 shrink-0 disabled:opacity-50"
+                        >
+                          <FileArchive className="w-3.5 h-3.5" /> {closeoutStatus.closeout_pack_created ? 'Closeout Created' : 'สร้าง Closeout Pack'}
                         </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => onCreateCloseoutPack(row)}
-                        disabled={!row.summary.can_close_work || closeoutStatus.closeout_pack_created}
-                        className="btn btn-outline text-xs gap-2 shrink-0 disabled:opacity-50"
-                      >
-                        <FileArchive className="w-3.5 h-3.5" /> {closeoutStatus.closeout_pack_created ? 'Closeout Created' : 'สร้าง Closeout Pack'}
-                      </button>
+                      </div>
                     </div>
+                    {actionAvailability.closeout_disabled_reason && (
+                      <p className="text-[10px] text-text-muted leading-relaxed">ทำไมกดไม่ได้: {actionAvailability.closeout_disabled_reason}</p>
+                    )}
                   </div>
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-t border-primary/10 pt-2">
-                    <p className="text-[11px] text-text-muted leading-relaxed">
-                      <span className="font-bold text-accent">Export:</span> {closeoutStatus.export_ready ? 'Export Ready' : closeoutStatus.recommended_next_action}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {openTarget.export_index_path && (
-                        <button type="button" onClick={() => { onLifecycleAction(row, 'opened_export'); onSelectFile(openTarget.export_index_path!); }} className="btn btn-primary text-xs gap-2 shrink-0">
-                          <ExternalLink className="w-3.5 h-3.5" /> เปิด Export
+                  <div className="flex flex-col gap-2 border-t border-primary/10 pt-2">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                      <p className="text-[11px] text-text-muted leading-relaxed">
+                        <span className="font-bold text-accent">Export:</span> {closeoutStatus.export_ready ? 'Export Ready' : closeoutStatus.recommended_next_action}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {openTarget.export_index_path && (
+                          <button type="button" onClick={() => { onLifecycleAction(row, 'opened_export'); onSelectFile(openTarget.export_index_path!); }} className="btn btn-primary text-xs gap-2 shrink-0">
+                            <ExternalLink className="w-3.5 h-3.5" /> เปิด Export
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => onCreateCloseoutExport(row)}
+                          disabled={!!actionAvailability.export_disabled_reason}
+                          title={actionAvailability.export_disabled_reason || undefined}
+                          className="btn btn-outline text-xs gap-2 shrink-0 disabled:opacity-50"
+                        >
+                          <FileOutput className="w-3.5 h-3.5" /> {closeoutStatus.export_index_created ? 'Export Created' : 'สร้าง Export Index'}
                         </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => onCreateCloseoutExport(row)}
-                        disabled={!closeoutStatus.closeout_pack_created || closeoutStatus.export_index_created}
-                        className="btn btn-outline text-xs gap-2 shrink-0 disabled:opacity-50"
-                      >
-                        <FileOutput className="w-3.5 h-3.5" /> {closeoutStatus.export_index_created ? 'Export Created' : 'สร้าง Export Index'}
-                      </button>
+                      </div>
                     </div>
+                    {actionAvailability.export_disabled_reason && (
+                      <p className="text-[10px] text-text-muted leading-relaxed">ทำไมกดไม่ได้: {actionAvailability.export_disabled_reason}</p>
+                    )}
                   </div>
                 </div>
               </div>
