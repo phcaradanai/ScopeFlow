@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FileInput, GitBranchPlus, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { Clipboard, FileInput, GitBranchPlus, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { evaluateQuotationApproval } from '../lib/ai/quotation/quotationApproval';
 import type { QuotationDraft } from '../lib/ai/quotation/quotationDraft';
 import type { QuotationPricingResult } from '../lib/ai/quotation/quotationPricing';
@@ -35,6 +35,10 @@ export default function ScopeBaselineFromQuotePanel({ quotation, pricing, onAppl
   }), [quotationPath, scopePath, quotation, pricing, approval]);
 
   const markdown = useMemo(() => buildScopeBaselineMarkdown(baseline), [baseline]);
+
+  const copyBaselineMarkdown = async () => {
+    await navigator.clipboard.writeText(markdown);
+  };
 
   return (
     <div className="rounded-2xl border border-border bg-surface-2 overflow-hidden">
@@ -117,13 +121,18 @@ export default function ScopeBaselineFromQuotePanel({ quotation, pricing, onAppl
             <div className="p-3 border-b border-primary/20 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               <div>
                 <h4 className="text-xs font-bold text-primary-light">Scope Baseline Markdown</h4>
-                <p className="text-[11px] text-text-muted mt-1">apply ส่วนนี้เข้า quotation draft เพื่อใช้คุม CR/DCR</p>
+                <p className="text-[11px] text-text-muted mt-1">copy หรือ apply ส่วนนี้เข้า quotation draft เพื่อใช้คุม CR/DCR</p>
               </div>
-              {onApplyScopeBaseline && (
-                <button type="button" onClick={() => onApplyScopeBaseline(markdown)} className="btn btn-primary text-xs gap-2 w-full md:w-auto">
-                  <FileInput className="w-4 h-4" /> Apply Baseline
+              <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                {onApplyScopeBaseline && (
+                  <button type="button" onClick={() => onApplyScopeBaseline(markdown)} className="btn btn-primary text-xs gap-2 w-full md:w-auto">
+                    <FileInput className="w-4 h-4" /> Apply Baseline
+                  </button>
+                )}
+                <button type="button" onClick={copyBaselineMarkdown} className="btn btn-outline text-xs gap-2 w-full md:w-auto">
+                  <Clipboard className="w-4 h-4" /> Copy Baseline
                 </button>
-              )}
+              </div>
             </div>
             <pre className="whitespace-pre-wrap text-xs leading-relaxed text-text-muted font-mono p-3 max-h-[240px] overflow-y-auto">{markdown}</pre>
           </div>
