@@ -1,5 +1,6 @@
 import type { CloseoutFinalStatus } from './closeoutFinalStatus';
 import { getCloseoutReopenActionPlan } from './closeoutReopenActionPlan';
+import { buildCloseoutReopenDecisionMarkdown } from './closeoutReopenDecision';
 
 export interface CloseoutReopenRequestInput {
   project_name: string;
@@ -42,6 +43,8 @@ export function buildCloseoutReopenRequest(input: CloseoutReopenRequestInput): C
     '## Reason',
     '',
     reason,
+    '',
+    buildCloseoutReopenDecisionMarkdown().trimEnd(),
     '',
     '## Recommended action plan',
     '',
