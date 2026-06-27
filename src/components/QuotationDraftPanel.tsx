@@ -4,6 +4,7 @@ import QuotationPriceInputPanel from './QuotationPriceInputPanel';
 
 interface QuotationDraftPanelProps {
   draft: QuotationDraft;
+  onApplyFinalQuoteSummary?: (markdown: string) => void;
 }
 
 function statusClass(status: QuotationDraft['status']) {
@@ -17,7 +18,7 @@ function emptyAwareList(items: string[], empty: string) {
   return items.map(item => <li key={item}>{item}</li>);
 }
 
-export default function QuotationDraftPanel({ draft }: QuotationDraftPanelProps) {
+export default function QuotationDraftPanel({ draft, onApplyFinalQuoteSummary }: QuotationDraftPanelProps) {
   return (
     <div className="rounded-2xl border border-border bg-surface-2 overflow-hidden">
       <div className="p-4 border-b border-border bg-surface-3 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
@@ -121,7 +122,7 @@ export default function QuotationDraftPanel({ draft }: QuotationDraftPanelProps)
       </div>
 
       <div className="px-4 pb-4">
-        <QuotationPriceInputPanel draft={draft} />
+        <QuotationPriceInputPanel draft={draft} onApplyFinalQuoteSummary={onApplyFinalQuoteSummary} />
       </div>
     </div>
   );
