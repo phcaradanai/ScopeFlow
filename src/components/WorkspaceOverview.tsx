@@ -14,6 +14,7 @@ import { buildCloseoutPackageExport } from '../lib/ai/closeout/closeoutExport';
 import { buildProjectCloseoutPack } from '../lib/ai/closeout/closeoutPack';
 import { buildDocumentLifecycleSummary } from '../lib/ai/document-lifecycle/documentLifecycle';
 import { getDocumentLifecycleActionTarget } from '../lib/ai/document-lifecycle/documentLifecycleAction';
+import { addProjectLifecycleActionLogEntry, createProjectLifecycleActionLogEntry, type ProjectLifecycleActionLogEntry, type ProjectLifecycleActionLogType } from '../lib/ai/document-lifecycle/documentLifecycleActionLog';
 import { getProjectLifecyclePriority } from '../lib/ai/document-lifecycle/documentLifecyclePriority';
 import { scanDocumentLifecycleFromFiles } from '../lib/ai/document-lifecycle/documentLifecycleFileScan';
 import {
@@ -54,6 +55,7 @@ export default function WorkspaceOverview({
   const [createdDate, setCreatedDate] = useState('');
   const [workspaceClients, setWorkspaceClients] = useState<ClientPathInfo[]>([]);
   const [projectLifecycleRows, setProjectLifecycleRows] = useState<ProjectLifecycleRow[]>([]);
+  const [lifecycleActionLogs, setLifecycleActionLogs] = useState<ProjectLifecycleActionLogEntry[]>([]);
 
   const [clientsCount, setClientsCount] = useState(0);
   const [projectsCount, setProjectsCount] = useState(0);
@@ -68,6 +70,11 @@ export default function WorkspaceOverview({
 
   const [lastBackup, setLastBackup] = useState('ยังไม่ได้สำรองข้อมูล');
   const [latestExport, setLatestExport] = useState('ยังไม่มีข้อมูลการส่งออก');
+
+  const recordLifecycleAction = (row: ProjectLifecycleRow, type: ProjectLifecycleActionLogType) => {
+    const entry = createProjectLifecycleActionLogEntry(row.projectPath, type);
+    setLifecycleActionLogs(current => addProjectLifecycleActionLogEntry(current, entry));
+  };
 
   useEffect(() => {
     if (!workspacePath) return;
@@ -233,6 +240,7 @@ export default function WorkspaceOverview({
       }
       await refreshTree();
       setSelectedFile(plan.files[0].path);
+      recordLifecycleAction(row, 'created_closeout_pack');
       alert('สร้าง Closeout Pack สำเร็จแล้ว');
     } catch (err) {
       alert(`สร้าง Closeout Pack ไม่สำเร็จ: ${err}`);
@@ -255,6 +263,7 @@ export default function WorkspaceOverview({
       await createDocument(plan.path, plan.markdown);
       await refreshTree();
       setSelectedFile(plan.path);
+      recordLifecycleAction(row, 'created_export_index');
       alert('สร้าง Closeout Export Index สำเร็จแล้ว');
     } catch (err) {
       alert(`สร้าง Closeout Export Index ไม่สำเร็จ: ${err}`);
@@ -359,7 +368,7 @@ export default function WorkspaceOverview({
 
       <WorkspaceStats clientsCount={clientsCount} projectsCount={projectsCount} documentsCount={documentsCount} approvedCount={approvedCount} lockedCount={lockedCount} healthStatus={healthStatus} />
 
-      <ProjectLifecycleList rows={projectLifecycleRows} onSelectProject={setSelectedFile} onSelectFile={setSelectedFile} onCreateCloseoutPack={handleCreateCloseoutPack} onCreateCloseoutExport={handleCreateCloseoutExport} />
+      <ProjectLifecycleList rows={projectLifecycleRows} actionLogs={lifecycleActionLogs} onLifecycleAction={recordLifecycleAction} onSelectProject={setSelectedFile} onSelectFile={setSelectedFile} onCreateCloseoutPack={handleCreateCloseoutPack} onCreateCloseoutExport={handleCreateCloseoutExport} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ClientList clientsWithProjects={workspaceClients} onCreateClient={onCreateClient} onCreateProject={onCreateProject} onSelectClient={setSelectedFile} />
