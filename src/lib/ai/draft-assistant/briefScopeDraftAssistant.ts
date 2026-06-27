@@ -7,6 +7,8 @@ import { evaluateScopeClosureGate } from '../scope-closure/scopeClosureGate';
 import { injectScopeClosureMarkdown } from '../scope-closure/scopeClosureMarkdown';
 import { buildCustomerQuestionPack } from '../scope-closure/customerQuestionLoop';
 import { injectCustomerQuestionLoopMarkdown } from '../scope-closure/customerQuestionMarkdown';
+import { buildQuoteReadinessBrief } from '../quotation-readiness/quoteReadinessBridge';
+import { injectQuoteReadinessMarkdown } from '../quotation-readiness/quoteReadinessMarkdown';
 
 export interface BriefScopeDraftInput {
   rawRequest: string;
@@ -144,12 +146,14 @@ export function buildBriefScopeDraftPack(input: BriefScopeDraftInput): BriefScop
   const scopeControl = getRuleBasedScopeControl(input.rawRequest, input.digest);
   const closureGate = evaluateScopeClosureGate({ scopeControl });
   const customerQuestionPack = buildCustomerQuestionPack(closureGate, input.projectName);
+  const quoteReadiness = buildQuoteReadinessBrief(scopeControl, closureGate);
   const scopeMarkdownWithControl = injectScopeControlMarkdown(buildScopeDraftFromDigest(input), scopeControl);
   const scopeMarkdownWithClosure = injectScopeClosureMarkdown(scopeMarkdownWithControl, closureGate);
+  const scopeMarkdownWithQuestions = injectCustomerQuestionLoopMarkdown(scopeMarkdownWithClosure, customerQuestionPack);
 
   return {
     briefMarkdown: buildBriefDraftFromDigest(input),
-    scopeMarkdown: injectCustomerQuestionLoopMarkdown(scopeMarkdownWithClosure, customerQuestionPack),
+    scopeMarkdown: injectQuoteReadinessMarkdown(scopeMarkdownWithQuestions, quoteReadiness),
     suggestedBriefPath: 'baseline/brief-v1.0.md',
     suggestedScopePath: 'baseline/scope-v1.0.md',
     missingInformation: cleanItems(input.digest.unclear_points),
