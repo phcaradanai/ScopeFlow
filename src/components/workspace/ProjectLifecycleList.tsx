@@ -15,6 +15,7 @@ import { getCloseoutFinalizedGuard } from '../../lib/ai/closeout/closeoutFinaliz
 import { getCloseoutFinalStatus, type CloseoutFinalStatus } from '../../lib/ai/closeout/closeoutFinalStatus';
 import { getLatestCloseoutReopenDecisionSummary } from '../../lib/ai/closeout/closeoutReopenDecisionDetection';
 import { getCloseoutReopenRequestSummary } from '../../lib/ai/closeout/closeoutReopenDetection';
+import { getCloseoutReopenNextAction } from '../../lib/ai/closeout/closeoutReopenNextAction';
 import { buildCloseoutReopenRequest, canCreateCloseoutReopenRequest } from '../../lib/ai/closeout/closeoutReopenRequest';
 import { getCloseoutActionAvailability, getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget';
@@ -467,6 +468,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
             const finalizedGuard = getCloseoutFinalizedGuard(finalStatus);
             const reopenSummary = getCloseoutReopenRequestSummary(row.scanFiles);
             const reopenDecisionSummary = getLatestCloseoutReopenDecisionSummary(row.scanFiles);
+            const displayNextAction = getCloseoutReopenNextAction(reopenDecisionSummary, row.summary.next_action);
             const packageSent = savedDeliveryStatus?.status === 'package_sent' || savedDeliveryStatus?.status === 'pending_customer_acceptance' || savedDeliveryStatus?.status === 'acceptance_received';
             const pendingAcceptance = savedDeliveryStatus?.status === 'pending_customer_acceptance' || savedDeliveryStatus?.status === 'acceptance_received';
             const deliveryItems = deliveryChecklist.items.map(item => {
@@ -571,7 +573,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                   )}
 
                   <p className="text-xs text-text-muted leading-relaxed">
-                    <span className="font-bold text-primary-light">Next:</span> {row.summary.next_action}
+                    <span className="font-bold text-primary-light">Next:</span> {displayNextAction}
                   </p>
                 </button>
 
