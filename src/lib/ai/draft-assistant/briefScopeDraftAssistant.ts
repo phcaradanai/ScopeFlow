@@ -3,6 +3,8 @@ import { todayISO } from '../../validation';
 import type { ScopeDigestOutput } from '../scope-digest/scopeDigestSchema';
 import { getRuleBasedScopeControl } from '../scope-control/scopeControlFallback';
 import { injectScopeControlMarkdown } from '../scope-control/scopeControlMarkdown';
+import { evaluateScopeClosureGate } from '../scope-closure/scopeClosureGate';
+import { injectScopeClosureMarkdown } from '../scope-closure/scopeClosureMarkdown';
 
 export interface BriefScopeDraftInput {
   rawRequest: string;
@@ -138,10 +140,12 @@ export function buildScopeDraftFromDigest(input: BriefScopeDraftInput): string {
 
 export function buildBriefScopeDraftPack(input: BriefScopeDraftInput): BriefScopeDraftPack {
   const scopeControl = getRuleBasedScopeControl(input.rawRequest, input.digest);
+  const closureGate = evaluateScopeClosureGate({ scopeControl });
+  const scopeMarkdownWithControl = injectScopeControlMarkdown(buildScopeDraftFromDigest(input), scopeControl);
 
   return {
     briefMarkdown: buildBriefDraftFromDigest(input),
-    scopeMarkdown: injectScopeControlMarkdown(buildScopeDraftFromDigest(input), scopeControl),
+    scopeMarkdown: injectScopeClosureMarkdown(scopeMarkdownWithControl, closureGate),
     suggestedBriefPath: 'baseline/brief-v1.0.md',
     suggestedScopePath: 'baseline/scope-v1.0.md',
     missingInformation: cleanItems(input.digest.unclear_points),
