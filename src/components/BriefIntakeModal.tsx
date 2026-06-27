@@ -366,6 +366,29 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
     setError('Applied Quotation Approval Lock เข้า Quotation Draft แล้ว');
   };
 
+  const handleApplyScopeBaseline = (baselineMarkdown: string) => {
+    const currentMarkdown = getQuotationDocumentMarkdown();
+    if (!draftReview || currentMarkdown === null) return;
+
+    const existingSectionPattern = /<!-- scope-baseline-from-approved-quote:start -->[\s\S]*?<!-- scope-baseline-from-approved-quote:end -->/m;
+    let updatedMarkdown = currentMarkdown;
+
+    if (existingSectionPattern.test(updatedMarkdown)) {
+      updatedMarkdown = updatedMarkdown.replace(existingSectionPattern, baselineMarkdown);
+    } else if (updatedMarkdown.includes('<!-- quotation-approval-lock:end -->')) {
+      updatedMarkdown = updatedMarkdown.replace('<!-- quotation-approval-lock:end -->', `<!-- quotation-approval-lock:end -->\n\n${baselineMarkdown}`);
+    } else if (updatedMarkdown.includes('<!-- final-quote-summary:end -->')) {
+      updatedMarkdown = updatedMarkdown.replace('<!-- final-quote-summary:end -->', `<!-- final-quote-summary:end -->\n\n${baselineMarkdown}`);
+    } else if (updatedMarkdown.includes('## Quote Status')) {
+      updatedMarkdown = updatedMarkdown.replace('## Quote Status', `${baselineMarkdown}\n\n## Quote Status`);
+    } else {
+      updatedMarkdown = `${updatedMarkdown.trimEnd()}\n\n${baselineMarkdown}\n`;
+    }
+
+    setDraftReview(updateDraftReviewDocument(draftReview, 'quotation', updatedMarkdown));
+    setError('Applied Scope Baseline เข้า Quotation Draft แล้ว');
+  };
+
   const handleApplyDraftReview = async () => {
     if (!draftReview || !canApplyDraftReview(draftReview)) return;
     const applyPlan = draftReview.applyPlan;
@@ -547,7 +570,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
             {customerQuestionPack && <CustomerQuestionPanel pack={customerQuestionPack} />}
             {customerQuestionPack && scopeClosure && <CustomerAnswerPanel questionPack={customerQuestionPack} gate={scopeClosure} />}
             {quoteReadiness && <QuoteReadinessPanel brief={quoteReadiness} />}
-            {quotationDraft && <QuotationDraftPanel draft={quotationDraft} onApplyFinalQuoteSummary={handleApplyFinalQuoteSummary} onApplyApprovalLock={handleApplyApprovalLock} />}
+            {quotationDraft && <QuotationDraftPanel draft={quotationDraft} onApplyFinalQuoteSummary={handleApplyFinalQuoteSummary} onApplyApprovalLock={handleApplyApprovalLock} onApplyScopeBaseline={handleApplyScopeBaseline} />}
             {plannedActions.length > 0 && (
               <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4">
                 <h3 className="text-sm font-bold text-primary-light mb-2">สิ่งที่จะเกิดขึ้นเมื่อกด Apply</h3>
