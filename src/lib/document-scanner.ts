@@ -43,8 +43,18 @@ const ALLOWED_FOLDERS = [
   'support-requests',
   'approvals',
   'acceptance',
+  'closeout',
   'exports'
 ];
+
+export function isScannableProjectDocumentPath(projectPath: string, filePath: string): boolean {
+  const relativePath = filePath.substring(projectPath.length + 1);
+  const folder = relativePath.split(/[/\\]/)[0];
+  const fileName = filePath.split(/[/\\]/).pop() || '';
+
+  if (!ALLOWED_FOLDERS.includes(folder)) return false;
+  return fileName.endsWith('.md') || (folder === 'exports' && fileName.endsWith('.html'));
+}
 
 function findNodeByPath(node: FileEntry, targetPath: string): FileEntry | null {
   if (node.path === targetPath) return node;
@@ -60,13 +70,8 @@ function findNodeByPath(node: FileEntry, targetPath: string): FileEntry | null {
 function extractFiles(node: FileEntry, projectPath: string, files: FileEntry[]) {
   if (!node) return;
   if (!node.is_dir) {
-    const relativePath = node.path.substring(projectPath.length + 1);
-    const folder = relativePath.split(/[/\\]/)[0];
-
-    if (ALLOWED_FOLDERS.includes(folder)) {
-      if (node.name.endsWith('.md') || (folder === 'exports' && node.name.endsWith('.html'))) {
-        files.push(node);
-      }
+    if (isScannableProjectDocumentPath(projectPath, node.path)) {
+      files.push(node);
     }
   } else if (node.children) {
     node.children.forEach(c => extractFiles(c, projectPath, files));
