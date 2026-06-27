@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, CircleDashed, ExternalLink, FileArchive, FileClock, FileOutput, LockKeyhole, OctagonAlert } from 'lucide-react';
+import { CheckCircle2, CircleDashed, ExternalLink, FileArchive, FileClock, FileOutput, FolderOpen, LockKeyhole, OctagonAlert } from 'lucide-react';
 import { getCloseoutActionAvailability, getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget';
 import type { DocumentLifecycleSummary, LifecycleItemStatus } from '../../lib/ai/document-lifecycle/documentLifecycle';
@@ -327,6 +327,11 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                         {openTarget.export_index_path && (
                           <button type="button" onClick={() => { onLifecycleAction(row, 'opened_export'); onSelectFile(openTarget.export_index_path!); }} className="btn btn-primary text-xs gap-2 shrink-0">
                             <ExternalLink className="w-3.5 h-3.5" /> เปิด Export
+                          </button>
+                        )}
+                        {openTarget.export_folder_path && (
+                          <button type="button" onClick={() => onSelectFile(openTarget.export_folder_path!)} className="btn btn-outline text-xs gap-2 shrink-0">
+                            <FolderOpen className="w-3.5 h-3.5" /> เปิด Export Folder
                           </button>
                         )}
                         <button
