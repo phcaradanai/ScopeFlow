@@ -4,6 +4,7 @@ import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget'
 import { getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import type { DocumentLifecycleSummary, LifecycleItemStatus } from '../../lib/ai/document-lifecycle/documentLifecycle';
 import type { DocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
+import { formatProjectLifecycleActionLogTime, type ProjectLifecycleActionLogEntry, type ProjectLifecycleActionLogType } from '../../lib/ai/document-lifecycle/documentLifecycleActionLog';
 import { getProjectLifecycleEmptyGuidance } from '../../lib/ai/document-lifecycle/documentLifecycleEmptyGuidance';
 import type { ProjectLifecyclePriority, ProjectLifecyclePriorityCategory } from '../../lib/ai/document-lifecycle/documentLifecyclePriority';
 import type { LifecycleScanFile } from '../../lib/ai/document-lifecycle/documentLifecycleFileScan';
@@ -20,6 +21,8 @@ export interface ProjectLifecycleRow {
 
 interface ProjectLifecycleListProps {
   rows: ProjectLifecycleRow[];
+  actionLogs: ProjectLifecycleActionLogEntry[];
+  onLifecycleAction: (row: ProjectLifecycleRow, type: ProjectLifecycleActionLogType) => void;
   onSelectProject: (path: string) => void;
   onSelectFile: (path: string) => void;
   onCreateCloseoutPack: (row: ProjectLifecycleRow) => void;
@@ -100,7 +103,7 @@ function EmptyGuidanceCard({ activeFilter, onShowAll }: { activeFilter: Lifecycl
   );
 }
 
-export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFile, onCreateCloseoutPack, onCreateCloseoutExport }: ProjectLifecycleListProps) {
+export default function ProjectLifecycleList({ rows, actionLogs, onLifecycleAction, onSelectProject, onSelectFile, onCreateCloseoutPack, onCreateCloseoutExport }: ProjectLifecycleListProps) {
   const [activeFilter, setActiveFilter] = useState<LifecycleFilter>('all');
   const filteredRows = useMemo(() => (
     activeFilter === 'all' ? rows : rows.filter(row => row.priority.category === activeFilter)
@@ -114,6 +117,7 @@ export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFi
     return counts;
   }, [rows]);
 
+  const projectNameByPath = useMemo(() => new Map(rows.map(row => [row.projectPath, row.projectName])), [rows]);
   const totalNeedsAttention = (filterCounts.get('blocked') || 0) + (filterCounts.get('missing_docs') || 0) + (filterCounts.get('can_close') || 0) + (filterCounts.get('closeout_ready') || 0);
 
   return (
@@ -153,6 +157,25 @@ export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFi
             );
           })}
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-surface-2/40 p-3">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <p className="text-xs font-bold text-text">Recent lifecycle actions</p>
+          <span className="badge badge-muted text-[10px]">{actionLogs.length} actions</span>
+        </div>
+        {actionLogs.length === 0 ? (
+          <p className="text-xs text-text-muted">ยังไม่มี action log จากการสร้างหรือเปิด Closeout / Export ใน session นี้</p>
+        ) : (
+          <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
+            {actionLogs.slice(0, 5).map(entry => (
+              <div key={entry.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-1 rounded-lg border border-border bg-surface px-2 py-1.5">
+                <span className="text-xs font-semibold text-text">{entry.label}</span>
+                <span className="text-[10px] text-text-muted truncate">{projectNameByPath.get(entry.project_path) || entry.project_path} · {formatProjectLifecycleActionLogTime(entry.created_at)}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -249,7 +272,7 @@ export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFi
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {openTarget.closeout_summary_path && (
-                        <button type="button" onClick={() => onSelectFile(openTarget.closeout_summary_path!)} className="btn btn-primary text-xs gap-2 shrink-0">
+                        <button type="button" onClick={() => { onLifecycleAction(row, 'opened_closeout'); onSelectFile(openTarget.closeout_summary_path!); }} className="btn btn-primary text-xs gap-2 shrink-0">
                           <ExternalLink className="w-3.5 h-3.5" /> เปิด Closeout
                         </button>
                       )}
@@ -269,7 +292,7 @@ export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFi
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {openTarget.export_index_path && (
-                        <button type="button" onClick={() => onSelectFile(openTarget.export_index_path!)} className="btn btn-primary text-xs gap-2 shrink-0">
+                        <button type="button" onClick={() => { onLifecycleAction(row, 'opened_export'); onSelectFile(openTarget.export_index_path!); }} className="btn btn-primary text-xs gap-2 shrink-0">
                           <ExternalLink className="w-3.5 h-3.5" /> เปิด Export
                         </button>
                       )}
