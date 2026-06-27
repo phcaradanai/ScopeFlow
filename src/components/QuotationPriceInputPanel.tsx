@@ -9,6 +9,7 @@ interface QuotationPriceInputPanelProps {
   draft: QuotationDraft;
   onApplyFinalQuoteSummary?: (markdown: string) => void;
   onApplyScopeBaseline?: (markdown: string) => void;
+  onApplyChangeRequestDraft?: (requestId: string, markdown: string) => void;
 }
 
 function parseNumber(value: string): number {
@@ -20,7 +21,7 @@ function formatMoney(value: number, currency: string): string {
   return `${currency} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default function QuotationPriceInputPanel({ draft, onApplyFinalQuoteSummary, onApplyScopeBaseline }: QuotationPriceInputPanelProps) {
+export default function QuotationPriceInputPanel({ draft, onApplyFinalQuoteSummary, onApplyScopeBaseline, onApplyChangeRequestDraft }: QuotationPriceInputPanelProps) {
   const [priceBasis, setPriceBasis] = useState<PriceBasis>('average_hours');
   const [hourlyRate, setHourlyRate] = useState('0');
   const [manualFixedPrice, setManualFixedPrice] = useState('0');
@@ -172,7 +173,7 @@ export default function QuotationPriceInputPanel({ draft, onApplyFinalQuoteSumma
         </div>
       </div>
 
-      <ScopeBaselineFromQuotePanel quotation={draft} pricing={result} onApplyScopeBaseline={onApplyScopeBaseline} />
+      <ScopeBaselineFromQuotePanel quotation={draft} pricing={result} onApplyScopeBaseline={onApplyScopeBaseline} onApplyChangeRequestDraft={onApplyChangeRequestDraft} />
     </div>
   );
 }
