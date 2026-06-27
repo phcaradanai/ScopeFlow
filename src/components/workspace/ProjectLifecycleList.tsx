@@ -1,4 +1,5 @@
 import { CheckCircle2, CircleDashed, ExternalLink, FileArchive, FileClock, FileOutput, LockKeyhole, OctagonAlert } from 'lucide-react';
+import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget';
 import { getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import type { DocumentLifecycleSummary, LifecycleItemStatus } from '../../lib/ai/document-lifecycle/documentLifecycle';
 import type { DocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
@@ -62,6 +63,7 @@ export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFi
         <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
           {rows.map(row => {
             const closeoutStatus = getCloseoutStatusSummary(row.scanFiles);
+            const openTarget = getCloseoutOpenTarget(row.scanFiles);
             return (
               <div key={row.projectPath} className="rounded-2xl border border-border bg-surface hover:bg-surface-2 hover:border-primary/40 transition-all p-4">
                 <button type="button" onClick={() => onSelectProject(row.projectPath)} className="w-full text-left">
@@ -125,27 +127,41 @@ export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFi
                     <p className="text-[11px] text-text-muted leading-relaxed">
                       <span className="font-bold text-success">Closeout:</span> {closeoutStatus.closeout_pack_created ? 'Closeout Pack Created' : closeoutStatus.recommended_next_action}
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => onCreateCloseoutPack(row)}
-                      disabled={!row.summary.can_close_work || closeoutStatus.closeout_pack_created}
-                      className="btn btn-outline text-xs gap-2 shrink-0 disabled:opacity-50"
-                    >
-                      <FileArchive className="w-3.5 h-3.5" /> {closeoutStatus.closeout_pack_created ? 'Closeout Created' : 'สร้าง Closeout Pack'}
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      {openTarget.closeout_summary_path && (
+                        <button type="button" onClick={() => onSelectFile(openTarget.closeout_summary_path!)} className="btn btn-primary text-xs gap-2 shrink-0">
+                          <ExternalLink className="w-3.5 h-3.5" /> เปิด Closeout
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => onCreateCloseoutPack(row)}
+                        disabled={!row.summary.can_close_work || closeoutStatus.closeout_pack_created}
+                        className="btn btn-outline text-xs gap-2 shrink-0 disabled:opacity-50"
+                      >
+                        <FileArchive className="w-3.5 h-3.5" /> {closeoutStatus.closeout_pack_created ? 'Closeout Created' : 'สร้าง Closeout Pack'}
+                      </button>
+                    </div>
                   </div>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-t border-primary/10 pt-2">
                     <p className="text-[11px] text-text-muted leading-relaxed">
                       <span className="font-bold text-accent">Export:</span> {closeoutStatus.export_ready ? 'Export Ready' : closeoutStatus.recommended_next_action}
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => onCreateCloseoutExport(row)}
-                      disabled={!closeoutStatus.closeout_pack_created || closeoutStatus.export_index_created}
-                      className="btn btn-outline text-xs gap-2 shrink-0 disabled:opacity-50"
-                    >
-                      <FileOutput className="w-3.5 h-3.5" /> {closeoutStatus.export_index_created ? 'Export Created' : 'สร้าง Export Index'}
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      {openTarget.export_index_path && (
+                        <button type="button" onClick={() => onSelectFile(openTarget.export_index_path!)} className="btn btn-primary text-xs gap-2 shrink-0">
+                          <ExternalLink className="w-3.5 h-3.5" /> เปิด Export
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => onCreateCloseoutExport(row)}
+                        disabled={!closeoutStatus.closeout_pack_created || closeoutStatus.export_index_created}
+                        className="btn btn-outline text-xs gap-2 shrink-0 disabled:opacity-50"
+                      >
+                        <FileOutput className="w-3.5 h-3.5" /> {closeoutStatus.export_index_created ? 'Export Created' : 'สร้าง Export Index'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
