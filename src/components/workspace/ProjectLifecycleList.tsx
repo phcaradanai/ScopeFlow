@@ -13,6 +13,7 @@ import {
 } from '../../lib/ai/closeout/closeoutDeliveryStatus';
 import { getCloseoutFinalizedGuard } from '../../lib/ai/closeout/closeoutFinalizedGuard';
 import { getCloseoutFinalStatus, type CloseoutFinalStatus } from '../../lib/ai/closeout/closeoutFinalStatus';
+import { getCloseoutReopenRequestSummary } from '../../lib/ai/closeout/closeoutReopenDetection';
 import { buildCloseoutReopenRequest, canCreateCloseoutReopenRequest } from '../../lib/ai/closeout/closeoutReopenRequest';
 import { getCloseoutActionAvailability, getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget';
@@ -367,6 +368,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
             const savedDeliveryStatus = getCloseoutDeliveryStatus(deliveryStatuses, row.projectPath);
             const finalStatus = getCloseoutFinalStatus(closeoutStatus, savedDeliveryStatus);
             const finalizedGuard = getCloseoutFinalizedGuard(finalStatus);
+            const reopenSummary = getCloseoutReopenRequestSummary(row.scanFiles);
             const packageSent = savedDeliveryStatus?.status === 'package_sent' || savedDeliveryStatus?.status === 'pending_customer_acceptance' || savedDeliveryStatus?.status === 'acceptance_received';
             const pendingAcceptance = savedDeliveryStatus?.status === 'pending_customer_acceptance' || savedDeliveryStatus?.status === 'acceptance_received';
             const deliveryItems = deliveryChecklist.items.map(item => {
@@ -403,6 +405,11 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                       <div className={`badge text-xs ${finalStatusBadgeClass(finalStatus.is_terminal_ready)}`}>
                         {finalStatus.label}
                       </div>
+                      {reopenSummary.has_reopen_request && (
+                        <div className="badge text-xs bg-warning/10 text-warning border border-warning/20">
+                          Reopen / CR: {reopenSummary.request_count}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -448,6 +455,14 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                       <p className="mt-2 rounded-lg border border-success/20 bg-success/10 px-2 py-1.5 text-[10px] text-success leading-relaxed">{finalizedGuard.lock_reason}</p>
                     )}
                   </div>
+
+                  {reopenSummary.has_reopen_request && (
+                    <div className="mb-3 rounded-xl border border-warning/20 bg-warning/10 p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-warning mb-1">Reopen / Change Request detected</p>
+                      <p className="text-xs font-bold text-text">{reopenSummary.request_count} request{reopenSummary.request_count > 1 ? 's' : ''} after final close</p>
+                      <p className="text-[10px] text-text-muted mt-1 leading-relaxed">พบไฟล์ reopen-request ใน changes/ จากไฟล์จริงของ project นี้</p>
+                    </div>
+                  )}
 
                   <p className="text-xs text-text-muted leading-relaxed">
                     <span className="font-bold text-primary-light">Next:</span> {row.summary.next_action}
@@ -563,6 +578,11 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                           {finalizedGuard.is_finalized && (
                             <button type="button" onClick={() => createReopenRequest(row, finalStatus)} className="btn btn-outline text-xs gap-2 shrink-0">
                               <FileOutput className="w-3.5 h-3.5" /> Create reopen / CR
+                            </button>
+                          )}
+                          {reopenSummary.latest_request_path && (
+                            <button type="button" onClick={() => onSelectFile(reopenSummary.latest_request_path!)} className="btn btn-outline text-xs gap-2 shrink-0">
+                              <ExternalLink className="w-3.5 h-3.5" /> เปิด Reopen / CR ล่าสุด
                             </button>
                           )}
                         </div>
