@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, CircleDashed, ExternalLink, FileArchive, FileClock, FileOutput, LockKeyhole, OctagonAlert } from 'lucide-react';
 import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget';
 import { getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
@@ -19,17 +19,19 @@ export interface ProjectLifecycleRow {
   priority: ProjectLifecyclePriority;
 }
 
+type LifecycleFilter = 'all' | ProjectLifecyclePriorityCategory;
+
 interface ProjectLifecycleListProps {
   rows: ProjectLifecycleRow[];
   actionLogs: ProjectLifecycleActionLogEntry[];
+  autofocusFilter?: LifecycleFilter;
+  highlightedProjectPath?: string | null;
   onLifecycleAction: (row: ProjectLifecycleRow, type: ProjectLifecycleActionLogType) => void;
   onSelectProject: (path: string) => void;
   onSelectFile: (path: string) => void;
   onCreateCloseoutPack: (row: ProjectLifecycleRow) => void;
   onCreateCloseoutExport: (row: ProjectLifecycleRow) => void;
 }
-
-type LifecycleFilter = 'all' | ProjectLifecyclePriorityCategory;
 
 const FILTERS: { id: LifecycleFilter; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -103,8 +105,13 @@ function EmptyGuidanceCard({ activeFilter, onShowAll }: { activeFilter: Lifecycl
   );
 }
 
-export default function ProjectLifecycleList({ rows, actionLogs, onLifecycleAction, onSelectProject, onSelectFile, onCreateCloseoutPack, onCreateCloseoutExport }: ProjectLifecycleListProps) {
+export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter, highlightedProjectPath, onLifecycleAction, onSelectProject, onSelectFile, onCreateCloseoutPack, onCreateCloseoutExport }: ProjectLifecycleListProps) {
   const [activeFilter, setActiveFilter] = useState<LifecycleFilter>('all');
+
+  useEffect(() => {
+    if (autofocusFilter) setActiveFilter(autofocusFilter);
+  }, [autofocusFilter]);
+
   const filteredRows = useMemo(() => (
     activeFilter === 'all' ? rows : rows.filter(row => row.priority.category === activeFilter)
   ), [activeFilter, rows]);
@@ -205,8 +212,14 @@ export default function ProjectLifecycleList({ rows, actionLogs, onLifecycleActi
             const closeoutStatus = getCloseoutStatusSummary(row.scanFiles);
             const closeoutEvidence = getCloseoutEvidenceSummary(closeoutStatus);
             const openTarget = getCloseoutOpenTarget(row.scanFiles);
+            const highlighted = highlightedProjectPath === row.projectPath;
             return (
-              <div key={row.projectPath} className="rounded-2xl border border-border bg-surface hover:bg-surface-2 hover:border-primary/40 transition-all p-4">
+              <div key={row.projectPath} className={`rounded-2xl border bg-surface hover:bg-surface-2 transition-all p-4 ${highlighted ? 'border-success/50 ring-2 ring-success/20' : 'border-border hover:border-primary/40'}`}>
+                {highlighted && (
+                  <div className="mb-3 rounded-xl border border-success/20 bg-success/10 px-3 py-2 text-xs font-bold text-success">
+                    Focused next action — project นี้เพิ่งถูกอัปเดตจาก action ล่าสุด
+                  </div>
+                )}
                 <button type="button" onClick={() => onSelectProject(row.projectPath)} className="w-full text-left">
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-3">
                     <div className="min-w-0">
