@@ -5,6 +5,8 @@ import { getRuleBasedScopeControl } from '../scope-control/scopeControlFallback'
 import { injectScopeControlMarkdown } from '../scope-control/scopeControlMarkdown';
 import { evaluateScopeClosureGate } from '../scope-closure/scopeClosureGate';
 import { injectScopeClosureMarkdown } from '../scope-closure/scopeClosureMarkdown';
+import { buildCustomerQuestionPack } from '../scope-closure/customerQuestionLoop';
+import { injectCustomerQuestionLoopMarkdown } from '../scope-closure/customerQuestionMarkdown';
 
 export interface BriefScopeDraftInput {
   rawRequest: string;
@@ -141,11 +143,13 @@ export function buildScopeDraftFromDigest(input: BriefScopeDraftInput): string {
 export function buildBriefScopeDraftPack(input: BriefScopeDraftInput): BriefScopeDraftPack {
   const scopeControl = getRuleBasedScopeControl(input.rawRequest, input.digest);
   const closureGate = evaluateScopeClosureGate({ scopeControl });
+  const customerQuestionPack = buildCustomerQuestionPack(closureGate, input.projectName);
   const scopeMarkdownWithControl = injectScopeControlMarkdown(buildScopeDraftFromDigest(input), scopeControl);
+  const scopeMarkdownWithClosure = injectScopeClosureMarkdown(scopeMarkdownWithControl, closureGate);
 
   return {
     briefMarkdown: buildBriefDraftFromDigest(input),
-    scopeMarkdown: injectScopeClosureMarkdown(scopeMarkdownWithControl, closureGate),
+    scopeMarkdown: injectCustomerQuestionLoopMarkdown(scopeMarkdownWithClosure, customerQuestionPack),
     suggestedBriefPath: 'baseline/brief-v1.0.md',
     suggestedScopePath: 'baseline/scope-v1.0.md',
     missingInformation: cleanItems(input.digest.unclear_points),
