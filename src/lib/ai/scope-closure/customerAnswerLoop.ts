@@ -22,11 +22,30 @@ function normalize(text: string): string {
   return text.toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
-function extractNumberedAnswer(rawAnswerText: string, index: number): string | undefined {
-  const escapedIndex = index + 1;
-  const pattern = new RegExp(`(?:^|\\n)\\s*(?:${escapedIndex}[.)]|ข้อ\\s*${escapedIndex})\\s*([^\\n]+(?:\\n(?!\\s*(?:\\d+[.)]|ข้อ\\s*\\d+)).+)*)`, 'i');
-  const match = rawAnswerText.match(pattern);
-  return match?.[1]?.trim();
+function parseNumberedAnswers(rawAnswerText: string): Map<number, string> {
+  const answers = new Map<number, string>();
+  let currentIndex: number | null = null;
+  let currentLines: string[] = [];
+
+  const flush = () => {
+    if (currentIndex === null) return;
+    const answer = currentLines.join('\n').trim();
+    if (answer) answers.set(currentIndex, answer);
+  };
+
+  for (const line of rawAnswerText.split(/\r?\n/)) {
+    const match = line.match(/^\s*(?:(\d+)[.)]|ข้อ\s*(\d+))\s*(.*)$/i);
+    if (match) {
+      flush();
+      currentIndex = Number(match[1] || match[2]) - 1;
+      currentLines = [match[3] || ''];
+    } else if (currentIndex !== null) {
+      currentLines.push(line);
+    }
+  }
+
+  flush();
+  return answers;
 }
 
 function inferDisposition(answer: string | undefined): CustomerAnswerDisposition {
@@ -34,7 +53,7 @@ function inferDisposition(answer: string | undefined): CustomerAnswerDisposition
 
   const text = normalize(answer);
   const waivedKeywords = [
-    'ไม่เอา', 'ยังไม่ทำ', 'ไม่รวม', 'ตัดออก', 'phase 2', 'เฟส 2', 'ภายหลัง', 'ทีหลัง', 'waive', 'skip', 'exclude', 'not include',
+    'ไม่เอา', 'ยังไม่ทำ', 'ไม่ทำ', 'ไม่รวม', 'ตัดออก', 'phase 2', 'เฟส 2', 'ภายหลัง', 'ทีหลัง', 'waive', 'skip', 'exclude', 'not include',
   ];
   const unclearKeywords = [
     'ยังไม่รู้', 'ยังไม่แน่ใจ', 'ไม่แน่ใจ', 'ขอดูก่อน', 'ค่อยตอบ', 'รอก่อน', 'tbd', 'not sure', 'later', 'pending',
@@ -59,8 +78,9 @@ function findLooseAnswer(rawAnswerText: string, question: string): string | unde
 }
 
 export function applyCustomerAnswers(input: CustomerAnswerApplyInput): CustomerAnswerApplyResult {
+  const numberedAnswers = parseNumberedAnswers(input.rawAnswerText);
   const updatedQuestions = input.questions.map((item, index) => {
-    const answer = extractNumberedAnswer(input.rawAnswerText, index) || findLooseAnswer(input.rawAnswerText, item.question);
+    const answer = numberedAnswers.get(index) || findLooseAnswer(input.rawAnswerText, item.question);
     const disposition = inferDisposition(answer);
 
     return {
