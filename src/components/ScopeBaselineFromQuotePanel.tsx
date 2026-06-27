@@ -11,9 +11,10 @@ interface ScopeBaselineFromQuotePanelProps {
   quotation: QuotationDraft;
   pricing: QuotationPricingResult;
   onApplyScopeBaseline?: (markdown: string) => void;
+  onApplyChangeRequestDraft?: (requestId: string, markdown: string) => void;
 }
 
-export default function ScopeBaselineFromQuotePanel({ quotation, pricing, onApplyScopeBaseline }: ScopeBaselineFromQuotePanelProps) {
+export default function ScopeBaselineFromQuotePanel({ quotation, pricing, onApplyScopeBaseline, onApplyChangeRequestDraft }: ScopeBaselineFromQuotePanelProps) {
   const [quotationPath, setQuotationPath] = useState('baseline/quotation-draft-v1.0.md');
   const [scopePath, setScopePath] = useState('baseline/scope-v1.0.md');
   const [approvedAt, setApprovedAt] = useState('');
@@ -142,7 +143,7 @@ export default function ScopeBaselineFromQuotePanel({ quotation, pricing, onAppl
         </div>
       </div>
 
-      <ChangeRequestDetectionPanel baseline={baseline} />
+      <ChangeRequestDetectionPanel baseline={baseline} onApplyChangeRequestDraft={onApplyChangeRequestDraft} />
     </div>
   );
 }
