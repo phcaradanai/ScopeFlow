@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../closeoutStatus';
+import { getCloseoutActionAvailability, getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../closeoutStatus';
 
 const projectPath = '/workspace/clients/client-1/projects/project-1';
 const fullCloseoutFiles = [
@@ -76,5 +76,32 @@ describe('closeoutStatus', () => {
     expect(evidence.closeout_evidence_label).toBe('Closeout files: 4/4');
     expect(evidence.export_evidence_label).toBe('Export index: found');
     expect(evidence.missing_files).toEqual([]);
+  });
+
+  it('explains why closeout and export actions are disabled before closeout can be created', () => {
+    const status = getCloseoutStatusSummary([]);
+    const availability = getCloseoutActionAvailability(false, status);
+
+    expect(availability.closeout_disabled_reason).toContain('Can close ยังเป็น no');
+    expect(availability.export_disabled_reason).toContain('Closeout Pack ยังไม่ครบ');
+  });
+
+  it('explains already-created closeout and available export action', () => {
+    const status = getCloseoutStatusSummary(fullCloseoutFiles);
+    const availability = getCloseoutActionAvailability(true, status);
+
+    expect(availability.closeout_disabled_reason).toContain('ถูกสร้างแล้ว');
+    expect(availability.export_disabled_reason).toBeNull();
+  });
+
+  it('explains already-created export index', () => {
+    const status = getCloseoutStatusSummary([
+      ...fullCloseoutFiles,
+      { path: `${projectPath}/exports/closeout-package-index.md`, markdown: '# Export Index' },
+    ]);
+    const availability = getCloseoutActionAvailability(true, status);
+
+    expect(availability.closeout_disabled_reason).toContain('Closeout Pack ถูกสร้างแล้ว');
+    expect(availability.export_disabled_reason).toContain('Export Index ถูกสร้างแล้ว');
   });
 });
