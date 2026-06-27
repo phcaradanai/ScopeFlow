@@ -9,6 +9,7 @@ import { generateCompletedDemoFlow } from '../lib/demo-flow-generator';
 import { openPath } from '@tauri-apps/plugin-opener';
 import YAML from 'yaml';
 import { buildDocumentLifecycleSummary } from '../lib/ai/document-lifecycle/documentLifecycle';
+import { getDocumentLifecycleActionTarget } from '../lib/ai/document-lifecycle/documentLifecycleAction';
 import { scanDocumentLifecycleFromFiles } from '../lib/ai/document-lifecycle/documentLifecycleFileScan';
 import {
   getWorkspaceClients,
@@ -105,16 +106,19 @@ export default function WorkspaceOverview({
 
           const lifecycleRows = projects.map((project, index) => {
             const docs = allDocsLists[index] || [];
-            const lifecycleInput = scanDocumentLifecycleFromFiles(docs.map(doc => ({
+            const scanFiles = docs.map(doc => ({
               path: doc.file_path,
               markdown: doc.markdown || '',
-            })));
+            }));
+            const lifecycleInput = scanDocumentLifecycleFromFiles(scanFiles);
             const summary = buildDocumentLifecycleSummary(lifecycleInput);
+            const actionTarget = getDocumentLifecycleActionTarget(scanFiles, lifecycleInput);
             return {
               projectPath: project.path,
               projectName: project.projectName,
               clientName: project.clientName,
               summary,
+              actionTarget,
             };
           }).sort((a, b) => {
             if (a.summary.can_close_work !== b.summary.can_close_work) return a.summary.can_close_work ? 1 : -1;
@@ -296,7 +300,7 @@ export default function WorkspaceOverview({
 
       <WorkspaceStats clientsCount={clientsCount} projectsCount={projectsCount} documentsCount={documentsCount} approvedCount={approvedCount} lockedCount={lockedCount} healthStatus={healthStatus} />
 
-      <ProjectLifecycleList rows={projectLifecycleRows} onSelectProject={setSelectedFile} />
+      <ProjectLifecycleList rows={projectLifecycleRows} onSelectProject={setSelectedFile} onSelectFile={setSelectedFile} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ClientList clientsWithProjects={workspaceClients} onCreateClient={onCreateClient} onCreateProject={onCreateProject} onSelectClient={setSelectedFile} />
