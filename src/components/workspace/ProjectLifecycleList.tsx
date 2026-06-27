@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, CircleDashed, ExternalLink, FileArchive, FileClock, FileOutput, FolderOpen, LockKeyhole, OctagonAlert } from 'lucide-react';
 import { getCloseoutDeliveryChecklist } from '../../lib/ai/closeout/closeoutDeliveryChecklist';
+import {
+  formatCloseoutDeliveryStatusLabel,
+  getCloseoutDeliveryStatus,
+  getCloseoutDeliveryStatusStorageKey,
+  parseCloseoutDeliveryStatuses,
+  serializeCloseoutDeliveryStatuses,
+  setCloseoutDeliveryStatus,
+  type CloseoutDeliveryStatusEntry,
+  type CloseoutDeliveryStatusType,
+} from '../../lib/ai/closeout/closeoutDeliveryStatus';
 import { getCloseoutActionAvailability, getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget';
 import type { DocumentLifecycleSummary, LifecycleItemStatus } from '../../lib/ai/document-lifecycle/documentLifecycle';
@@ -89,6 +99,15 @@ function summaryCardClass(category: ProjectLifecyclePriorityCategory): string {
   return 'border-border bg-surface-2 hover:border-primary/30';
 }
 
+function getWorkspaceKeyPath(rows: ProjectLifecycleRow[]): string {
+  const firstPath = rows[0]?.projectPath || 'unknown-workspace';
+  const normalized = firstPath.replace(/\\/g, '/');
+  const marker = '/clients/';
+  const markerIndex = normalized.indexOf(marker);
+  if (markerIndex >= 0) return normalized.slice(0, markerIndex);
+  return normalized.split('/projects/')[0] || normalized;
+}
+
 function EmptyGuidanceCard({ activeFilter, onShowAll }: { activeFilter: LifecycleFilter; onShowAll: () => void }) {
   const guidance = getProjectLifecycleEmptyGuidance(activeFilter);
   return (
@@ -108,10 +127,24 @@ function EmptyGuidanceCard({ activeFilter, onShowAll }: { activeFilter: Lifecycl
 
 export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter, highlightedProjectPath, onLifecycleAction, onSelectProject, onSelectFile, onCreateCloseoutPack, onCreateCloseoutExport }: ProjectLifecycleListProps) {
   const [activeFilter, setActiveFilter] = useState<LifecycleFilter>('all');
+  const [deliveryStatuses, setDeliveryStatuses] = useState<CloseoutDeliveryStatusEntry[]>([]);
+  const deliveryStatusStorageKey = useMemo(() => getCloseoutDeliveryStatusStorageKey(getWorkspaceKeyPath(rows)), [rows]);
 
   useEffect(() => {
     if (autofocusFilter) setActiveFilter(autofocusFilter);
   }, [autofocusFilter]);
+
+  useEffect(() => {
+    setDeliveryStatuses(parseCloseoutDeliveryStatuses(localStorage.getItem(deliveryStatusStorageKey)));
+  }, [deliveryStatusStorageKey]);
+
+  const recordDeliveryStatus = (row: ProjectLifecycleRow, status: CloseoutDeliveryStatusType) => {
+    setDeliveryStatuses(current => {
+      const next = setCloseoutDeliveryStatus(current, row.projectPath, status);
+      localStorage.setItem(deliveryStatusStorageKey, serializeCloseoutDeliveryStatuses(next));
+      return next;
+    });
+  };
 
   const filteredRows = useMemo(() => (
     activeFilter === 'all' ? rows : rows.filter(row => row.priority.category === activeFilter)
@@ -213,6 +246,14 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
             const closeoutStatus = getCloseoutStatusSummary(row.scanFiles);
             const closeoutEvidence = getCloseoutEvidenceSummary(closeoutStatus);
             const deliveryChecklist = getCloseoutDeliveryChecklist(closeoutStatus);
+            const savedDeliveryStatus = getCloseoutDeliveryStatus(deliveryStatuses, row.projectPath);
+            const packageSent = savedDeliveryStatus?.status === 'package_sent' || savedDeliveryStatus?.status === 'pending_customer_acceptance';
+            const pendingAcceptance = savedDeliveryStatus?.status === 'pending_customer_acceptance';
+            const deliveryItems = deliveryChecklist.items.map(item => {
+              if (item.id === 'attach_package_to_customer_message') return { ...item, done: packageSent };
+              if (item.id === 'record_delivery_or_pending_acceptance') return { ...item, done: pendingAcceptance };
+              return item;
+            });
             const actionAvailability = getCloseoutActionAvailability(row.summary.can_close_work, closeoutStatus);
             const openTarget = getCloseoutOpenTarget(row.scanFiles);
             const highlighted = highlightedProjectPath === row.projectPath;
@@ -356,19 +397,32 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                       <div>
                         <p className="text-[11px] font-bold text-text">{deliveryChecklist.title}</p>
                         <p className="text-[10px] text-text-muted mt-1 leading-relaxed">{deliveryChecklist.description}</p>
+                        {savedDeliveryStatus && (
+                          <p className="text-[10px] text-success mt-1 leading-relaxed">Delivery status: {formatCloseoutDeliveryStatusLabel(savedDeliveryStatus.status)}</p>
+                        )}
                       </div>
                       <span className={`badge text-[10px] shrink-0 ${deliveryChecklist.ready_for_delivery ? 'bg-success/10 text-success border border-success/20' : 'badge-muted'}`}>
                         {deliveryChecklist.ready_for_delivery ? 'Ready' : 'Locked'}
                       </span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {deliveryChecklist.items.map(item => (
+                      {deliveryItems.map(item => (
                         <div key={item.id} className="flex items-start gap-2 rounded-lg border border-border bg-surface px-2 py-1.5">
                           {item.done ? <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0 mt-0.5" /> : <CircleDashed className="w-3.5 h-3.5 text-text-muted shrink-0 mt-0.5" />}
                           <span className="text-[10px] text-text-muted leading-relaxed">{item.label}</span>
                         </div>
                       ))}
                     </div>
+                    {deliveryChecklist.ready_for_delivery && (
+                      <div className="flex flex-wrap gap-2 mt-3 border-t border-success/10 pt-3">
+                        <button type="button" onClick={() => recordDeliveryStatus(row, 'package_sent')} className="btn btn-outline text-xs gap-2 shrink-0">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Mark package sent
+                        </button>
+                        <button type="button" onClick={() => recordDeliveryStatus(row, 'pending_customer_acceptance')} className="btn btn-outline text-xs gap-2 shrink-0">
+                          <FileClock className="w-3.5 h-3.5" /> Mark pending customer acceptance
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
