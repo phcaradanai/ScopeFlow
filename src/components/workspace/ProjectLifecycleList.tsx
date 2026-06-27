@@ -13,6 +13,7 @@ import {
 } from '../../lib/ai/closeout/closeoutDeliveryStatus';
 import { getCloseoutFinalizedGuard } from '../../lib/ai/closeout/closeoutFinalizedGuard';
 import { getCloseoutFinalStatus, type CloseoutFinalStatus } from '../../lib/ai/closeout/closeoutFinalStatus';
+import { getLatestCloseoutReopenDecisionSummary } from '../../lib/ai/closeout/closeoutReopenDecisionDetection';
 import { getCloseoutReopenRequestSummary } from '../../lib/ai/closeout/closeoutReopenDetection';
 import { buildCloseoutReopenRequest, canCreateCloseoutReopenRequest } from '../../lib/ai/closeout/closeoutReopenRequest';
 import { getCloseoutActionAvailability, getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
@@ -110,6 +111,12 @@ function finalStatusBadgeClass(isTerminalReady: boolean): string {
   return isTerminalReady
     ? 'bg-success/10 text-success border border-success/20'
     : 'bg-surface-2 text-text-muted border border-border';
+}
+
+function reopenDecisionBadgeClass(hasDecision: boolean, isAmbiguous: boolean): string {
+  if (isAmbiguous) return 'bg-error/10 text-error border border-error/20';
+  if (hasDecision) return 'bg-success/10 text-success border border-success/20';
+  return 'bg-warning/10 text-warning border border-warning/20';
 }
 
 function priorityBadgeClass(category: ProjectLifecyclePriority['category']): string {
@@ -416,6 +423,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
             const finalStatus = getCloseoutFinalStatus(closeoutStatus, savedDeliveryStatus);
             const finalizedGuard = getCloseoutFinalizedGuard(finalStatus);
             const reopenSummary = getCloseoutReopenRequestSummary(row.scanFiles);
+            const reopenDecisionSummary = getLatestCloseoutReopenDecisionSummary(row.scanFiles);
             const packageSent = savedDeliveryStatus?.status === 'package_sent' || savedDeliveryStatus?.status === 'pending_customer_acceptance' || savedDeliveryStatus?.status === 'acceptance_received';
             const pendingAcceptance = savedDeliveryStatus?.status === 'pending_customer_acceptance' || savedDeliveryStatus?.status === 'acceptance_received';
             const deliveryItems = deliveryChecklist.items.map(item => {
@@ -455,6 +463,11 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                       {reopenSummary.has_reopen_request && (
                         <div className="badge text-xs bg-warning/10 text-warning border border-warning/20">
                           Reopen / CR: {reopenSummary.request_count}
+                        </div>
+                      )}
+                      {reopenSummary.has_reopen_request && (
+                        <div className={`badge text-xs ${reopenDecisionBadgeClass(reopenDecisionSummary.has_decision, reopenDecisionSummary.is_ambiguous)}`}>
+                          Decision: {reopenDecisionSummary.is_ambiguous ? 'Ambiguous' : reopenDecisionSummary.selected_decision_label || 'Pending'}
                         </div>
                       )}
                     </div>
@@ -508,6 +521,9 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                       <p className="text-[10px] font-bold uppercase tracking-wide text-warning mb-1">Reopen / Change Request detected</p>
                       <p className="text-xs font-bold text-text">{reopenSummary.request_count} request{reopenSummary.request_count > 1 ? 's' : ''} after final close</p>
                       <p className="text-[10px] text-text-muted mt-1 leading-relaxed">พบไฟล์ reopen-request ใน changes/ จากไฟล์จริงของ project นี้</p>
+                      <p className={`mt-2 inline-flex rounded-full px-2 py-1 text-[10px] font-bold border ${reopenDecisionBadgeClass(reopenDecisionSummary.has_decision, reopenDecisionSummary.is_ambiguous)}`}>
+                        Decision: {reopenDecisionSummary.is_ambiguous ? 'Ambiguous — เลือกหลายข้อ ต้องแก้ให้เหลือข้อเดียว' : reopenDecisionSummary.selected_decision_label || 'Pending — ยังไม่ได้เลือก decision'}
+                      </p>
                     </div>
                   )}
 
