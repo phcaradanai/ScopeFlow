@@ -43,7 +43,7 @@ export function calculateQuotationPricing(draft: QuotationDraft, input: Quotatio
   const hourlyRate = Math.max(0, Number.isFinite(input.hourly_rate) ? input.hourly_rate : 0);
 
   let billableHours = 0;
-  let subtotal = 0;
+  let subtotal: number;
 
   if (input.price_basis === 'manual_fixed') {
     subtotal = Math.max(0, Number.isFinite(input.manual_fixed_price || 0) ? input.manual_fixed_price || 0 : 0);
