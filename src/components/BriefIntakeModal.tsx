@@ -20,6 +20,7 @@ import { evaluateScopeClosureGate, type ScopeClosureGateResult } from '../lib/ai
 import { buildCustomerQuestionPack, type CustomerQuestionPack } from '../lib/ai/scope-closure/customerQuestionLoop';
 import { buildQuoteReadinessBrief, type QuoteReadinessBrief } from '../lib/ai/quotation-readiness/quoteReadinessBridge';
 import { buildQuotationDraft, type QuotationDraft } from '../lib/ai/quotation/quotationDraft';
+import { injectFinalQuoteSummaryMarkdown } from '../lib/ai/quotation/quotationFinalMarkdown';
 import { buildBriefScopeDraftPack } from '../lib/ai/draft-assistant/briefScopeDraftAssistant';
 import { createDraftApplyPlan, summarizeDraftApplyPlan, validateDraftApplyPlan, type DraftApplyProjectTarget } from '../lib/ai/draft-assistant/draftApplyPlan';
 import {
@@ -313,6 +314,32 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
     setDraftReview(updateDraftReviewDocument(draftReview, documentId, markdown));
   };
 
+  const handleApplyFinalQuoteSummary = (summaryMarkdown: string) => {
+    if (!draftReview) return;
+    const quotationDoc = draftReview.documents.find(doc => doc.id === 'quotation');
+    if (!quotationDoc) {
+      setError('ไม่พบ Quotation Draft ใน Review Session');
+      return;
+    }
+
+    const updatedMarkdown = injectFinalQuoteSummaryMarkdown(quotationDoc.markdown, {
+      price_basis: 'manual_fixed',
+      currency: 'THB',
+      billable_hours: 0,
+      hourly_rate: 0,
+      subtotal: 0,
+      discount_amount: 0,
+      taxable_amount: 0,
+      tax_amount: 0,
+      total: 0,
+      payment_terms: '',
+      warnings: [],
+    }).replace(/<!-- final-quote-summary:start -->[\s\S]*?<!-- final-quote-summary:end -->/, summaryMarkdown);
+
+    setDraftReview(updateDraftReviewDocument(draftReview, 'quotation', updatedMarkdown));
+    setError('Applied Final Quote Summary เข้า Quotation Draft แล้ว');
+  };
+
   const handleApplyDraftReview = async () => {
     if (!draftReview || !canApplyDraftReview(draftReview)) return;
     const applyPlan = draftReview.applyPlan;
@@ -494,7 +521,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
             {customerQuestionPack && <CustomerQuestionPanel pack={customerQuestionPack} />}
             {customerQuestionPack && scopeClosure && <CustomerAnswerPanel questionPack={customerQuestionPack} gate={scopeClosure} />}
             {quoteReadiness && <QuoteReadinessPanel brief={quoteReadiness} />}
-            {quotationDraft && <QuotationDraftPanel draft={quotationDraft} />}
+            {quotationDraft && <QuotationDraftPanel draft={quotationDraft} onApplyFinalQuoteSummary={handleApplyFinalQuoteSummary} />}
             {plannedActions.length > 0 && (
               <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4">
                 <h3 className="text-sm font-bold text-primary-light mb-2">สิ่งที่จะเกิดขึ้นเมื่อกด Apply</h3>
