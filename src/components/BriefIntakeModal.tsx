@@ -8,11 +8,13 @@ import SelectField from './ui/SelectField';
 import ScopeDigestPreview from './ScopeDigestPreview';
 import ScopeControlPanel from './ScopeControlPanel';
 import ScopeClosurePanel from './ScopeClosurePanel';
+import CustomerQuestionPanel from './CustomerQuestionPanel';
 import { processScopeDigest } from '../lib/ai/scope-digest/scopeDigestSkill';
 import { ScopeDigestOutput } from '../lib/ai/scope-digest/scopeDigestSchema';
 import { processScopeControl } from '../lib/ai/scope-control/scopeControlSkill';
 import type { ScopeControlOutput } from '../lib/ai/scope-control/scopeControlSchema';
 import { evaluateScopeClosureGate, type ScopeClosureGateResult } from '../lib/ai/scope-closure/scopeClosureGate';
+import { buildCustomerQuestionPack, type CustomerQuestionPack } from '../lib/ai/scope-closure/customerQuestionLoop';
 import { buildBriefScopeDraftPack } from '../lib/ai/draft-assistant/briefScopeDraftAssistant';
 import { createDraftApplyPlan, summarizeDraftApplyPlan, validateDraftApplyPlan, type DraftApplyProjectTarget } from '../lib/ai/draft-assistant/draftApplyPlan';
 import {
@@ -64,6 +66,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
   const [aiDigest, setAiDigest] = useState<ScopeDigestOutput | null>(null);
   const [scopeControl, setScopeControl] = useState<ScopeControlOutput | null>(null);
   const [scopeClosure, setScopeClosure] = useState<ScopeClosureGateResult | null>(null);
+  const [customerQuestionPack, setCustomerQuestionPack] = useState<CustomerQuestionPack | null>(null);
   const [draftReview, setDraftReview] = useState<DraftReviewSession | null>(null);
   const [conflictPath, setConflictPath] = useState<string | null>(null);
   const [conflictProjectPath, setConflictProjectPath] = useState<string | null>(null);
@@ -282,8 +285,10 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
 
       const control = await processScopeControl(workspacePath, formData.raw_request, digest, draftPack.scopeMarkdown);
       const closure = evaluateScopeClosureGate({ scopeControl: control });
+      const questionPack = buildCustomerQuestionPack(closure, target.projectName);
       setScopeControl(control);
       setScopeClosure(closure);
+      setCustomerQuestionPack(questionPack);
       setDraftReview(createDraftReviewSession(target.projectPath, draftPack, applyPlan));
       setSaving(false);
     } catch (err) {
@@ -463,7 +468,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
                 <Sparkles className="w-5 h-5 text-primary" />
                 ตรวจ Draft ก่อนสร้างเอกสารจริง
               </h2>
-              <p className="modal-subtitle">ตรวจ Scope Control และ Scope Closure ก่อนแก้ Brief/Scope และกด Apply ระบบยังไม่เขียนไฟล์หรือสร้าง Project จนกว่าคุณจะยืนยัน</p>
+              <p className="modal-subtitle">ตรวจ Scope Control, Scope Closure และคำถามลูกค้าก่อนแก้ Brief/Scope และกด Apply</p>
             </div>
             <button onClick={onClose} className="modal-close">
               <X className="w-5 h-5" />
@@ -474,6 +479,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
             {error && <div className="p-3 rounded-xl bg-error/10 border border-error/30 text-error text-sm">{error}</div>}
             {scopeControl && <ScopeControlPanel control={scopeControl} />}
             {scopeClosure && <ScopeClosurePanel gate={scopeClosure} />}
+            {customerQuestionPack && <CustomerQuestionPanel pack={customerQuestionPack} />}
             {plannedActions.length > 0 && (
               <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4">
                 <h3 className="text-sm font-bold text-primary-light mb-2">สิ่งที่จะเกิดขึ้นเมื่อกด Apply</h3>
@@ -513,7 +519,7 @@ export default function BriefIntakeModal({ clientId, projectId, projectPath, onC
           </div>
 
           <div className="modal-footer flex-col sm:flex-row gap-3 justify-between">
-            <button type="button" onClick={() => { setDraftReview(null); setScopeControl(null); setScopeClosure(null); }} className="btn btn-ghost">
+            <button type="button" onClick={() => { setDraftReview(null); setScopeControl(null); setScopeClosure(null); setCustomerQuestionPack(null); }} className="btn btn-ghost">
               กลับไปแก้คำขอ
             </button>
             <div className="flex gap-3 flex-wrap justify-end">
