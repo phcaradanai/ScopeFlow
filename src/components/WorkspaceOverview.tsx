@@ -12,6 +12,7 @@ import { createCloseoutApplyPlan } from '../lib/ai/closeout/closeoutApplyPlan';
 import { createCloseoutExportApplyPlan } from '../lib/ai/closeout/closeoutExportApplyPlan';
 import { buildCloseoutPackageExport } from '../lib/ai/closeout/closeoutExport';
 import { buildProjectCloseoutPack } from '../lib/ai/closeout/closeoutPack';
+import { buildCloseoutContentPreview } from '../lib/ai/closeout/closeoutPreviewContent';
 import { buildDocumentLifecycleSummary } from '../lib/ai/document-lifecycle/documentLifecycle';
 import { getDocumentLifecycleActionTarget } from '../lib/ai/document-lifecycle/documentLifecycleAction';
 import {
@@ -332,7 +333,7 @@ export default function WorkspaceOverview({
       }
       setPendingLifecycleAction({
         title: `สร้าง Closeout Pack สำหรับ ${row.projectName}`,
-        description: 'ตรวจรายการไฟล์ที่จะถูกสร้างก่อนยืนยัน ระบบจะยังไม่เขียนไฟล์จนกว่าจะกดยืนยัน',
+        description: 'ตรวจรายการไฟล์และ preview เนื้อหาแบบย่อก่อนยืนยัน ระบบจะยังไม่เขียนไฟล์จนกว่าจะกดยืนยัน',
         confirmLabel: 'ยืนยันสร้าง Closeout Pack',
         successAlert: 'สร้าง Closeout Pack สำเร็จแล้ว สถานะ Lifecycle ถูกอัปเดตแล้ว',
         successTitle: 'Closeout Pack created — Lifecycle updated',
@@ -363,7 +364,7 @@ export default function WorkspaceOverview({
       }
       setPendingLifecycleAction({
         title: `สร้าง Closeout Export Index สำหรับ ${row.projectName}`,
-        description: 'ตรวจไฟล์ export index ที่จะถูกสร้างก่อนยืนยัน ระบบจะยังไม่เขียนไฟล์จนกว่าจะกดยืนยัน',
+        description: 'ตรวจไฟล์ export index และ preview เนื้อหาแบบย่อก่อนยืนยัน ระบบจะยังไม่เขียนไฟล์จนกว่าจะกดยืนยัน',
         confirmLabel: 'ยืนยันสร้าง Export Index',
         successAlert: 'สร้าง Closeout Export Index สำเร็จแล้ว สถานะ Lifecycle ถูกอัปเดตแล้ว',
         successTitle: 'Export Index created — Project moved to Export Ready',
@@ -540,20 +541,32 @@ export default function WorkspaceOverview({
 
       {pendingLifecycleAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-2xl rounded-3xl border border-border bg-surface shadow-2xl">
+          <div className="w-full max-w-3xl rounded-3xl border border-border bg-surface shadow-2xl">
             <div className="border-b border-border p-5">
               <p className="text-sm font-bold text-text">{pendingLifecycleAction.title}</p>
               <p className="text-xs text-text-muted mt-2 leading-relaxed">{pendingLifecycleAction.description}</p>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="p-5 space-y-3 max-h-[68vh] overflow-y-auto">
               <div className="rounded-2xl border border-primary/20 bg-primary/10 p-3">
                 <p className="text-[11px] font-bold text-primary-light uppercase tracking-wide">Files to create</p>
-                <div className="mt-3 space-y-2 max-h-64 overflow-y-auto pr-1">
-                  {pendingLifecycleAction.files.map(file => (
-                    <div key={file.path} className="rounded-xl border border-border bg-surface-2 px-3 py-2">
-                      <p className="text-xs font-mono text-text break-all">{relativeProjectPath(pendingLifecycleAction.row.projectPath, file.path)}</p>
-                    </div>
-                  ))}
+                <div className="mt-3 space-y-3 pr-1">
+                  {pendingLifecycleAction.files.map(file => {
+                    const preview = buildCloseoutContentPreview(file.markdown, 12);
+                    return (
+                      <div key={file.path} className="rounded-xl border border-border bg-surface-2 px-3 py-2">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1">
+                          <p className="text-xs font-mono text-text break-all">{relativeProjectPath(pendingLifecycleAction.row.projectPath, file.path)}</p>
+                          <span className="badge badge-muted text-[10px] shrink-0">{preview.line_count} lines</span>
+                        </div>
+                        <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap rounded-lg border border-border bg-surface p-3 text-[11px] leading-relaxed text-text-muted font-mono">
+                          {preview.preview_markdown}
+                        </pre>
+                        {preview.truncated && (
+                          <p className="mt-2 text-[10px] text-warning">ซ่อนอีก {preview.hidden_line_count} บรรทัด — จะถูกสร้างในไฟล์จริงทั้งหมด</p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
               <p className="text-[11px] text-text-muted leading-relaxed">
