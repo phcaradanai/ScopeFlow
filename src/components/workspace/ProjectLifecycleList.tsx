@@ -1,6 +1,7 @@
-import { CheckCircle2, CircleDashed, ExternalLink, FileClock, LockKeyhole, OctagonAlert } from 'lucide-react';
+import { CheckCircle2, CircleDashed, ExternalLink, FileArchive, FileClock, LockKeyhole, OctagonAlert } from 'lucide-react';
 import type { DocumentLifecycleSummary, LifecycleItemStatus } from '../../lib/ai/document-lifecycle/documentLifecycle';
 import type { DocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
+import type { LifecycleScanFile } from '../../lib/ai/document-lifecycle/documentLifecycleFileScan';
 
 export interface ProjectLifecycleRow {
   projectPath: string;
@@ -8,12 +9,14 @@ export interface ProjectLifecycleRow {
   clientName: string;
   summary: DocumentLifecycleSummary;
   actionTarget: DocumentLifecycleActionTarget;
+  scanFiles: LifecycleScanFile[];
 }
 
 interface ProjectLifecycleListProps {
   rows: ProjectLifecycleRow[];
   onSelectProject: (path: string) => void;
   onSelectFile: (path: string) => void;
+  onCreateCloseoutPack: (row: ProjectLifecycleRow) => void;
 }
 
 function statusClass(status: LifecycleItemStatus): string {
@@ -30,7 +33,7 @@ function statusIcon(status: LifecycleItemStatus) {
   return <CircleDashed className="w-3.5 h-3.5" />;
 }
 
-export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFile }: ProjectLifecycleListProps) {
+export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFile, onCreateCloseoutPack }: ProjectLifecycleListProps) {
   return (
     <div className="card flex flex-col gap-4">
       <div className="flex items-center justify-between border-b border-white/5 pb-3">
@@ -89,17 +92,32 @@ export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFi
                 </p>
               </button>
 
-              <div className="mt-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 rounded-xl border border-primary/20 bg-primary/10 p-3">
-                <p className="text-[11px] text-text-muted leading-relaxed">
-                  <span className="font-bold text-primary-light">Action file:</span> {row.actionTarget.reason}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => row.actionTarget.file_path ? onSelectFile(row.actionTarget.file_path) : onSelectProject(row.projectPath)}
-                  className="btn btn-primary text-xs gap-2 shrink-0"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" /> {row.actionTarget.label}
-                </button>
+              <div className="mt-3 flex flex-col gap-2 rounded-xl border border-primary/20 bg-primary/10 p-3">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                  <p className="text-[11px] text-text-muted leading-relaxed">
+                    <span className="font-bold text-primary-light">Action file:</span> {row.actionTarget.reason}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => row.actionTarget.file_path ? onSelectFile(row.actionTarget.file_path) : onSelectProject(row.projectPath)}
+                    className="btn btn-primary text-xs gap-2 shrink-0"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" /> {row.actionTarget.label}
+                  </button>
+                </div>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-t border-primary/10 pt-2">
+                  <p className="text-[11px] text-text-muted leading-relaxed">
+                    <span className="font-bold text-success">Closeout:</span> {row.summary.can_close_work ? 'พร้อมสร้าง closeout pack เป็นหลักฐานปิดงาน' : 'ยังสร้างไม่ได้จนกว่า Can close เป็น yes'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => onCreateCloseoutPack(row)}
+                    disabled={!row.summary.can_close_work}
+                    className="btn btn-outline text-xs gap-2 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FileArchive className="w-3.5 h-3.5" /> สร้าง Closeout Pack
+                  </button>
+                </div>
               </div>
             </div>
           ))}
