@@ -1,7 +1,7 @@
 import type { BriefScopeDraftPack } from './briefScopeDraftAssistant';
 import type { DraftApplyDocument, DraftApplyPlan } from './draftApplyPlan';
 
-export type DraftReviewDocumentType = 'brief' | 'scope' | 'quotation' | 'change_request';
+export type DraftReviewDocumentType = 'brief' | 'scope' | 'quotation' | 'change_request' | 'acceptance';
 
 export interface DraftReviewDocument {
   id: DraftReviewDocumentType;
