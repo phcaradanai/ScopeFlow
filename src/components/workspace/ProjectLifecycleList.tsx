@@ -1,9 +1,10 @@
+import { useMemo, useState } from 'react';
 import { CheckCircle2, CircleDashed, ExternalLink, FileArchive, FileClock, FileOutput, LockKeyhole, OctagonAlert } from 'lucide-react';
 import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget';
 import { getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import type { DocumentLifecycleSummary, LifecycleItemStatus } from '../../lib/ai/document-lifecycle/documentLifecycle';
 import type { DocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
-import type { ProjectLifecyclePriority } from '../../lib/ai/document-lifecycle/documentLifecyclePriority';
+import type { ProjectLifecyclePriority, ProjectLifecyclePriorityCategory } from '../../lib/ai/document-lifecycle/documentLifecyclePriority';
 import type { LifecycleScanFile } from '../../lib/ai/document-lifecycle/documentLifecycleFileScan';
 
 export interface ProjectLifecycleRow {
@@ -23,6 +24,18 @@ interface ProjectLifecycleListProps {
   onCreateCloseoutPack: (row: ProjectLifecycleRow) => void;
   onCreateCloseoutExport: (row: ProjectLifecycleRow) => void;
 }
+
+type LifecycleFilter = 'all' | ProjectLifecyclePriorityCategory;
+
+const FILTERS: { id: LifecycleFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'needs_action', label: 'Needs Action' },
+  { id: 'can_close', label: 'Can Close' },
+  { id: 'closeout_ready', label: 'Closeout Ready' },
+  { id: 'export_ready', label: 'Export Ready' },
+  { id: 'blocked', label: 'Blocked' },
+  { id: 'missing_docs', label: 'Missing Docs' },
+];
 
 function statusClass(status: LifecycleItemStatus): string {
   if (status === 'signed_off' || status === 'approved' || status === 'ready') return 'text-success';
@@ -54,6 +67,19 @@ function priorityBadgeClass(category: ProjectLifecyclePriority['category']): str
 }
 
 export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFile, onCreateCloseoutPack, onCreateCloseoutExport }: ProjectLifecycleListProps) {
+  const [activeFilter, setActiveFilter] = useState<LifecycleFilter>('all');
+  const filteredRows = useMemo(() => (
+    activeFilter === 'all' ? rows : rows.filter(row => row.priority.category === activeFilter)
+  ), [activeFilter, rows]);
+
+  const filterCounts = useMemo(() => {
+    const counts = new Map<LifecycleFilter, number>([['all', rows.length]]);
+    for (const row of rows) {
+      counts.set(row.priority.category, (counts.get(row.priority.category) || 0) + 1);
+    }
+    return counts;
+  }, [rows]);
+
   return (
     <div className="card flex flex-col gap-4">
       <div className="flex items-center justify-between border-b border-white/5 pb-3">
@@ -61,7 +87,24 @@ export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFi
           <LockKeyhole className="w-4 h-4 text-primary" />
           Project Lifecycle จากไฟล์จริง
         </h3>
-        <span className="badge badge-muted text-xs">{rows.length} projects</span>
+        <span className="badge badge-muted text-xs">{filteredRows.length}/{rows.length} projects</span>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {FILTERS.map(filter => {
+          const count = filterCounts.get(filter.id) || 0;
+          const active = activeFilter === filter.id;
+          return (
+            <button
+              key={filter.id}
+              type="button"
+              onClick={() => setActiveFilter(filter.id)}
+              className={`badge text-xs border transition-all ${active ? 'bg-primary/15 text-primary-light border-primary/30' : 'bg-surface-2 text-text-muted border-border hover:border-primary/30'}`}
+            >
+              {filter.label} <span className="font-mono opacity-70">{count}</span>
+            </button>
+          );
+        })}
       </div>
 
       {rows.length === 0 ? (
@@ -69,9 +112,14 @@ export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFi
           <CircleDashed className="w-8 h-8 mx-auto mb-3 opacity-50" />
           <p className="text-sm">ยังไม่มี project ที่ scan lifecycle ได้</p>
         </div>
+      ) : filteredRows.length === 0 ? (
+        <div className="text-center py-10 text-text-dim bg-surface-2/50 border border-border border-dashed rounded-xl">
+          <CircleDashed className="w-8 h-8 mx-auto mb-3 opacity-50" />
+          <p className="text-sm">ไม่มี project ใน filter นี้</p>
+        </div>
       ) : (
         <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
-          {rows.map(row => {
+          {filteredRows.map(row => {
             const closeoutStatus = getCloseoutStatusSummary(row.scanFiles);
             const openTarget = getCloseoutOpenTarget(row.scanFiles);
             return (
