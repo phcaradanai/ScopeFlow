@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, Calculator, Percent, ReceiptText } from 'lucide-react';
+import { AlertTriangle, Calculator, Clipboard, Percent, ReceiptText } from 'lucide-react';
 import type { QuotationDraft } from '../lib/ai/quotation/quotationDraft';
+import { buildFinalQuoteSummaryMarkdown } from '../lib/ai/quotation/quotationFinalMarkdown';
 import { calculateQuotationPricing, type PriceBasis } from '../lib/ai/quotation/quotationPricing';
 
 interface QuotationPriceInputPanelProps {
@@ -34,6 +35,12 @@ export default function QuotationPriceInputPanel({ draft }: QuotationPriceInputP
     payment_terms: paymentTerms,
     currency,
   }), [draft, priceBasis, hourlyRate, manualFixedPrice, discountPercent, taxPercent, paymentTerms, currency]);
+
+  const finalQuoteSummaryMarkdown = useMemo(() => buildFinalQuoteSummaryMarkdown(result), [result]);
+
+  const copyFinalQuoteSummary = async () => {
+    await navigator.clipboard.writeText(finalQuoteSummaryMarkdown);
+  };
 
   return (
     <div className="rounded-2xl border border-border bg-surface-2 overflow-hidden">
@@ -135,6 +142,21 @@ export default function QuotationPriceInputPanel({ draft }: QuotationPriceInputP
               </ul>
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="px-4 pb-4">
+        <div className="rounded-xl border border-primary/20 bg-primary/10 overflow-hidden">
+          <div className="p-3 border-b border-primary/20 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div>
+              <h4 className="text-xs font-bold text-primary-light">Final Quote Summary Markdown</h4>
+              <p className="text-[11px] text-text-muted mt-1">copy ส่วนนี้ไปวางใน quotation draft หลังตรวจราคาแล้ว</p>
+            </div>
+            <button type="button" onClick={copyFinalQuoteSummary} className="btn btn-outline text-xs gap-2 w-full md:w-auto">
+              <Clipboard className="w-4 h-4" /> Copy Summary
+            </button>
+          </div>
+          <pre className="whitespace-pre-wrap text-xs leading-relaxed text-text-muted font-mono p-3 max-h-[260px] overflow-y-auto">{finalQuoteSummaryMarkdown}</pre>
         </div>
       </div>
     </div>
