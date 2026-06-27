@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Clipboard, FileWarning, ShieldQuestion, TriangleAlert } from 'lucide-react';
+import { Clipboard, FileSignature, FileWarning, ShieldQuestion, TriangleAlert } from 'lucide-react';
 import type { ScopeBaselineFromQuote } from '../lib/ai/scope-baseline/scopeBaselineFromQuote';
 import { detectChangeRequest } from '../lib/ai/change-request/changeRequestDetection';
 import { buildChangeRequestDetectionMarkdown } from '../lib/ai/change-request/changeRequestMarkdown';
+import { buildChangeRequestDocument, buildChangeRequestDocumentMarkdown } from '../lib/ai/change-request/changeRequestDocument';
 
 interface ChangeRequestDetectionPanelProps {
   baseline: ScopeBaselineFromQuote;
@@ -16,12 +17,28 @@ function decisionClass(decision: string) {
 
 export default function ChangeRequestDetectionPanel({ baseline }: ChangeRequestDetectionPanelProps) {
   const [newRequest, setNewRequest] = useState('');
+  const [requestId, setRequestId] = useState('');
+  const [requestedBy, setRequestedBy] = useState('');
+  const [requestedAt, setRequestedAt] = useState('');
 
   const result = useMemo(() => detectChangeRequest({ new_request: newRequest, baseline }), [newRequest, baseline]);
   const markdown = useMemo(() => buildChangeRequestDetectionMarkdown(newRequest, result), [newRequest, result]);
+  const crDocument = useMemo(() => buildChangeRequestDocument({
+    request_id: requestId,
+    new_request: newRequest,
+    baseline,
+    detection: result,
+    requested_by: requestedBy,
+    requested_at: requestedAt,
+  }), [requestId, newRequest, baseline, result, requestedBy, requestedAt]);
+  const crDocumentMarkdown = useMemo(() => buildChangeRequestDocumentMarkdown(crDocument), [crDocument]);
 
   const copyMarkdown = async () => {
     await navigator.clipboard.writeText(markdown);
+  };
+
+  const copyCrDocumentMarkdown = async () => {
+    await navigator.clipboard.writeText(crDocumentMarkdown);
   };
 
   return (
@@ -39,14 +56,31 @@ export default function ChangeRequestDetectionPanel({ baseline }: ChangeRequestD
       </div>
 
       <div className="p-4 grid grid-cols-1 xl:grid-cols-[0.85fr_1.15fr] gap-4">
-        <div className="rounded-xl border border-border bg-surface p-4">
-          <label className="text-xs font-bold text-text mb-1 block">New Customer Request</label>
-          <textarea
-            value={newRequest}
-            onChange={(event) => setNewRequest(event.target.value)}
-            placeholder="วางคำขอใหม่จากลูกค้า เช่น ขอเพิ่ม mobile app, ขอเพิ่ม payment gateway, ขอเพิ่ม dashboard..."
-            className="w-full min-h-[180px] bg-surface-2 border border-border rounded-lg px-3 py-2 text-xs text-text outline-none focus:border-primary resize-y"
-          />
+        <div className="space-y-3">
+          <div className="rounded-xl border border-border bg-surface p-4">
+            <label className="text-xs font-bold text-text mb-1 block">New Customer Request</label>
+            <textarea
+              value={newRequest}
+              onChange={(event) => setNewRequest(event.target.value)}
+              placeholder="วางคำขอใหม่จากลูกค้า เช่น ขอเพิ่ม mobile app, ขอเพิ่ม payment gateway, ขอเพิ่ม dashboard..."
+              className="w-full min-h-[180px] bg-surface-2 border border-border rounded-lg px-3 py-2 text-xs text-text outline-none focus:border-primary resize-y"
+            />
+          </div>
+
+          <div className="rounded-xl border border-border bg-surface p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-bold text-text mb-1 block">CR/DCR ID</label>
+              <input value={requestId} onChange={(event) => setRequestId(event.target.value)} placeholder="CR-001" className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-xs text-text outline-none focus:border-primary" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-text mb-1 block">Requested By</label>
+              <input value={requestedBy} onChange={(event) => setRequestedBy(event.target.value)} placeholder="ลูกค้า/ผู้ขอ" className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-xs text-text outline-none focus:border-primary" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-text mb-1 block">Requested At</label>
+              <input value={requestedAt} onChange={(event) => setRequestedAt(event.target.value)} placeholder="YYYY-MM-DD" className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-xs text-text outline-none focus:border-primary" />
+            </div>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -64,8 +98,8 @@ export default function ChangeRequestDetectionPanel({ baseline }: ChangeRequestD
               <p className="text-lg font-bold text-text">{result.matched.length}</p>
             </div>
             <div className="rounded-xl border border-border bg-surface p-3">
-              <p className="text-[11px] text-text-muted">Warnings</p>
-              <p className={`text-lg font-bold ${result.warnings.length > 0 ? 'text-warning' : 'text-success'}`}>{result.warnings.length}</p>
+              <p className="text-[11px] text-text-muted">CR Status</p>
+              <p className={`text-sm font-bold ${crDocument.approval_required_before_work ? 'text-error' : 'text-success'}`}>{crDocument.status}</p>
             </div>
           </div>
 
@@ -100,14 +134,19 @@ export default function ChangeRequestDetectionPanel({ baseline }: ChangeRequestD
           <div className="rounded-xl border border-primary/20 bg-primary/10 overflow-hidden">
             <div className="p-3 border-b border-primary/20 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               <div>
-                <h4 className="text-xs font-bold text-primary-light">Change Request Detection Markdown</h4>
-                <p className="text-[11px] text-text-muted mt-1">copy รายงานนี้ไปใช้เปิด CR/DCR document ได้</p>
+                <h4 className="text-xs font-bold text-primary-light">Change Request / DCR Draft</h4>
+                <p className="text-[11px] text-text-muted mt-1">copy เอกสารนี้ไปใช้เป็น CR/DCR draft ให้ลูกค้าอนุมัติได้</p>
               </div>
-              <button type="button" onClick={copyMarkdown} className="btn btn-outline text-xs gap-2 w-full md:w-auto">
-                <Clipboard className="w-4 h-4" /> Copy Detection
-              </button>
+              <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                <button type="button" onClick={copyCrDocumentMarkdown} className="btn btn-primary text-xs gap-2 w-full md:w-auto">
+                  <FileSignature className="w-4 h-4" /> Copy CR/DCR Draft
+                </button>
+                <button type="button" onClick={copyMarkdown} className="btn btn-outline text-xs gap-2 w-full md:w-auto">
+                  <Clipboard className="w-4 h-4" /> Copy Detection
+                </button>
+              </div>
             </div>
-            <pre className="whitespace-pre-wrap text-xs leading-relaxed text-text-muted font-mono p-3 max-h-[240px] overflow-y-auto">{markdown}</pre>
+            <pre className="whitespace-pre-wrap text-xs leading-relaxed text-text-muted font-mono p-3 max-h-[240px] overflow-y-auto">{crDocumentMarkdown}</pre>
           </div>
         </div>
       </div>
