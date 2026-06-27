@@ -34,7 +34,7 @@ import {
   determineHealthStatusSummary,
   ClientPathInfo,
 } from '../lib/workspace-scanner';
-import { FolderOpen, AlertTriangle, Plus } from 'lucide-react';
+import { FolderOpen, AlertTriangle, Plus, CheckCircle2 } from 'lucide-react';
 import PageShell from './ui/PageShell';
 import WorkspaceStats from './workspace/WorkspaceStats';
 import ClientList from './workspace/ClientList';
@@ -48,6 +48,11 @@ interface WorkspaceOverviewProps {
   onBackupWorkspace: () => void;
   onCreateProject: (clientId: string) => void;
   onDemoFlowCreated?: (projectPath: string, artifactPaths?: Record<string, string>) => void;
+}
+
+interface LifecycleSyncStatus {
+  title: string;
+  description: string;
 }
 
 function refreshLifecycleRow(row: ProjectLifecycleRow, nextScanFiles: LifecycleScanFile[]): ProjectLifecycleRow {
@@ -95,6 +100,7 @@ export default function WorkspaceOverview({
   const [workspaceClients, setWorkspaceClients] = useState<ClientPathInfo[]>([]);
   const [projectLifecycleRows, setProjectLifecycleRows] = useState<ProjectLifecycleRow[]>([]);
   const [lifecycleActionLogs, setLifecycleActionLogs] = useState<ProjectLifecycleActionLogEntry[]>([]);
+  const [lifecycleSyncStatus, setLifecycleSyncStatus] = useState<LifecycleSyncStatus | null>(null);
 
   const [clientsCount, setClientsCount] = useState(0);
   const [projectsCount, setProjectsCount] = useState(0);
@@ -134,6 +140,7 @@ export default function WorkspaceOverview({
     const currentPath = workspacePath;
     const actionLogKey = getProjectLifecycleActionLogStorageKey(currentPath);
     setLifecycleActionLogs(parseProjectLifecycleActionLogs(localStorage.getItem(actionLogKey)));
+    setLifecycleSyncStatus(null);
 
     async function loadWorkspaceInfo() {
       setLoading(true);
@@ -293,6 +300,10 @@ export default function WorkspaceOverview({
       await refreshTree();
       setSelectedFile(plan.files[0].path);
       recordLifecycleAction(row, 'created_closeout_pack');
+      setLifecycleSyncStatus({
+        title: 'Closeout Pack created — Lifecycle updated',
+        description: `${row.projectName} ถูก sync จากไฟล์จริงแล้ว และควรย้ายไป Closeout Ready ถ้า closeout files ครบ`,
+      });
       alert('สร้าง Closeout Pack สำเร็จแล้ว สถานะ Lifecycle ถูกอัปเดตแล้ว');
     } catch (err) {
       alert(`สร้าง Closeout Pack ไม่สำเร็จ: ${err}`);
@@ -317,6 +328,10 @@ export default function WorkspaceOverview({
       await refreshTree();
       setSelectedFile(plan.path);
       recordLifecycleAction(row, 'created_export_index');
+      setLifecycleSyncStatus({
+        title: 'Export Index created — Project moved to Export Ready',
+        description: `${row.projectName} ถูก sync จากไฟล์จริงแล้ว และพร้อมส่งต่อผ่าน closeout package index`,
+      });
       alert('สร้าง Closeout Export Index สำเร็จแล้ว สถานะ Lifecycle ถูกอัปเดตแล้ว');
     } catch (err) {
       alert(`สร้าง Closeout Export Index ไม่สำเร็จ: ${err}`);
@@ -416,6 +431,23 @@ export default function WorkspaceOverview({
               <Plus className="w-3.5 h-3.5" /> สร้างไฟล์สำหรับ Workspace
             </button>
           )}
+        </div>
+      )}
+
+      {lifecycleSyncStatus && (
+        <div className="p-4 bg-success/10 border border-success/20 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-3 duration-300">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-success/15 flex items-center justify-center text-success shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-text">{lifecycleSyncStatus.title}</p>
+              <p className="text-xs text-text-muted mt-1 leading-relaxed">{lifecycleSyncStatus.description}</p>
+            </div>
+          </div>
+          <button type="button" onClick={() => setLifecycleSyncStatus(null)} className="btn btn-outline text-xs shrink-0">
+            ปิด
+          </button>
         </div>
       )}
 
