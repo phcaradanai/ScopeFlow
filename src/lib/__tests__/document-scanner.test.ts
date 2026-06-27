@@ -29,6 +29,7 @@ This is the excerpt text that should be extracted.`;
     expect(result.approved_by).toBe('John Doe');
     expect(result.parse_status).toBe('success');
     expect(result.excerpt).toBe('Welcome This is the excerpt text that should be extracted.');
+    expect(result.markdown).toBe(content);
   });
 
   it('extracts approval metadata used by workflow checks', () => {
@@ -70,6 +71,19 @@ Some body text.`;
     expect(result.status).toBe('draft');
     expect(result.parse_status).toBe('warning');
     expect(result.excerpt).toBe('Fallback Title Some body text.');
+    expect(result.markdown).toBe(content);
+  });
+
+  it('supports generated changes folder documents', () => {
+    const content = `# Change Request / DCR Draft
+<!-- change-request-approval-lock:start -->
+Status: **approved**
+<!-- change-request-approval-lock:end -->`;
+    const result = extractDocumentMetadata(`${projectPath}/changes/CR-001-draft.md`, content, projectPath);
+
+    expect(result.folder).toBe('changes');
+    expect(result.type).toBe('changes');
+    expect(result.markdown).toContain('change-request-approval-lock');
   });
 
   it('does not crash on invalid frontmatter and returns defaults', () => {
