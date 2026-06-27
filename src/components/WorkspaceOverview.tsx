@@ -3,11 +3,13 @@ import { useWorkspace } from '../lib/workspace-context';
 import { scanProjectDocuments } from '../lib/document-scanner';
 import { checkWorkspaceHealth } from '../lib/workspace-health';
 import { getCompanyProfile } from '../lib/settings';
-import { pathExists, readFileContent, writeFileContent } from '../lib/tauri-commands';
+import { createDocument, pathExists, readFileContent, writeFileContent } from '../lib/tauri-commands';
 import { generateDemoWorkspace } from '../lib/demo-generator';
 import { generateCompletedDemoFlow } from '../lib/demo-flow-generator';
 import { openPath } from '@tauri-apps/plugin-opener';
 import YAML from 'yaml';
+import { createCloseoutApplyPlan } from '../lib/ai/closeout/closeoutApplyPlan';
+import { buildProjectCloseoutPack } from '../lib/ai/closeout/closeoutPack';
 import { buildDocumentLifecycleSummary } from '../lib/ai/document-lifecycle/documentLifecycle';
 import { getDocumentLifecycleActionTarget } from '../lib/ai/document-lifecycle/documentLifecycleAction';
 import { scanDocumentLifecycleFromFiles } from '../lib/ai/document-lifecycle/documentLifecycleFileScan';
@@ -119,6 +121,7 @@ export default function WorkspaceOverview({
               clientName: project.clientName,
               summary,
               actionTarget,
+              scanFiles,
             };
           }).sort((a, b) => {
             if (a.summary.can_close_work !== b.summary.can_close_work) return a.summary.can_close_work ? 1 : -1;
@@ -199,6 +202,34 @@ export default function WorkspaceOverview({
       alert('สร้างไฟล์ scopeflow.yaml และแก้ไขสำเร็จ!');
     } catch (err) {
       alert(`สร้างไฟล์ไม่สำเร็จ: ${err}`);
+    }
+  };
+
+  const handleCreateCloseoutPack = async (row: ProjectLifecycleRow) => {
+    try {
+      const pack = buildProjectCloseoutPack({
+        project_name: row.projectName,
+        project_path: row.projectPath,
+        lifecycle_summary: row.summary,
+        files: row.scanFiles,
+      });
+      const existingPaths: string[] = [];
+      for (const file of pack.files) {
+        if (await pathExists(file.path)) existingPaths.push(file.path);
+      }
+      const plan = createCloseoutApplyPlan(pack, existingPaths);
+      if (!plan.can_apply) {
+        alert(`ยังสร้าง Closeout Pack ไม่ได้:\n- ${plan.warnings.join('\n- ')}`);
+        return;
+      }
+      for (const file of plan.files) {
+        await createDocument(file.path, file.markdown);
+      }
+      await refreshTree();
+      setSelectedFile(plan.files[0].path);
+      alert('สร้าง Closeout Pack สำเร็จแล้ว');
+    } catch (err) {
+      alert(`สร้าง Closeout Pack ไม่สำเร็จ: ${err}`);
     }
   };
 
@@ -300,7 +331,7 @@ export default function WorkspaceOverview({
 
       <WorkspaceStats clientsCount={clientsCount} projectsCount={projectsCount} documentsCount={documentsCount} approvedCount={approvedCount} lockedCount={lockedCount} healthStatus={healthStatus} />
 
-      <ProjectLifecycleList rows={projectLifecycleRows} onSelectProject={setSelectedFile} onSelectFile={setSelectedFile} />
+      <ProjectLifecycleList rows={projectLifecycleRows} onSelectProject={setSelectedFile} onSelectFile={setSelectedFile} onCreateCloseoutPack={handleCreateCloseoutPack} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ClientList clientsWithProjects={workspaceClients} onCreateClient={onCreateClient} onCreateProject={onCreateProject} onSelectClient={setSelectedFile} />
