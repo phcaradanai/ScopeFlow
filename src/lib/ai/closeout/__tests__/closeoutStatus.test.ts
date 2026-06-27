@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getCloseoutStatusSummary } from '../closeoutStatus';
+import { getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../closeoutStatus';
 
 const projectPath = '/workspace/clients/client-1/projects/project-1';
 const fullCloseoutFiles = [
@@ -50,5 +50,31 @@ describe('closeoutStatus', () => {
     expect(status.export_index_created).toBe(true);
     expect(status.export_ready).toBe(true);
     expect(status.recommended_next_action).toContain('พร้อมส่งต่อ');
+  });
+
+  it('summarizes closeout evidence counts and export index state', () => {
+    const status = getCloseoutStatusSummary([
+      { path: `${projectPath}/closeout/closeout-summary.md`, markdown: '# Summary' },
+    ]);
+    const evidence = getCloseoutEvidenceSummary(status);
+
+    expect(evidence.required_file_count).toBe(4);
+    expect(evidence.found_file_count).toBe(1);
+    expect(evidence.closeout_evidence_label).toBe('Closeout files: 1/4');
+    expect(evidence.export_evidence_label).toBe('Export index: missing');
+    expect(evidence.missing_files).toContain('delivery-evidence.md');
+  });
+
+  it('summarizes complete export evidence', () => {
+    const status = getCloseoutStatusSummary([
+      ...fullCloseoutFiles,
+      { path: `${projectPath}/exports/closeout-package-index.md`, markdown: '# Export Index' },
+    ]);
+    const evidence = getCloseoutEvidenceSummary(status);
+
+    expect(evidence.found_file_count).toBe(4);
+    expect(evidence.closeout_evidence_label).toBe('Closeout files: 4/4');
+    expect(evidence.export_evidence_label).toBe('Export index: found');
+    expect(evidence.missing_files).toEqual([]);
   });
 });
