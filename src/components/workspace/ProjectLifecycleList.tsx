@@ -37,7 +37,7 @@ export interface ProjectLifecycleRow {
 }
 
 type FinalStatusFilter = 'ready_to_deliver' | 'delivery_sent' | 'awaiting_customer_acceptance' | 'finalized';
-type ReopenStatusFilter = 'reopen_cr';
+type ReopenStatusFilter = 'reopen_cr' | 'reopen_pending_decision' | 'reopen_ambiguous_decision' | 'reopen_decided';
 type LifecycleFilter = 'all' | ProjectLifecyclePriorityCategory | FinalStatusFilter | ReopenStatusFilter;
 
 interface ProjectLifecycleListProps {
@@ -65,6 +65,9 @@ const FILTERS: { id: LifecycleFilter; label: string }[] = [
   { id: 'awaiting_customer_acceptance', label: 'Awaiting Acceptance' },
   { id: 'finalized', label: 'Finalized / Closed' },
   { id: 'reopen_cr', label: 'Reopen / CR' },
+  { id: 'reopen_pending_decision', label: 'Reopen Pending' },
+  { id: 'reopen_ambiguous_decision', label: 'Reopen Ambiguous' },
+  { id: 'reopen_decided', label: 'Reopen Decided' },
 ];
 
 const SUMMARY_CARDS: { id: ProjectLifecyclePriorityCategory; label: string; description: string }[] = [
@@ -84,6 +87,9 @@ const FINAL_STATUS_CARDS: { id: FinalStatusFilter; label: string; description: s
 
 const REOPEN_STATUS_CARDS: { id: ReopenStatusFilter; label: string; description: string }[] = [
   { id: 'reopen_cr', label: 'Reopen / CR', description: 'ปิดแล้วแต่กลับมาแก้' },
+  { id: 'reopen_pending_decision', label: 'Pending Decision', description: 'รอตัดสินใจ CR' },
+  { id: 'reopen_ambiguous_decision', label: 'Ambiguous Decision', description: 'เลือก decision หลายข้อ' },
+  { id: 'reopen_decided', label: 'Decided', description: 'มี decision แล้ว' },
 ];
 
 function statusClass(status: LifecycleItemStatus): string {
@@ -128,9 +134,9 @@ function priorityBadgeClass(category: ProjectLifecyclePriority['category']): str
 }
 
 function summaryCardClass(category: ProjectLifecyclePriorityCategory | FinalStatusFilter | ReopenStatusFilter): string {
-  if (category === 'blocked') return 'border-error/20 bg-error/10 hover:border-error/40';
-  if (category === 'missing_docs' || category === 'reopen_cr') return 'border-warning/20 bg-warning/10 hover:border-warning/40';
-  if (category === 'can_close' || category === 'closeout_ready' || category === 'delivery_sent' || category === 'awaiting_customer_acceptance' || category === 'finalized') return 'border-success/20 bg-success/10 hover:border-success/40';
+  if (category === 'blocked' || category === 'reopen_ambiguous_decision') return 'border-error/20 bg-error/10 hover:border-error/40';
+  if (category === 'missing_docs' || category === 'reopen_cr' || category === 'reopen_pending_decision') return 'border-warning/20 bg-warning/10 hover:border-warning/40';
+  if (category === 'can_close' || category === 'closeout_ready' || category === 'delivery_sent' || category === 'awaiting_customer_acceptance' || category === 'finalized' || category === 'reopen_decided') return 'border-success/20 bg-success/10 hover:border-success/40';
   if (category === 'export_ready' || category === 'ready_to_deliver') return 'border-primary/20 bg-primary/10 hover:border-primary/40';
   return 'border-border bg-surface-2 hover:border-primary/30';
 }
@@ -149,7 +155,7 @@ function isFinalStatusFilter(filter: LifecycleFilter): filter is FinalStatusFilt
 }
 
 function isReopenStatusFilter(filter: LifecycleFilter): filter is ReopenStatusFilter {
-  return filter === 'reopen_cr';
+  return filter === 'reopen_cr' || filter === 'reopen_pending_decision' || filter === 'reopen_ambiguous_decision' || filter === 'reopen_decided';
 }
 
 function getLifecycleFilterEmptyGuidance(activeFilter: LifecycleFilter) {
@@ -186,6 +192,27 @@ function getLifecycleFilterEmptyGuidance(activeFilter: LifecycleFilter) {
       title: 'ยังไม่มี project ที่มี Reopen / CR หลังปิดงาน',
       description: 'ยังไม่พบไฟล์ changes/reopen-request-*.md ใน workspace นี้',
       recommended_next_action: 'เมื่อ project ที่ Finalized / Closed ต้องกลับมาแก้ ให้กด Create reopen / CR เพื่อสร้างไฟล์ควบคุม scope',
+    };
+  }
+  if (activeFilter === 'reopen_pending_decision') {
+    return {
+      title: 'ยังไม่มี Reopen / CR ที่รอ decision',
+      description: 'ยังไม่พบ reopen request ที่มี Decision: Pending',
+      recommended_next_action: 'ตรวจ Reopen / CR แล้วติ๊ก decision หนึ่งข้อในไฟล์ reopen-request ล่าสุด',
+    };
+  }
+  if (activeFilter === 'reopen_ambiguous_decision') {
+    return {
+      title: 'ยังไม่มี Reopen / CR ที่ decision กำกวม',
+      description: 'ยังไม่พบ reopen request ที่เลือก decision หลายข้อพร้อมกัน',
+      recommended_next_action: 'หากพบเคสนี้ ให้แก้ checkbox ให้เหลือ decision เดียวก่อนเริ่มงานต่อ',
+    };
+  }
+  if (activeFilter === 'reopen_decided') {
+    return {
+      title: 'ยังไม่มี Reopen / CR ที่ตัดสินใจแล้ว',
+      description: 'ยังไม่พบ reopen request ที่เลือก decision ครบหนึ่งข้อ',
+      recommended_next_action: 'เมื่อ review แล้ว ให้ติ๊ก decision ใน reopen-request ล่าสุด',
     };
   }
   return getProjectLifecycleEmptyGuidance(activeFilter);
@@ -257,13 +284,21 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
     return getCloseoutFinalStatus(closeoutStatus, savedDeliveryStatus).kind;
   };
 
+  const matchesReopenFilter = (row: ProjectLifecycleRow, filter: ReopenStatusFilter) => {
+    const decision = getLatestCloseoutReopenDecisionSummary(row.scanFiles);
+    if (filter === 'reopen_cr') return decision.has_reopen_request;
+    if (filter === 'reopen_pending_decision') return decision.has_reopen_request && !decision.has_decision && !decision.is_ambiguous;
+    if (filter === 'reopen_ambiguous_decision') return decision.has_reopen_request && decision.is_ambiguous;
+    return decision.has_reopen_request && decision.has_decision;
+  };
+
   const filteredRows = useMemo(() => {
     if (activeFilter === 'all') return rows;
     if (isFinalStatusFilter(activeFilter)) {
       return rows.filter(row => getFinalStatusKindForRow(row) === activeFilter);
     }
     if (isReopenStatusFilter(activeFilter)) {
-      return rows.filter(row => getCloseoutReopenRequestSummary(row.scanFiles).has_reopen_request);
+      return rows.filter(row => matchesReopenFilter(row, activeFilter));
     }
     return rows.filter(row => row.priority.category === activeFilter);
   }, [activeFilter, rows, deliveryStatuses]);
@@ -276,8 +311,16 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
       if (isFinalStatusFilter(finalKind as LifecycleFilter)) {
         counts.set(finalKind as FinalStatusFilter, (counts.get(finalKind as FinalStatusFilter) || 0) + 1);
       }
-      if (getCloseoutReopenRequestSummary(row.scanFiles).has_reopen_request) {
+      const reopenDecision = getLatestCloseoutReopenDecisionSummary(row.scanFiles);
+      if (reopenDecision.has_reopen_request) {
         counts.set('reopen_cr', (counts.get('reopen_cr') || 0) + 1);
+        if (reopenDecision.is_ambiguous) {
+          counts.set('reopen_ambiguous_decision', (counts.get('reopen_ambiguous_decision') || 0) + 1);
+        } else if (reopenDecision.has_decision) {
+          counts.set('reopen_decided', (counts.get('reopen_decided') || 0) + 1);
+        } else {
+          counts.set('reopen_pending_decision', (counts.get('reopen_pending_decision') || 0) + 1);
+        }
       }
     }
     return counts;
@@ -353,7 +396,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
             <p className="text-xs font-bold text-text">ปิดแล้วกลับมาแก้ / Reopen control</p>
             <span className="badge badge-muted text-[10px]">{totalReopenRequests} projects</span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
             {REOPEN_STATUS_CARDS.map(card => {
               const count = filterCounts.get(card.id) || 0;
               return (
