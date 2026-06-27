@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CheckCircle2, CircleDashed, ExternalLink, FileArchive, FileClock, FileOutput, LockKeyhole, OctagonAlert } from 'lucide-react';
 import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget';
-import { getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
+import { getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import type { DocumentLifecycleSummary, LifecycleItemStatus } from '../../lib/ai/document-lifecycle/documentLifecycle';
 import type { DocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
 import { formatProjectLifecycleActionLogTime, type ProjectLifecycleActionLogEntry, type ProjectLifecycleActionLogType } from '../../lib/ai/document-lifecycle/documentLifecycleActionLog';
@@ -203,6 +203,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, onLifecycleActi
         <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
           {filteredRows.map(row => {
             const closeoutStatus = getCloseoutStatusSummary(row.scanFiles);
+            const closeoutEvidence = getCloseoutEvidenceSummary(closeoutStatus);
             const openTarget = getCloseoutOpenTarget(row.scanFiles);
             return (
               <div key={row.projectPath} className="rounded-2xl border border-border bg-surface hover:bg-surface-2 hover:border-primary/40 transition-all p-4">
@@ -246,6 +247,17 @@ export default function ProjectLifecycleList({ rows, actionLogs, onLifecycleActi
                         {statusIcon(item.status)} {item.label}: {item.status}
                       </span>
                     ))}
+                  </div>
+
+                  <div className="mb-3 rounded-xl border border-border bg-surface-2 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-text-muted mb-2">Closeout evidence from files</p>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="badge badge-muted text-[10px]">{closeoutEvidence.closeout_evidence_label}</span>
+                      <span className="badge badge-muted text-[10px]">{closeoutEvidence.export_evidence_label}</span>
+                    </div>
+                    {closeoutEvidence.missing_files.length > 0 && (
+                      <p className="text-[10px] text-warning mt-2 leading-relaxed">Missing: {closeoutEvidence.missing_files.join(', ')}</p>
+                    )}
                   </div>
 
                   <p className="text-xs text-text-muted leading-relaxed">
