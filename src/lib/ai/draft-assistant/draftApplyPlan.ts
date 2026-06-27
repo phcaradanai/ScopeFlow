@@ -1,5 +1,7 @@
 import type { BriefScopeDraftPack } from './briefScopeDraftAssistant';
 
+export type DraftApplyDocumentType = 'brief' | 'scope' | 'quotation' | 'change_request';
+
 export interface DraftApplyProjectTarget {
   projectId: string;
   projectPath: string;
@@ -8,14 +10,16 @@ export interface DraftApplyProjectTarget {
   projectYaml?: string;
 }
 
+export interface DraftApplyDocument {
+  id: DraftApplyDocumentType;
+  label: string;
+  path: string;
+  markdown: string;
+}
+
 export interface DraftApplyPlan {
   target: DraftApplyProjectTarget;
-  documents: {
-    id: 'brief' | 'scope' | 'quotation';
-    label: string;
-    path: string;
-    markdown: string;
-  }[];
+  documents: DraftApplyDocument[];
 }
 
 export function createDraftApplyPlan(target: DraftApplyProjectTarget, pack: BriefScopeDraftPack): DraftApplyPlan {
