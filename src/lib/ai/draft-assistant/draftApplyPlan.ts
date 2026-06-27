@@ -19,28 +19,33 @@ export interface DraftApplyPlan {
 }
 
 export function createDraftApplyPlan(target: DraftApplyProjectTarget, pack: BriefScopeDraftPack): DraftApplyPlan {
+  const documents: DraftApplyPlan['documents'] = [
+    {
+      id: 'brief',
+      label: 'Brief Draft',
+      path: `${target.projectPath}/${pack.suggestedBriefPath}`,
+      markdown: pack.briefMarkdown,
+    },
+    {
+      id: 'scope',
+      label: 'Scope Draft',
+      path: `${target.projectPath}/${pack.suggestedScopePath}`,
+      markdown: pack.scopeMarkdown,
+    },
+  ];
+
+  if (pack.suggestedQuotationPath && pack.quotationMarkdown) {
+    documents.push({
+      id: 'quotation',
+      label: 'Quotation Draft',
+      path: `${target.projectPath}/${pack.suggestedQuotationPath}`,
+      markdown: pack.quotationMarkdown,
+    });
+  }
+
   return {
     target,
-    documents: [
-      {
-        id: 'brief',
-        label: 'Brief Draft',
-        path: `${target.projectPath}/${pack.suggestedBriefPath}`,
-        markdown: pack.briefMarkdown,
-      },
-      {
-        id: 'scope',
-        label: 'Scope Draft',
-        path: `${target.projectPath}/${pack.suggestedScopePath}`,
-        markdown: pack.scopeMarkdown,
-      },
-      {
-        id: 'quotation',
-        label: 'Quotation Draft',
-        path: `${target.projectPath}/${pack.suggestedQuotationPath}`,
-        markdown: pack.quotationMarkdown,
-      },
-    ],
+    documents,
   };
 }
 
