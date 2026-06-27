@@ -1,4 +1,4 @@
-import { CheckCircle2, CircleDashed, ExternalLink, FileArchive, FileClock, LockKeyhole, OctagonAlert } from 'lucide-react';
+import { CheckCircle2, CircleDashed, ExternalLink, FileArchive, FileClock, FileOutput, LockKeyhole, OctagonAlert } from 'lucide-react';
 import type { DocumentLifecycleSummary, LifecycleItemStatus } from '../../lib/ai/document-lifecycle/documentLifecycle';
 import type { DocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
 import type { LifecycleScanFile } from '../../lib/ai/document-lifecycle/documentLifecycleFileScan';
@@ -17,6 +17,7 @@ interface ProjectLifecycleListProps {
   onSelectProject: (path: string) => void;
   onSelectFile: (path: string) => void;
   onCreateCloseoutPack: (row: ProjectLifecycleRow) => void;
+  onCreateCloseoutExport: (row: ProjectLifecycleRow) => void;
 }
 
 function statusClass(status: LifecycleItemStatus): string {
@@ -33,7 +34,19 @@ function statusIcon(status: LifecycleItemStatus) {
   return <CircleDashed className="w-3.5 h-3.5" />;
 }
 
-export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFile, onCreateCloseoutPack }: ProjectLifecycleListProps) {
+function hasCloseoutPack(row: ProjectLifecycleRow): boolean {
+  const names = new Set(row.scanFiles
+    .filter(file => file.path.replace(/\\/g, '/').toLowerCase().includes('/closeout/'))
+    .map(file => file.path.split(/[/\\]/).pop()?.toLowerCase()));
+  return [
+    'closeout-summary.md',
+    'delivery-evidence.md',
+    'acceptance-reference.md',
+    'scope-and-change-baseline-index.md',
+  ].every(name => names.has(name));
+}
+
+export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFile, onCreateCloseoutPack, onCreateCloseoutExport }: ProjectLifecycleListProps) {
   return (
     <div className="card flex flex-col gap-4">
       <div className="flex items-center justify-between border-b border-white/5 pb-3">
@@ -51,76 +64,92 @@ export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFi
         </div>
       ) : (
         <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
-          {rows.map(row => (
-            <div key={row.projectPath} className="rounded-2xl border border-border bg-surface hover:bg-surface-2 hover:border-primary/40 transition-all p-4">
-              <button type="button" onClick={() => onSelectProject(row.projectPath)} className="w-full text-left">
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-text truncate">{row.projectName}</p>
-                    <p className="text-xs text-text-muted truncate">{row.clientName}</p>
+          {rows.map(row => {
+            const closeoutReady = hasCloseoutPack(row);
+            return (
+              <div key={row.projectPath} className="rounded-2xl border border-border bg-surface hover:bg-surface-2 hover:border-primary/40 transition-all p-4">
+                <button type="button" onClick={() => onSelectProject(row.projectPath)} className="w-full text-left">
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-text truncate">{row.projectName}</p>
+                      <p className="text-xs text-text-muted truncate">{row.clientName}</p>
+                    </div>
+                    <div className={`badge text-xs ${row.summary.can_close_work ? 'bg-success/10 text-success border border-success/20' : 'bg-warning/10 text-warning border border-warning/20'}`}>
+                      Can close: {row.summary.can_close_work ? 'yes' : 'no'}
+                    </div>
                   </div>
-                  <div className={`badge text-xs ${row.summary.can_close_work ? 'bg-success/10 text-success border border-success/20' : 'bg-warning/10 text-warning border border-warning/20'}`}>
-                    Can close: {row.summary.can_close_work ? 'yes' : 'no'}
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  <div className="rounded-lg border border-border bg-surface-2 p-2">
-                    <p className="text-[10px] text-text-muted">Ready</p>
-                    <p className="text-sm font-bold text-success">{row.summary.ready_count}</p>
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    <div className="rounded-lg border border-border bg-surface-2 p-2">
+                      <p className="text-[10px] text-text-muted">Ready</p>
+                      <p className="text-sm font-bold text-success">{row.summary.ready_count}</p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-surface-2 p-2">
+                      <p className="text-[10px] text-text-muted">Blocked</p>
+                      <p className="text-sm font-bold text-error">{row.summary.blocked_count}</p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-surface-2 p-2">
+                      <p className="text-[10px] text-text-muted">Missing</p>
+                      <p className="text-sm font-bold text-text-muted">{row.summary.missing_count}</p>
+                    </div>
                   </div>
-                  <div className="rounded-lg border border-border bg-surface-2 p-2">
-                    <p className="text-[10px] text-text-muted">Blocked</p>
-                    <p className="text-sm font-bold text-error">{row.summary.blocked_count}</p>
+
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {row.summary.items.map(item => (
+                      <span key={item.id} className={`inline-flex items-center gap-1 text-[10px] font-semibold ${statusClass(item.status)}`}>
+                        {statusIcon(item.status)} {item.label}: {item.status}
+                      </span>
+                    ))}
                   </div>
-                  <div className="rounded-lg border border-border bg-surface-2 p-2">
-                    <p className="text-[10px] text-text-muted">Missing</p>
-                    <p className="text-sm font-bold text-text-muted">{row.summary.missing_count}</p>
-                  </div>
-                </div>
 
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {row.summary.items.map(item => (
-                    <span key={item.id} className={`inline-flex items-center gap-1 text-[10px] font-semibold ${statusClass(item.status)}`}>
-                      {statusIcon(item.status)} {item.label}: {item.status}
-                    </span>
-                  ))}
-                </div>
-
-                <p className="text-xs text-text-muted leading-relaxed">
-                  <span className="font-bold text-primary-light">Next:</span> {row.summary.next_action}
-                </p>
-              </button>
-
-              <div className="mt-3 flex flex-col gap-2 rounded-xl border border-primary/20 bg-primary/10 p-3">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                  <p className="text-[11px] text-text-muted leading-relaxed">
-                    <span className="font-bold text-primary-light">Action file:</span> {row.actionTarget.reason}
+                  <p className="text-xs text-text-muted leading-relaxed">
+                    <span className="font-bold text-primary-light">Next:</span> {row.summary.next_action}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => row.actionTarget.file_path ? onSelectFile(row.actionTarget.file_path) : onSelectProject(row.projectPath)}
-                    className="btn btn-primary text-xs gap-2 shrink-0"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" /> {row.actionTarget.label}
-                  </button>
-                </div>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-t border-primary/10 pt-2">
-                  <p className="text-[11px] text-text-muted leading-relaxed">
-                    <span className="font-bold text-success">Closeout:</span> {row.summary.can_close_work ? 'พร้อมสร้าง closeout pack เป็นหลักฐานปิดงาน' : 'ยังสร้างไม่ได้จนกว่า Can close เป็น yes'}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => onCreateCloseoutPack(row)}
-                    disabled={!row.summary.can_close_work}
-                    className="btn btn-outline text-xs gap-2 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <FileArchive className="w-3.5 h-3.5" /> สร้าง Closeout Pack
-                  </button>
+                </button>
+
+                <div className="mt-3 flex flex-col gap-2 rounded-xl border border-primary/20 bg-primary/10 p-3">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                    <p className="text-[11px] text-text-muted leading-relaxed">
+                      <span className="font-bold text-primary-light">Action file:</span> {row.actionTarget.reason}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => row.actionTarget.file_path ? onSelectFile(row.actionTarget.file_path) : onSelectProject(row.projectPath)}
+                      className="btn btn-primary text-xs gap-2 shrink-0"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" /> {row.actionTarget.label}
+                    </button>
+                  </div>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-t border-primary/10 pt-2">
+                    <p className="text-[11px] text-text-muted leading-relaxed">
+                      <span className="font-bold text-success">Closeout:</span> {row.summary.can_close_work ? 'พร้อมสร้าง closeout pack เป็นหลักฐานปิดงาน' : 'ยังสร้างไม่ได้จนกว่า Can close เป็น yes'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => onCreateCloseoutPack(row)}
+                      disabled={!row.summary.can_close_work}
+                      className="btn btn-outline text-xs gap-2 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <FileArchive className="w-3.5 h-3.5" /> สร้าง Closeout Pack
+                    </button>
+                  </div>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-t border-primary/10 pt-2">
+                    <p className="text-[11px] text-text-muted leading-relaxed">
+                      <span className="font-bold text-accent">Export:</span> {closeoutReady ? 'พร้อมสร้าง closeout package index สำหรับส่งต่อ' : 'ต้องมี closeout pack ครบ 4 ไฟล์ก่อน'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => onCreateCloseoutExport(row)}
+                      disabled={!closeoutReady}
+                      className="btn btn-outline text-xs gap-2 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <FileOutput className="w-3.5 h-3.5" /> สร้าง Export Index
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
