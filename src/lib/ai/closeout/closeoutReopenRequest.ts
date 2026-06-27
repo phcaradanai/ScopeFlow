@@ -1,4 +1,5 @@
 import type { CloseoutFinalStatus } from './closeoutFinalStatus';
+import { getCloseoutReopenActionPlan } from './closeoutReopenActionPlan';
 
 export interface CloseoutReopenRequestInput {
   project_name: string;
@@ -25,6 +26,12 @@ export function buildCloseoutReopenRequest(input: CloseoutReopenRequestInput): C
   const reason = input.reason.trim() || 'Reopen requested after finalized closeout.';
   const fileName = `reopen-request-${safeTimestamp(createdAt)}.md`;
   const path = `${input.project_path}/changes/${fileName}`;
+  const actionPlan = getCloseoutReopenActionPlan({
+    has_reopen_request: true,
+    request_count: 1,
+    latest_request_path: path,
+    request_paths: [path],
+  });
   const markdown = [
     `# Reopen / Change Request — ${input.project_name}`,
     '',
@@ -35,6 +42,15 @@ export function buildCloseoutReopenRequest(input: CloseoutReopenRequestInput): C
     '## Reason',
     '',
     reason,
+    '',
+    '## Recommended action plan',
+    '',
+    actionPlan.summary,
+    '',
+    ...actionPlan.items.flatMap((item, index) => [
+      `${index + 1}. **${item.label}**`,
+      `   - ${item.description}`,
+    ]),
     '',
     '## Scope control note',
     '',
