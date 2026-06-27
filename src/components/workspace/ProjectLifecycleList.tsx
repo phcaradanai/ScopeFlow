@@ -4,6 +4,7 @@ import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget'
 import { getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import type { DocumentLifecycleSummary, LifecycleItemStatus } from '../../lib/ai/document-lifecycle/documentLifecycle';
 import type { DocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
+import { getProjectLifecycleEmptyGuidance } from '../../lib/ai/document-lifecycle/documentLifecycleEmptyGuidance';
 import type { ProjectLifecyclePriority, ProjectLifecyclePriorityCategory } from '../../lib/ai/document-lifecycle/documentLifecyclePriority';
 import type { LifecycleScanFile } from '../../lib/ai/document-lifecycle/documentLifecycleFileScan';
 
@@ -82,6 +83,23 @@ function summaryCardClass(category: ProjectLifecyclePriorityCategory): string {
   return 'border-border bg-surface-2 hover:border-primary/30';
 }
 
+function EmptyGuidanceCard({ activeFilter, onShowAll }: { activeFilter: LifecycleFilter; onShowAll: () => void }) {
+  const guidance = getProjectLifecycleEmptyGuidance(activeFilter);
+  return (
+    <div className="text-center py-10 text-text-dim bg-surface-2/50 border border-border border-dashed rounded-xl px-6">
+      <CircleDashed className="w-8 h-8 mx-auto mb-3 opacity-50" />
+      <p className="text-sm font-bold text-text">{guidance.title}</p>
+      <p className="text-xs text-text-muted mt-2 max-w-xl mx-auto leading-relaxed">{guidance.description}</p>
+      <p className="text-xs text-primary-light mt-3 max-w-xl mx-auto leading-relaxed">{guidance.recommended_next_action}</p>
+      {activeFilter !== 'all' && (
+        <button type="button" onClick={onShowAll} className="btn btn-outline text-xs mt-4">
+          ดู project ทั้งหมด
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFile, onCreateCloseoutPack, onCreateCloseoutExport }: ProjectLifecycleListProps) {
   const [activeFilter, setActiveFilter] = useState<LifecycleFilter>('all');
   const filteredRows = useMemo(() => (
@@ -155,15 +173,9 @@ export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFi
       </div>
 
       {rows.length === 0 ? (
-        <div className="text-center py-10 text-text-dim bg-surface-2/50 border border-border border-dashed rounded-xl">
-          <CircleDashed className="w-8 h-8 mx-auto mb-3 opacity-50" />
-          <p className="text-sm">ยังไม่มี project ที่ scan lifecycle ได้</p>
-        </div>
+        <EmptyGuidanceCard activeFilter="all" onShowAll={() => setActiveFilter('all')} />
       ) : filteredRows.length === 0 ? (
-        <div className="text-center py-10 text-text-dim bg-surface-2/50 border border-border border-dashed rounded-xl">
-          <CircleDashed className="w-8 h-8 mx-auto mb-3 opacity-50" />
-          <p className="text-sm">ไม่มี project ใน filter นี้</p>
-        </div>
+        <EmptyGuidanceCard activeFilter={activeFilter} onShowAll={() => setActiveFilter('all')} />
       ) : (
         <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
           {filteredRows.map(row => {
