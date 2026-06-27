@@ -59,14 +59,14 @@ describe('closeoutReopenActionTarget', () => {
     expect(target.reason).toContain('multiple selected options');
   });
 
-  it('opens latest reopen request to continue with selected decision', () => {
+  it('uses selected decision guidance for selected decision', () => {
     const target = getCloseoutReopenActionTarget(
       baseTarget,
       reopen({ has_reopen_request: true, request_count: 1, latest_request_path: '/workspace/project/changes/reopen-request.md' }),
-      decision({ has_reopen_request: true, has_decision: true, selected_decision_label: 'Quote as Change Request', selected_count: 1 })
+      decision({ has_reopen_request: true, has_decision: true, selected_decision_id: 'quote_change_request', selected_decision_label: 'Quote as Change Request', selected_count: 1 })
     );
 
-    expect(target.label).toBe('Continue: Quote as Change Request');
-    expect(target.reason).toContain('selected decision');
+    expect(target.label).toBe('Prepare CR quotation / change scope');
+    expect(target.reason).toContain('ราคา/เวลา');
   });
 });
