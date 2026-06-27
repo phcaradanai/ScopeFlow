@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractDocumentMetadata } from '../document-scanner';
+import { extractDocumentMetadata, isScannableProjectDocumentPath } from '../document-scanner';
 
 describe('extractDocumentMetadata', () => {
   const projectPath = '/Users/test/workspace/client/project';
@@ -84,6 +84,28 @@ Status: **approved**
     expect(result.folder).toBe('changes');
     expect(result.type).toBe('changes');
     expect(result.markdown).toContain('change-request-approval-lock');
+  });
+
+  it('supports generated closeout folder documents', () => {
+    const content = `# Closeout Summary
+Final delivery and acceptance evidence.`;
+    const result = extractDocumentMetadata(`${projectPath}/closeout/closeout-summary.md`, content, projectPath);
+
+    expect(result.folder).toBe('closeout');
+    expect(result.type).toBe('closeout');
+    expect(result.title).toBe('Closeout Summary');
+    expect(result.markdown).toBe(content);
+  });
+
+  it('marks closeout markdown files as scannable project documents', () => {
+    expect(isScannableProjectDocumentPath(projectPath, `${projectPath}/closeout/closeout-summary.md`)).toBe(true);
+    expect(isScannableProjectDocumentPath(projectPath, `${projectPath}/closeout/delivery-evidence.md`)).toBe(true);
+    expect(isScannableProjectDocumentPath(projectPath, `${projectPath}/closeout/acceptance-reference.md`)).toBe(true);
+    expect(isScannableProjectDocumentPath(projectPath, `${projectPath}/closeout/scope-and-change-baseline-index.md`)).toBe(true);
+  });
+
+  it('does not mark unsupported closeout non-markdown files as scannable', () => {
+    expect(isScannableProjectDocumentPath(projectPath, `${projectPath}/closeout/raw-evidence.zip`)).toBe(false);
   });
 
   it('does not crash on invalid frontmatter and returns defaults', () => {
