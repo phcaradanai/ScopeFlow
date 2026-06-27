@@ -9,6 +9,8 @@ import { buildCustomerQuestionPack } from '../scope-closure/customerQuestionLoop
 import { injectCustomerQuestionLoopMarkdown } from '../scope-closure/customerQuestionMarkdown';
 import { buildQuoteReadinessBrief } from '../quotation-readiness/quoteReadinessBridge';
 import { injectQuoteReadinessMarkdown } from '../quotation-readiness/quoteReadinessMarkdown';
+import { buildQuotationDraft } from '../quotation/quotationDraft';
+import { buildQuotationDraftMarkdown } from '../quotation/quotationDraftMarkdown';
 
 export interface BriefScopeDraftInput {
   rawRequest: string;
@@ -22,8 +24,10 @@ export interface BriefScopeDraftInput {
 export interface BriefScopeDraftPack {
   briefMarkdown: string;
   scopeMarkdown: string;
+  quotationMarkdown: string;
   suggestedBriefPath: string;
   suggestedScopePath: string;
+  suggestedQuotationPath: string;
   missingInformation: string[];
   scopeRisks: string[];
   confidence: ScopeDigestOutput['confidence'];
@@ -147,6 +151,7 @@ export function buildBriefScopeDraftPack(input: BriefScopeDraftInput): BriefScop
   const closureGate = evaluateScopeClosureGate({ scopeControl });
   const customerQuestionPack = buildCustomerQuestionPack(closureGate, input.projectName);
   const quoteReadiness = buildQuoteReadinessBrief(scopeControl, closureGate);
+  const quotationDraft = buildQuotationDraft(input.projectName, quoteReadiness);
   const scopeMarkdownWithControl = injectScopeControlMarkdown(buildScopeDraftFromDigest(input), scopeControl);
   const scopeMarkdownWithClosure = injectScopeClosureMarkdown(scopeMarkdownWithControl, closureGate);
   const scopeMarkdownWithQuestions = injectCustomerQuestionLoopMarkdown(scopeMarkdownWithClosure, customerQuestionPack);
@@ -154,8 +159,10 @@ export function buildBriefScopeDraftPack(input: BriefScopeDraftInput): BriefScop
   return {
     briefMarkdown: buildBriefDraftFromDigest(input),
     scopeMarkdown: injectQuoteReadinessMarkdown(scopeMarkdownWithQuestions, quoteReadiness),
+    quotationMarkdown: buildQuotationDraftMarkdown(quotationDraft, input.projectId, input.clientId),
     suggestedBriefPath: 'baseline/brief-v1.0.md',
     suggestedScopePath: 'baseline/scope-v1.0.md',
+    suggestedQuotationPath: 'baseline/quotation-draft-v1.0.md',
     missingInformation: cleanItems(input.digest.unclear_points),
     scopeRisks: cleanItems(input.digest.scope_creep_risks),
     confidence: input.digest.confidence,
