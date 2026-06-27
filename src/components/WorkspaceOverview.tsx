@@ -14,6 +14,7 @@ import { buildCloseoutPackageExport } from '../lib/ai/closeout/closeoutExport';
 import { buildProjectCloseoutPack } from '../lib/ai/closeout/closeoutPack';
 import { buildDocumentLifecycleSummary } from '../lib/ai/document-lifecycle/documentLifecycle';
 import { getDocumentLifecycleActionTarget } from '../lib/ai/document-lifecycle/documentLifecycleAction';
+import { getProjectLifecyclePriority } from '../lib/ai/document-lifecycle/documentLifecyclePriority';
 import { scanDocumentLifecycleFromFiles } from '../lib/ai/document-lifecycle/documentLifecycleFileScan';
 import {
   getWorkspaceClients,
@@ -117,6 +118,7 @@ export default function WorkspaceOverview({
             const lifecycleInput = scanDocumentLifecycleFromFiles(scanFiles);
             const summary = buildDocumentLifecycleSummary(lifecycleInput);
             const actionTarget = getDocumentLifecycleActionTarget(scanFiles, lifecycleInput);
+            const priority = getProjectLifecyclePriority(summary, scanFiles);
             return {
               projectPath: project.path,
               projectName: project.projectName,
@@ -124,10 +126,12 @@ export default function WorkspaceOverview({
               summary,
               actionTarget,
               scanFiles,
+              priority,
             };
           }).sort((a, b) => {
-            if (a.summary.can_close_work !== b.summary.can_close_work) return a.summary.can_close_work ? 1 : -1;
+            if (a.priority.score !== b.priority.score) return a.priority.score - b.priority.score;
             if (a.summary.blocked_count !== b.summary.blocked_count) return b.summary.blocked_count - a.summary.blocked_count;
+            if (a.summary.missing_count !== b.summary.missing_count) return b.summary.missing_count - a.summary.missing_count;
             return a.projectName.localeCompare(b.projectName);
           });
           setProjectLifecycleRows(lifecycleRows);
