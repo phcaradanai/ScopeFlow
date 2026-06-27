@@ -15,6 +15,7 @@ import { getCloseoutFinalizedGuard } from '../../lib/ai/closeout/closeoutFinaliz
 import { getCloseoutFinalStatus, type CloseoutFinalStatus } from '../../lib/ai/closeout/closeoutFinalStatus';
 import { getLatestCloseoutReopenDecisionSummary } from '../../lib/ai/closeout/closeoutReopenDecisionDetection';
 import { getCloseoutReopenRequestSummary } from '../../lib/ai/closeout/closeoutReopenDetection';
+import { getCloseoutReopenActionTarget } from '../../lib/ai/closeout/closeoutReopenActionTarget';
 import { getCloseoutReopenNextAction } from '../../lib/ai/closeout/closeoutReopenNextAction';
 import { buildCloseoutReopenRequest, canCreateCloseoutReopenRequest } from '../../lib/ai/closeout/closeoutReopenRequest';
 import { getCloseoutActionAvailability, getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
@@ -469,6 +470,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
             const reopenSummary = getCloseoutReopenRequestSummary(row.scanFiles);
             const reopenDecisionSummary = getLatestCloseoutReopenDecisionSummary(row.scanFiles);
             const displayNextAction = getCloseoutReopenNextAction(reopenDecisionSummary, row.summary.next_action);
+            const displayActionTarget = getCloseoutReopenActionTarget(row.actionTarget, reopenSummary, reopenDecisionSummary);
             const packageSent = savedDeliveryStatus?.status === 'package_sent' || savedDeliveryStatus?.status === 'pending_customer_acceptance' || savedDeliveryStatus?.status === 'acceptance_received';
             const pendingAcceptance = savedDeliveryStatus?.status === 'pending_customer_acceptance' || savedDeliveryStatus?.status === 'acceptance_received';
             const deliveryItems = deliveryChecklist.items.map(item => {
@@ -580,14 +582,14 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                 <div className="mt-3 flex flex-col gap-2 rounded-xl border border-primary/20 bg-primary/10 p-3">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                     <p className="text-[11px] text-text-muted leading-relaxed">
-                      <span className="font-bold text-primary-light">Action file:</span> {row.actionTarget.reason}
+                      <span className="font-bold text-primary-light">Action file:</span> {displayActionTarget.reason}
                     </p>
                     <button
                       type="button"
-                      onClick={() => row.actionTarget.file_path ? onSelectFile(row.actionTarget.file_path) : onSelectProject(row.projectPath)}
+                      onClick={() => displayActionTarget.file_path ? onSelectFile(displayActionTarget.file_path) : onSelectProject(row.projectPath)}
                       className="btn btn-primary text-xs gap-2 shrink-0"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" /> {row.actionTarget.label}
+                      <ExternalLink className="w-3.5 h-3.5" /> {displayActionTarget.label}
                     </button>
                   </div>
                   <div className="flex flex-col gap-2 border-t border-primary/10 pt-2">
