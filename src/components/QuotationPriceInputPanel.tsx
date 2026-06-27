@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, Calculator, Clipboard, Percent, ReceiptText } from 'lucide-react';
+import { AlertTriangle, Calculator, Clipboard, FileInput, Percent, ReceiptText } from 'lucide-react';
 import type { QuotationDraft } from '../lib/ai/quotation/quotationDraft';
 import { buildFinalQuoteSummaryMarkdown } from '../lib/ai/quotation/quotationFinalMarkdown';
 import { calculateQuotationPricing, type PriceBasis } from '../lib/ai/quotation/quotationPricing';
 
 interface QuotationPriceInputPanelProps {
   draft: QuotationDraft;
+  onApplyFinalQuoteSummary?: (markdown: string) => void;
 }
 
 function parseNumber(value: string): number {
@@ -17,7 +18,7 @@ function formatMoney(value: number, currency: string): string {
   return `${currency} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default function QuotationPriceInputPanel({ draft }: QuotationPriceInputPanelProps) {
+export default function QuotationPriceInputPanel({ draft, onApplyFinalQuoteSummary }: QuotationPriceInputPanelProps) {
   const [priceBasis, setPriceBasis] = useState<PriceBasis>('average_hours');
   const [hourlyRate, setHourlyRate] = useState('0');
   const [manualFixedPrice, setManualFixedPrice] = useState('0');
@@ -150,11 +151,18 @@ export default function QuotationPriceInputPanel({ draft }: QuotationPriceInputP
           <div className="p-3 border-b border-primary/20 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             <div>
               <h4 className="text-xs font-bold text-primary-light">Final Quote Summary Markdown</h4>
-              <p className="text-[11px] text-text-muted mt-1">copy ส่วนนี้ไปวางใน quotation draft หลังตรวจราคาแล้ว</p>
+              <p className="text-[11px] text-text-muted mt-1">copy หรือ apply ส่วนนี้เข้า quotation draft หลังตรวจราคาแล้ว</p>
             </div>
-            <button type="button" onClick={copyFinalQuoteSummary} className="btn btn-outline text-xs gap-2 w-full md:w-auto">
-              <Clipboard className="w-4 h-4" /> Copy Summary
-            </button>
+            <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+              {onApplyFinalQuoteSummary && (
+                <button type="button" onClick={() => onApplyFinalQuoteSummary(finalQuoteSummaryMarkdown)} className="btn btn-primary text-xs gap-2 w-full md:w-auto">
+                  <FileInput className="w-4 h-4" /> Apply Summary
+                </button>
+              )}
+              <button type="button" onClick={copyFinalQuoteSummary} className="btn btn-outline text-xs gap-2 w-full md:w-auto">
+                <Clipboard className="w-4 h-4" /> Copy Summary
+              </button>
+            </div>
           </div>
           <pre className="whitespace-pre-wrap text-xs leading-relaxed text-text-muted font-mono p-3 max-h-[260px] overflow-y-auto">{finalQuoteSummaryMarkdown}</pre>
         </div>
