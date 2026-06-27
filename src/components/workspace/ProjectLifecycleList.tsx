@@ -3,6 +3,7 @@ import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget'
 import { getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import type { DocumentLifecycleSummary, LifecycleItemStatus } from '../../lib/ai/document-lifecycle/documentLifecycle';
 import type { DocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
+import type { ProjectLifecyclePriority } from '../../lib/ai/document-lifecycle/documentLifecyclePriority';
 import type { LifecycleScanFile } from '../../lib/ai/document-lifecycle/documentLifecycleFileScan';
 
 export interface ProjectLifecycleRow {
@@ -12,6 +13,7 @@ export interface ProjectLifecycleRow {
   summary: DocumentLifecycleSummary;
   actionTarget: DocumentLifecycleActionTarget;
   scanFiles: LifecycleScanFile[];
+  priority: ProjectLifecyclePriority;
 }
 
 interface ProjectLifecycleListProps {
@@ -40,6 +42,14 @@ function closeoutBadgeClass(statusLabel: string): string {
   if (statusLabel === 'export_ready') return 'bg-success/10 text-success border border-success/20';
   if (statusLabel === 'closeout_ready') return 'bg-primary/10 text-primary-light border border-primary/20';
   if (statusLabel === 'closeout_incomplete') return 'bg-warning/10 text-warning border border-warning/20';
+  return 'bg-surface-2 text-text-muted border border-border';
+}
+
+function priorityBadgeClass(category: ProjectLifecyclePriority['category']): string {
+  if (category === 'blocked') return 'bg-error/10 text-error border border-error/20';
+  if (category === 'can_close' || category === 'closeout_ready') return 'bg-success/10 text-success border border-success/20';
+  if (category === 'missing_docs') return 'bg-warning/10 text-warning border border-warning/20';
+  if (category === 'export_ready') return 'bg-primary/10 text-primary-light border border-primary/20';
   return 'bg-surface-2 text-text-muted border border-border';
 }
 
@@ -73,6 +83,9 @@ export default function ProjectLifecycleList({ rows, onSelectProject, onSelectFi
                       <p className="text-xs text-text-muted truncate">{row.clientName}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                      <div className={`badge text-xs ${priorityBadgeClass(row.priority.category)}`} title={row.priority.reason}>
+                        {row.priority.label}
+                      </div>
                       <div className={`badge text-xs ${row.summary.can_close_work ? 'bg-success/10 text-success border border-success/20' : 'bg-warning/10 text-warning border border-warning/20'}`}>
                         Can close: {row.summary.can_close_work ? 'yes' : 'no'}
                       </div>
