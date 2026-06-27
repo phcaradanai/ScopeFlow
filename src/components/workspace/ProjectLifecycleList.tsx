@@ -11,6 +11,7 @@ import {
   type CloseoutDeliveryStatusEntry,
   type CloseoutDeliveryStatusType,
 } from '../../lib/ai/closeout/closeoutDeliveryStatus';
+import { getCloseoutFinalStatus } from '../../lib/ai/closeout/closeoutFinalStatus';
 import { getCloseoutActionAvailability, getCloseoutEvidenceSummary, getCloseoutStatusSummary } from '../../lib/ai/closeout/closeoutStatus';
 import { getCloseoutOpenTarget } from '../../lib/ai/closeout/closeoutOpenTarget';
 import type { DocumentLifecycleSummary, LifecycleItemStatus } from '../../lib/ai/document-lifecycle/documentLifecycle';
@@ -81,6 +82,12 @@ function closeoutBadgeClass(statusLabel: string): string {
   if (statusLabel === 'closeout_ready') return 'bg-primary/10 text-primary-light border border-primary/20';
   if (statusLabel === 'closeout_incomplete') return 'bg-warning/10 text-warning border border-warning/20';
   return 'bg-surface-2 text-text-muted border border-border';
+}
+
+function finalStatusBadgeClass(isTerminalReady: boolean): string {
+  return isTerminalReady
+    ? 'bg-success/10 text-success border border-success/20'
+    : 'bg-surface-2 text-text-muted border border-border';
 }
 
 function priorityBadgeClass(category: ProjectLifecyclePriority['category']): string {
@@ -247,6 +254,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
             const closeoutEvidence = getCloseoutEvidenceSummary(closeoutStatus);
             const deliveryChecklist = getCloseoutDeliveryChecklist(closeoutStatus);
             const savedDeliveryStatus = getCloseoutDeliveryStatus(deliveryStatuses, row.projectPath);
+            const finalStatus = getCloseoutFinalStatus(closeoutStatus, savedDeliveryStatus);
             const packageSent = savedDeliveryStatus?.status === 'package_sent' || savedDeliveryStatus?.status === 'pending_customer_acceptance';
             const pendingAcceptance = savedDeliveryStatus?.status === 'pending_customer_acceptance';
             const deliveryItems = deliveryChecklist.items.map(item => {
@@ -279,6 +287,9 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                       </div>
                       <div className={`badge text-xs ${closeoutBadgeClass(closeoutStatus.status_label)}`}>
                         {closeoutStatus.status_label.replace(/_/g, ' ')}
+                      </div>
+                      <div className={`badge text-xs ${finalStatusBadgeClass(finalStatus.is_terminal_ready)}`}>
+                        {finalStatus.label}
                       </div>
                     </div>
                   </div>
@@ -315,6 +326,12 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                     {closeoutEvidence.missing_files.length > 0 && (
                       <p className="text-[10px] text-warning mt-2 leading-relaxed">Missing: {closeoutEvidence.missing_files.join(', ')}</p>
                     )}
+                  </div>
+
+                  <div className={`mb-3 rounded-xl border p-3 ${finalStatus.is_terminal_ready ? 'border-success/20 bg-success/10' : 'border-border bg-surface-2'}`}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-text-muted mb-1">Final close status</p>
+                    <p className="text-xs font-bold text-text">{finalStatus.label}</p>
+                    <p className="text-[10px] text-text-muted mt-1 leading-relaxed">{finalStatus.description}</p>
                   </div>
 
                   <p className="text-xs text-text-muted leading-relaxed">
