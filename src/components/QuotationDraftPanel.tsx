@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, FileSpreadsheet, ListChecks, ShieldCheck, WalletCards } from 'lucide-react';
 import type { QuotationDraft } from '../lib/ai/quotation/quotationDraft';
+import QuotationPriceInputPanel from './QuotationPriceInputPanel';
 
 interface QuotationDraftPanelProps {
   draft: QuotationDraft;
@@ -117,6 +118,10 @@ export default function QuotationDraftPanel({ draft }: QuotationDraftPanelProps)
             {emptyAwareList(draft.acceptance_criteria, 'ยังไม่มี acceptance criteria')}
           </ul>
         </div>
+      </div>
+
+      <div className="px-4 pb-4">
+        <QuotationPriceInputPanel draft={draft} />
       </div>
     </div>
   );
