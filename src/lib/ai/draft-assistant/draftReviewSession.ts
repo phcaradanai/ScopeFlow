@@ -36,12 +36,12 @@ export function createDraftReviewSession(projectPath: string, pack: BriefScopeDr
       path: `${projectPath}/${pack.suggestedScopePath}`,
       markdown: pack.scopeMarkdown,
     },
-    {
+    ...((pack.suggestedQuotationPath && pack.quotationMarkdown) ? [{
       id: 'quotation' as const,
       label: 'Quotation Draft',
       path: `${projectPath}/${pack.suggestedQuotationPath}`,
       markdown: pack.quotationMarkdown,
-    },
+    }] : []),
   ];
 
   return {
