@@ -29,12 +29,13 @@ describe('closeoutReopenNextAction', () => {
     );
   });
 
-  it('continues with selected decision', () => {
+  it('uses selected decision guidance for CR quotation', () => {
     expect(getCloseoutReopenNextAction(decision({
       has_reopen_request: true,
       has_decision: true,
       selected_count: 1,
+      selected_decision_id: 'quote_change_request',
       selected_decision_label: 'Quote as Change Request',
-    }), 'Default next')).toBe('Continue with selected reopen decision: Quote as Change Request.');
+    }), 'Default next')).toContain('ราคา/เวลา');
   });
 });
