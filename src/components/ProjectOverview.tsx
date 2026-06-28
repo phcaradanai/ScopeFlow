@@ -120,8 +120,9 @@ export default function ProjectOverview({
       />
 
       <div className="my-6">
-        <CustomerAnswerIntakePanel 
+        <CustomerAnswerIntakePanel
           scanFiles={scanFiles}
+          onOpenDocument={onOpenDocument}
           onCreateChangeRequest={() => onCreateDocument(clientId, projectId, projectPath, 'cr')}
           onCreateFollowUp={() => { /* TODO: hook up to message/followup generator */ }}
           onContinueLifecycle={() => { /* TODO: use commandAction to continue lifecycle */ }}
