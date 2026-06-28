@@ -66,32 +66,6 @@ export function classifyCustomerAnswer(answer: string): CustomerAnswerIntakeResu
     };
   }
 
-  if (newRequirement || (scopeChange && !approval)) {
-    return {
-      intent: newRequirement ? 'new_requirement' : 'scope_change',
-      confidence: classifyConfidence(signals.length, newRequirement),
-      summary: newRequirement ? 'ลูกค้าระบุความต้องการใหม่หรือฟีเจอร์ใหม่' : 'ลูกค้าขอเปลี่ยนหรือขยายขอบเขตจากที่คุยไว้',
-      signals,
-      recommendedAction: 'ตรวจเทียบกับ Scope Baseline และเตรียม CR/DCR แทนการแก้ Scope เดิมเงียบ ๆ',
-      shouldCreateChangeRequest: true,
-      shouldAskFollowUp: true,
-      riskLevel: 'high',
-    };
-  }
-
-  if (approval && !scopeChange && !newRequirement) {
-    return {
-      intent: 'approval',
-      confidence: classifyConfidence(signals.length, approval),
-      summary: 'ลูกค้ามีแนวโน้มอนุมัติหรือยืนยันให้เดินงานต่อ',
-      signals,
-      recommendedAction: 'บันทึก approval evidence และใช้ lifecycle action ถัดไป เช่นสร้าง baseline หรือส่ง sign-off',
-      shouldCreateChangeRequest: false,
-      shouldAskFollowUp: false,
-      riskLevel: 'low',
-    };
-  }
-
   if (rejection) {
     return {
       intent: 'rejection',
@@ -105,7 +79,7 @@ export function classifyCustomerAnswer(answer: string): CustomerAnswerIntakeResu
     };
   }
 
-  if (clarification) {
+  if (clarification && !newRequirement) {
     return {
       intent: 'clarification',
       confidence: classifyConfidence(signals.length, clarification),
@@ -115,6 +89,32 @@ export function classifyCustomerAnswer(answer: string): CustomerAnswerIntakeResu
       shouldCreateChangeRequest: false,
       shouldAskFollowUp: true,
       riskLevel: 'medium',
+    };
+  }
+
+  if (newRequirement || (scopeChange && !approval)) {
+    return {
+      intent: newRequirement ? 'new_requirement' : 'scope_change',
+      confidence: classifyConfidence(signals.length, newRequirement),
+      summary: newRequirement ? 'ลูกค้าระบุความต้องการใหม่หรือฟีเจอร์ใหม่' : 'ลูกค้าขอเปลี่ยนหรือขยายขอบเขตจากที่คุยไว้',
+      signals,
+      recommendedAction: 'ตรวจเทียบกับ Scope Baseline และเตรียม CR/DCR แทนการแก้ Scope เดิมเงียบ ๆ',
+      shouldCreateChangeRequest: true,
+      shouldAskFollowUp: true,
+      riskLevel: 'high',
+    };
+  }
+
+  if (approval) {
+    return {
+      intent: 'approval',
+      confidence: classifyConfidence(signals.length, approval),
+      summary: 'ลูกค้ามีแนวโน้มอนุมัติหรือยืนยันให้เดินงานต่อ',
+      signals,
+      recommendedAction: 'บันทึก approval evidence และใช้ lifecycle action ถัดไป เช่นสร้าง baseline หรือส่ง sign-off',
+      shouldCreateChangeRequest: false,
+      shouldAskFollowUp: false,
+      riskLevel: 'low',
     };
   }
 
