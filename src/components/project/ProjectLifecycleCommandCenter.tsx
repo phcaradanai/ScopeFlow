@@ -26,7 +26,7 @@ interface ProjectLifecycleCommandCenterProps {
 
 export default function ProjectLifecycleCommandCenter({ projectName, projectPath, scanFiles, onOpenDocument, onOpenProject, onStartBriefIntake, onCreateDocument, lifecycleFeedback, onClearLifecycleFeedback }: ProjectLifecycleCommandCenterProps) {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(0);
   const lifecycleInput = scanDocumentLifecycleFromFiles(scanFiles);
   const summary = buildDocumentLifecycleSummary(lifecycleInput);
   const actionTarget = getDocumentLifecycleActionTarget(scanFiles, lifecycleInput);
@@ -37,24 +37,28 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
   const displayNextAction = getCloseoutReopenNextAction(reopenDecisionSummary, summary.next_action);
   const displayActionTarget = getCloseoutReopenActionTarget(actionTarget, reopenSummary, reopenDecisionSummary);
   const commandAction = getLifecycleCommandAction(displayActionTarget, lifecycleInput);
-  const showFeedback = shouldShowLifecycleFeedback(lifecycleFeedback, projectPath, now);
+  const effectiveNow = now || lifecycleFeedback?.createdAt || 0;
+  const showFeedback = shouldShowLifecycleFeedback(lifecycleFeedback, projectPath, effectiveNow);
 
   useEffect(() => {
+    const currentNow = Date.now();
+    setNow(currentNow);
+
     if (!lifecycleFeedback?.createdAt) {
-      setNow(Date.now());
       return;
     }
 
-    const delayMs = Math.max(0, lifecycleFeedback.createdAt + 2 * 60 * 1000 - Date.now() + 1);
+    const delayMs = Math.max(0, lifecycleFeedback.createdAt + 2 * 60 * 1000 - currentNow + 1);
     const timeout = setTimeout(() => setNow(Date.now()), delayMs);
     return () => clearTimeout(timeout);
   }, [lifecycleFeedback]);
 
   useEffect(() => {
-    if (shouldClearLifecycleFeedback(lifecycleFeedback, projectPath, now)) {
+    if (!effectiveNow) return;
+    if (shouldClearLifecycleFeedback(lifecycleFeedback, projectPath, effectiveNow)) {
       onClearLifecycleFeedback?.();
     }
-  }, [lifecycleFeedback, projectPath, now, onClearLifecycleFeedback]);
+  }, [lifecycleFeedback, projectPath, effectiveNow, onClearLifecycleFeedback]);
 
   const firstBlocked = summary.items.find(doc => doc.status === 'blocked');
 
