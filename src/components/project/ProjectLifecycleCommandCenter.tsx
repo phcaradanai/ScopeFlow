@@ -10,6 +10,7 @@ import { getCloseoutReopenNextAction } from '../../lib/ai/closeout/closeoutReope
 import { getCloseoutReopenActionTarget } from '../../lib/ai/closeout/closeoutReopenActionTarget';
 import { getProjectLifecyclePriority } from '../../lib/ai/document-lifecycle/documentLifecyclePriority';
 import { buildLifecycleExplanation } from '../../lib/ai/document-lifecycle/lifecycleExplanation';
+import { shouldShowLifecycleFeedback, shouldClearLifecycleFeedback } from '../../lib/ai/document-lifecycle/lifecycleFeedbackGuard';
 import DocumentCreationPreviewModal from './DocumentCreationPreviewModal';
 
 interface ProjectLifecycleCommandCenterProps {
@@ -37,39 +38,34 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
   const displayActionTarget = getCloseoutReopenActionTarget(actionTarget, reopenSummary, reopenDecisionSummary);
   const commandAction = getLifecycleCommandAction(displayActionTarget, lifecycleInput);
   const explanation = buildLifecycleExplanation(lifecycleInput, summary, scanFiles, displayActionTarget);
-  const feedbackBelongsToProject = !lifecycleFeedback?.projectPath || lifecycleFeedback.projectPath === projectPath;
   
-  const [isFeedbackStale, setIsFeedbackStale] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const [isExplanationExpanded, setIsExplanationExpanded] = useState(false);
 
   useEffect(() => {
-    if (!lifecycleFeedback) {
-      setIsFeedbackStale(false);
-      return;
-    }
+    if (!lifecycleFeedback) return;
+    
+    // Update 'now' to trigger a re-evaluation if feedback exists
+    setNow(Date.now());
+    
     if (lifecycleFeedback.createdAt) {
-      const isStale = Date.now() - lifecycleFeedback.createdAt > 2 * 60 * 1000;
-      setIsFeedbackStale(isStale);
-      
-      // Auto-clear after 2 minutes if it's not already stale
-      if (!isStale) {
+      const timeUntilStale = (lifecycleFeedback.createdAt + 2 * 60 * 1000) - Date.now();
+      if (timeUntilStale > 0) {
         const timeout = setTimeout(() => {
-          setIsFeedbackStale(true);
-        }, (lifecycleFeedback.createdAt + 2 * 60 * 1000) - Date.now());
+          setNow(Date.now());
+        }, timeUntilStale);
         return () => clearTimeout(timeout);
       }
     }
   }, [lifecycleFeedback]);
 
-  const showFeedback = lifecycleFeedback && feedbackBelongsToProject && !isFeedbackStale && lifecycleFeedback.source === 'recommended_next_action';
+  const showFeedback = shouldShowLifecycleFeedback(lifecycleFeedback, projectPath, now);
 
   useEffect(() => {
-    if (lifecycleFeedback && onClearLifecycleFeedback) {
-      if (!feedbackBelongsToProject || isFeedbackStale) {
-        onClearLifecycleFeedback();
-      }
+    if (onClearLifecycleFeedback && shouldClearLifecycleFeedback(lifecycleFeedback, projectPath, now)) {
+      onClearLifecycleFeedback();
     }
-  }, [lifecycleFeedback, feedbackBelongsToProject, isFeedbackStale, onClearLifecycleFeedback]);
+  }, [lifecycleFeedback, projectPath, now, onClearLifecycleFeedback]);
 
   const firstBlocked = summary.items.find(doc => doc.status === 'blocked');
 
