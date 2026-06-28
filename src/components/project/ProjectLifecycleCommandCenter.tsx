@@ -36,7 +36,7 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
   const displayNextAction = getCloseoutReopenNextAction(reopenDecisionSummary, summary.next_action);
   const displayActionTarget = getCloseoutReopenActionTarget(actionTarget, reopenSummary, reopenDecisionSummary);
   const commandAction = getLifecycleCommandAction(displayActionTarget, lifecycleInput);
-  const explanation = buildLifecycleExplanation(lifecycleInput, summary);
+  const explanation = buildLifecycleExplanation(lifecycleInput, summary, scanFiles);
   const feedbackBelongsToProject = !lifecycleFeedback?.projectPath || lifecycleFeedback.projectPath === projectPath;
   
   const [isFeedbackStale, setIsFeedbackStale] = useState(false);
@@ -182,9 +182,22 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
                     <h5 className="font-bold text-text-muted mb-1 text-[11px] uppercase tracking-wider">Evidence</h5>
                     <div className="flex flex-wrap gap-1.5">
                       {explanation.evidence.map((e, i) => (
-                        <span key={i} className="px-2 py-0.5 rounded-full bg-success/10 text-success text-[11px] border border-success/20">
-                          {e}
-                        </span>
+                        e.sourcePath ? (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => onOpenDocument(e.sourcePath!)}
+                            className="px-2 py-0.5 rounded-full bg-success/10 text-success text-[11px] border border-success/20 flex items-center gap-1 hover:bg-success/20 transition-colors cursor-pointer"
+                            title={e.actionLabel}
+                          >
+                            <FileText className="w-3 h-3" />
+                            {e.label}
+                          </button>
+                        ) : (
+                          <span key={i} className="px-2 py-0.5 rounded-full bg-success/10 text-success text-[11px] border border-success/20">
+                            {e.label}
+                          </span>
+                        )
                       ))}
                     </div>
                   </div>
@@ -194,9 +207,22 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
                     <h5 className="font-bold text-text-muted mb-1 text-[11px] uppercase tracking-wider">Missing</h5>
                     <div className="flex flex-wrap gap-1.5">
                       {explanation.missingDocuments.map((e, i) => (
-                        <span key={i} className="px-2 py-0.5 rounded-full bg-warning/10 text-warning text-[11px] border border-warning/20">
-                          {e}
-                        </span>
+                        e.sourcePath ? (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => onOpenDocument(e.sourcePath!)}
+                            className="px-2 py-0.5 rounded-full bg-warning/10 text-warning text-[11px] border border-warning/20 flex items-center gap-1 hover:bg-warning/20 transition-colors cursor-pointer"
+                            title={e.actionLabel}
+                          >
+                            <FileText className="w-3 h-3" />
+                            {e.label}
+                          </button>
+                        ) : (
+                          <span key={i} className="px-2 py-0.5 rounded-full bg-warning/10 text-warning text-[11px] border border-warning/20">
+                            {e.label}
+                          </span>
+                        )
                       ))}
                     </div>
                   </div>
@@ -205,13 +231,13 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
                   {explanation.riskIfIgnored && (
                     <div className="bg-error/5 border border-error/10 p-2.5 rounded-md">
                       <h5 className="font-bold text-error mb-1 text-[11px] uppercase tracking-wider">Risk If Ignored</h5>
-                      <p className="text-text-muted leading-relaxed">{explanation.riskIfIgnored}</p>
+                      <p className="text-text-muted leading-relaxed">{explanation.riskIfIgnored.label}</p>
                     </div>
                   )}
                   {explanation.expectedNextState && (
                     <div className="bg-primary/5 border border-primary/10 p-2.5 rounded-md">
                       <h5 className="font-bold text-primary mb-1 text-[11px] uppercase tracking-wider">Expected Outcome</h5>
-                      <p className="text-text-muted leading-relaxed">{explanation.expectedNextState}</p>
+                      <p className="text-text-muted leading-relaxed">{explanation.expectedNextState.label}</p>
                     </div>
                   )}
                 </div>
