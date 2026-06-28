@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, HelpCircle, MessageSquareText, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, HelpCircle, MessageSquareText, ShieldAlert, Check, X } from 'lucide-react';
 import { classifyCustomerAnswer } from '../../lib/ai/customer-answer/customerAnswerIntake';
+import { computeCustomerAnswerImpactPreview } from '../../lib/ai/customer-answer/customerAnswerImpactPreview';
+import { type LifecycleScanFile, scanDocumentLifecycleFromFiles } from '../../lib/ai/document-lifecycle/documentLifecycleFileScan';
+import { buildDocumentLifecycleSummary } from '../../lib/ai/document-lifecycle/documentLifecycle';
 
 const intentLabels: Record<string, string> = {
   approval: 'Approval',
@@ -25,18 +28,36 @@ function riskClassName(riskLevel: string) {
 }
 
 interface CustomerAnswerIntakePanelProps {
-  onStartBriefIntake?: () => void;
+  scanFiles: LifecycleScanFile[];
   onCreateChangeRequest?: () => void;
   onCreateFollowUp?: () => void;
+  onContinueLifecycle?: () => void;
+  onStartRevisionReview?: () => void;
 }
 
 export default function CustomerAnswerIntakePanel({
+  scanFiles,
   onCreateChangeRequest,
-  onCreateFollowUp
+  onCreateFollowUp,
+  onContinueLifecycle,
+  onStartRevisionReview
 }: CustomerAnswerIntakePanelProps) {
   const [answer, setAnswer] = useState('');
   const result = useMemo(() => classifyCustomerAnswer(answer), [answer]);
   const hasAnswer = answer.trim().length > 0;
+
+  const { lifecycleSummary } = useMemo(() => {
+    const lifecycleInput = scanDocumentLifecycleFromFiles(scanFiles);
+    const summary = buildDocumentLifecycleSummary(lifecycleInput);
+    
+    return {
+      lifecycleSummary: summary
+    };
+  }, [scanFiles]);
+
+  const affectedDocs = useMemo(() => {
+    return computeCustomerAnswerImpactPreview(result.intent, hasAnswer, lifecycleSummary);
+  }, [hasAnswer, result.intent, lifecycleSummary]);
 
   return (
     <div className="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden">
@@ -96,15 +117,67 @@ export default function CustomerAnswerIntakePanel({
             </div>
           </div>
 
+          {hasAnswer && (affectedDocs.affected.length > 0 || affectedDocs.unaffected.length > 0) && (
+            <div className="mt-2 rounded-lg border border-border bg-surface-2 p-3">
+              <p className="text-[11px] font-bold text-text mb-2">Impact Preview</p>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <p className="text-[10px] text-text-muted mb-1.5 uppercase tracking-wider font-semibold">Affected Documents</p>
+                  <ul className="space-y-1">
+                    {affectedDocs.affected.map((doc, idx) => (
+                      <li key={idx} className="flex items-start gap-1.5 text-text">
+                        <Check className="w-3.5 h-3.5 text-success shrink-0 mt-0.5" />
+                        <span>{doc}</span>
+                      </li>
+                    ))}
+                    {affectedDocs.affected.length === 0 && <li className="text-text-muted italic">None</li>}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-[10px] text-text-muted mb-1.5 uppercase tracking-wider font-semibold">Documents NOT affected</p>
+                  <ul className="space-y-1">
+                    {affectedDocs.unaffected.map((doc, idx) => (
+                      <li key={idx} className="flex items-start gap-1.5 text-text-muted">
+                        <X className="w-3.5 h-3.5 text-text-dim shrink-0 mt-0.5" />
+                        <span>{doc}</span>
+                      </li>
+                    ))}
+                    {affectedDocs.unaffected.length === 0 && <li className="text-text-muted italic">None</li>}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {hasAnswer && (result.intent === 'scope_change' || result.intent === 'new_requirement') && (
+            <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+              <p className="text-[11px] font-bold text-primary mb-2">Context References</p>
+              <ul className="space-y-1.5 text-xs text-text-muted">
+                <li className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-primary/40" />
+                  Current Scope Baseline
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-primary/40" />
+                  Current Approved Quotation
+                </li>
+                <li className="flex items-center gap-2 text-primary font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  Recommended CR/DCR
+                </li>
+              </ul>
+            </div>
+          )}
+
           {hasAnswer && (
             <div className="mt-2 flex items-center justify-end border-t border-border/50 pt-3">
               {result.intent === 'approval' && (
                 <button 
                   type="button" 
-                  disabled
-                  className="btn btn-primary text-xs py-1.5 opacity-50 cursor-not-allowed"
+                  onClick={onContinueLifecycle}
+                  className="btn btn-primary text-xs py-1.5"
                 >
-                  Use lifecycle next action
+                  Continue Lifecycle
                 </button>
               )}
               {result.intent === 'clarification' && (
@@ -113,16 +186,16 @@ export default function CustomerAnswerIntakePanel({
                   onClick={onCreateFollowUp}
                   className="btn btn-primary text-xs py-1.5"
                 >
-                  Prepare follow-up
+                  Prepare Follow-up
                 </button>
               )}
               {result.intent === 'rejection' && (
                 <button 
                   type="button" 
-                  disabled
-                  className="btn btn-primary text-xs py-1.5 opacity-50 cursor-not-allowed"
+                  onClick={onStartRevisionReview}
+                  className="btn btn-primary text-xs py-1.5"
                 >
-                  Start revision review
+                  Start Revision Review
                 </button>
               )}
               {(result.intent === 'scope_change' || result.intent === 'new_requirement') && (

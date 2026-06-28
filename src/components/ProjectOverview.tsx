@@ -121,9 +121,11 @@ export default function ProjectOverview({
 
       <div className="my-6">
         <CustomerAnswerIntakePanel 
-          onStartBriefIntake={onStartBriefIntake ? () => onStartBriefIntake(clientId, projectId, projectPath) : undefined}
+          scanFiles={scanFiles}
           onCreateChangeRequest={() => onCreateDocument(clientId, projectId, projectPath, 'cr')}
           onCreateFollowUp={() => { /* TODO: hook up to message/followup generator */ }}
+          onContinueLifecycle={() => { /* TODO: use commandAction to continue lifecycle */ }}
+          onStartRevisionReview={() => { /* TODO: start revision review flow */ }}
         />
       </div>
 
