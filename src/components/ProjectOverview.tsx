@@ -15,8 +15,10 @@ interface ProjectOverviewProps {
   projectName: string;
   workspaceTree: FileEntry;
   onOpenDocument: (path: string) => void;
-  onCreateDocument: (clientId: string, projectId: string, projectPath: string, initialType?: string) => void;
+  onCreateDocument: (clientId: string, projectId: string, projectPath: string, initialType?: string, lifecycleContext?: any) => void;
   onStartBriefIntake?: (clientId: string, projectId: string, projectPath: string) => void;
+  lifecycleFeedback?: any;
+  onClearLifecycleFeedback?: () => void;
 }
 
 function getProjectPathIds(projectPath: string): { clientId: string; projectId: string } {
@@ -36,6 +38,8 @@ export default function ProjectOverview({
   onOpenDocument,
   onCreateDocument,
   onStartBriefIntake,
+  lifecycleFeedback,
+  onClearLifecycleFeedback,
 }: ProjectOverviewProps) {
   const {
     documents,
@@ -108,7 +112,9 @@ export default function ProjectOverview({
         onOpenDocument={onOpenDocument}
         onOpenProject={() => onOpenDocument(projectPath)}
         onStartBriefIntake={onStartBriefIntake ? () => onStartBriefIntake(clientId, projectId, projectPath) : undefined}
-        onCreateDocument={(initialType) => onCreateDocument(clientId, projectId, projectPath, initialType)}
+        onCreateDocument={(initialType, lifecycleContext) => onCreateDocument(clientId, projectId, projectPath, initialType, lifecycleContext)}
+        lifecycleFeedback={lifecycleFeedback}
+        onClearLifecycleFeedback={onClearLifecycleFeedback}
       />
 
       <ProjectWorkflowStepper

@@ -98,12 +98,22 @@ const DOCUMENT_TYPES = [
   },
 ];
 
+export interface LifecycleActionContext {
+  source: 'recommended_next_action';
+  initialType: string;
+  reason: string;
+  projectPath: string;
+  recommendationWhy?: string;
+}
+
 interface DocumentCreatorModalProps {
   clientId: string;
   projectId: string;
   projectPath: string;
   onClose: () => void;
   initialType?: string;
+  lifecycleContext?: LifecycleActionContext;
+  onDocumentCreated?: (context: LifecycleActionContext) => void;
 }
 
 export default function DocumentCreatorModal({
@@ -112,6 +122,8 @@ export default function DocumentCreatorModal({
   projectPath,
   onClose,
   initialType,
+  lifecycleContext,
+  onDocumentCreated,
 }: DocumentCreatorModalProps) {
   const { workspacePath, refreshTree, setSelectedFile } = useWorkspace();
   const [type, setType] = useState(initialType || 'scope');
@@ -263,6 +275,10 @@ export default function DocumentCreatorModal({
 
       // Open the newly created document
       setSelectedFile(finalPath);
+      
+      if (lifecycleContext && onDocumentCreated) {
+        onDocumentCreated(lifecycleContext);
+      }
 
       onClose();
     } catch (err) {

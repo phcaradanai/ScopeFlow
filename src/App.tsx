@@ -5,7 +5,7 @@ import Sidebar from './components/Sidebar';
 import ClientForm from './components/ClientForm';
 import ProjectForm from './components/ProjectForm';
 import MarkdownEditor from './components/MarkdownEditor';
-import DocumentCreatorModal from './components/DocumentCreatorModal';
+import DocumentCreatorModal, { type LifecycleActionContext } from './components/DocumentCreatorModal';
 import ExportModal from './components/ExportModal';
 import CompanySettingsModal from './components/CompanySettingsModal';
 import HealthCheckModal from './components/HealthCheckModal';
@@ -41,6 +41,7 @@ function AppContent() {
   const [showHealthCheck, setShowHealthCheck] = useState(false);
   const [demoGuide, setDemoGuide] = useState<DemoGuideState | null>(null);
   const [exportModalProps, setExportModalProps] = useState({ projectPath: '', projectName: '', clientName: '', documents: [] as DocumentInfo[] });
+  const [lifecycleFeedback, setLifecycleFeedback] = useState<LifecycleActionContext | null>(null);
 
   useEffect(() => {
     const handleOpenHealthCheck = () => setShowHealthCheck(true);
@@ -64,8 +65,8 @@ function AppContent() {
     }
   };
 
-  function handleCreateDocument(clientId: string, projectId: string, projectPath: string, initialType?: string) {
-    setDocumentCreatorProps({ clientId, projectId, projectPath, initialType });
+  function handleCreateDocument(clientId: string, projectId: string, projectPath: string, initialType?: string, lifecycleContext?: LifecycleActionContext) {
+    setDocumentCreatorProps({ clientId, projectId, projectPath, initialType, ... (lifecycleContext ? { lifecycleContext } : {}) });
     setShowDocumentCreator(true);
   }
 
@@ -171,6 +172,8 @@ function AppContent() {
         onOpenDocument={(path) => setSelectedFile(path)}
         onCreateDocument={handleCreateDocument}
         onStartBriefIntake={handleStartBriefIntake}
+        lifecycleFeedback={lifecycleFeedback}
+        onClearLifecycleFeedback={() => setLifecycleFeedback(null)}
       />
     ) : (
       <MarkdownEditor filePath={selectedFile} workspacePath={activeWorkspacePath} onDocumentChanged={refreshTree} onOpenDocument={(path) => setSelectedFile(path)} allFiles={allFiles} />
@@ -194,7 +197,7 @@ function AppContent() {
       {mainContent}
       {showClientForm && <ClientForm onClose={() => setShowClientForm(false)} />}
       {showProjectForm && <ProjectForm clientId={projectFormClientId} onClose={() => setShowProjectForm(false)} />}
-      {showDocumentCreator && <DocumentCreatorModal {...documentCreatorProps} onClose={() => setShowDocumentCreator(false)} />}
+      {showDocumentCreator && <DocumentCreatorModal {...documentCreatorProps} onDocumentCreated={setLifecycleFeedback} onClose={() => setShowDocumentCreator(false)} />}
       {showBriefIntakeModal && <BriefIntakeModal {...briefIntakeProps} onClose={() => setShowBriefIntakeModal(false)} />}
       {showExportModal && <ExportModal {...exportModalProps} onClose={() => setShowExportModal(false)} />}
       {showCompanySettings && <CompanySettingsModal workspacePath={activeWorkspacePath} onClose={() => setShowCompanySettings(false)} />}

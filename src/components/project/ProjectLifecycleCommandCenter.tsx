@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ExternalLink, LockKeyhole, AlertTriangle } from 'lucide-react';
+import { ExternalLink, LockKeyhole, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import { type LifecycleScanFile, scanDocumentLifecycleFromFiles } from '../../lib/ai/document-lifecycle/documentLifecycleFileScan';
 import { buildDocumentLifecycleSummary } from '../../lib/ai/document-lifecycle/documentLifecycle';
 import { getDocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
@@ -17,10 +17,12 @@ interface ProjectLifecycleCommandCenterProps {
   onOpenDocument: (path: string) => void;
   onOpenProject?: () => void;
   onStartBriefIntake?: () => void;
-  onCreateDocument?: (initialType?: string) => void;
+  onCreateDocument?: (initialType?: string, lifecycleContext?: any) => void;
+  lifecycleFeedback?: any;
+  onClearLifecycleFeedback?: () => void;
 }
 
-export default function ProjectLifecycleCommandCenter({ projectName, scanFiles, onOpenDocument, onOpenProject, onStartBriefIntake, onCreateDocument }: ProjectLifecycleCommandCenterProps) {
+export default function ProjectLifecycleCommandCenter({ projectName, scanFiles, onOpenDocument, onOpenProject, onStartBriefIntake, onCreateDocument, lifecycleFeedback, onClearLifecycleFeedback }: ProjectLifecycleCommandCenterProps) {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const lifecycleInput = scanDocumentLifecycleFromFiles(scanFiles);
   const summary = buildDocumentLifecycleSummary(lifecycleInput);
@@ -54,12 +56,44 @@ export default function ProjectLifecycleCommandCenter({ projectName, scanFiles, 
   const handleConfirmCreate = () => {
     setShowPreviewModal(false);
     if (onCreateDocument) {
-      onCreateDocument(commandAction.initial_type);
+      onCreateDocument(commandAction.initial_type, {
+        source: 'recommended_next_action',
+        initialType: commandAction.initial_type,
+        reason: commandAction.guidance,
+        projectPath: '',
+        recommendationWhy: displayNextAction,
+      });
     }
   };
 
   return (
     <>
+      {lifecycleFeedback && (
+        <div className="mb-4 rounded-xl border border-success/30 bg-success/10 p-4 shadow-sm relative animate-in fade-in slide-in-from-top-2 duration-300">
+          <button onClick={onClearLifecycleFeedback} className="absolute top-2 right-2 p-1 text-success/60 hover:text-success transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-success mb-1">
+                สร้างเอกสาร {lifecycleFeedback.initialType || 'ใหม่'} สำเร็จแล้ว!
+              </p>
+              <p className="text-xs text-text-muted leading-relaxed mb-2">
+                คุณเพิ่งสร้างเอกสารสำหรับ <span className="font-semibold text-text">{lifecycleFeedback.reason}</span>
+              </p>
+              {lifecycleFeedback.recommendationWhy && (
+                <div className="rounded border border-success/20 bg-success/5 p-2 mt-2">
+                  <p className="text-[11px] text-text-muted">
+                    <span className="font-bold text-success">Next step:</span> {lifecycleFeedback.recommendationWhy}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6 rounded-2xl border border-primary/30 bg-primary/5 shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500 relative">
       <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-primary to-accent" />
       <div className="p-5 pl-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
