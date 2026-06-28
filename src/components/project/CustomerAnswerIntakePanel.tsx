@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, HelpCircle, MessageSquareText, ShieldAlert, Check, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, HelpCircle, MessageSquareText, ShieldAlert, Check, X, FileText } from 'lucide-react';
 import { classifyCustomerAnswer } from '../../lib/ai/customer-answer/customerAnswerIntake';
 import { computeCustomerAnswerImpactPreview } from '../../lib/ai/customer-answer/customerAnswerImpactPreview';
+import { getCustomerAnswerContextReferences } from '../../lib/ai/customer-answer/customerAnswerContextReferences';
 import { type LifecycleScanFile, scanDocumentLifecycleFromFiles } from '../../lib/ai/document-lifecycle/documentLifecycleFileScan';
 import { buildDocumentLifecycleSummary } from '../../lib/ai/document-lifecycle/documentLifecycle';
 
@@ -29,6 +30,7 @@ function riskClassName(riskLevel: string) {
 
 interface CustomerAnswerIntakePanelProps {
   scanFiles: LifecycleScanFile[];
+  onOpenDocument?: (path: string) => void;
   onCreateChangeRequest?: () => void;
   onCreateFollowUp?: () => void;
   onContinueLifecycle?: () => void;
@@ -37,6 +39,7 @@ interface CustomerAnswerIntakePanelProps {
 
 export default function CustomerAnswerIntakePanel({
   scanFiles,
+  onOpenDocument,
   onCreateChangeRequest,
   onCreateFollowUp,
   onContinueLifecycle,
@@ -58,6 +61,8 @@ export default function CustomerAnswerIntakePanel({
   const affectedDocs = useMemo(() => {
     return computeCustomerAnswerImpactPreview(result.intent, hasAnswer, lifecycleSummary);
   }, [hasAnswer, result.intent, lifecycleSummary]);
+
+  const contextReferences = useMemo(() => getCustomerAnswerContextReferences(scanFiles), [scanFiles]);
 
   return (
     <div className="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden">
@@ -153,18 +158,36 @@ export default function CustomerAnswerIntakePanel({
             <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
               <p className="text-[11px] font-bold text-primary mb-2">Context References</p>
               <ul className="space-y-1.5 text-xs text-text-muted">
-                <li className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-primary/40" />
-                  Current Scope Baseline
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-primary/40" />
-                  Current Approved Quotation
-                </li>
-                <li className="flex items-center gap-2 text-primary font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-primary" />
-                  Recommended CR/DCR
-                </li>
+                {contextReferences.map(ref => {
+                  const statusClass = ref.status === 'recommended'
+                    ? 'text-primary font-semibold'
+                    : ref.status === 'missing'
+                      ? 'text-warning'
+                      : 'text-text-muted';
+
+                  if (ref.sourcePath && onOpenDocument) {
+                    return (
+                      <li key={ref.id}>
+                        <button
+                          type="button"
+                          onClick={() => onOpenDocument(ref.sourcePath!)}
+                          className={`flex items-center gap-2 hover:text-primary transition-colors ${statusClass}`}
+                          title={ref.actionLabel}
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          {ref.label}
+                        </button>
+                      </li>
+                    );
+                  }
+
+                  return (
+                    <li key={ref.id} className={`flex items-center gap-2 ${statusClass}`} title={ref.actionLabel}>
+                      <span className={`w-2 h-2 rounded-full ${ref.status === 'recommended' ? 'bg-primary' : ref.status === 'missing' ? 'bg-warning' : 'bg-primary/40'}`} />
+                      {ref.label}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
