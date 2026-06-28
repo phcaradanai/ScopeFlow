@@ -19,6 +19,16 @@ interface ProjectOverviewProps {
   onStartBriefIntake?: (clientId: string, projectId: string, projectPath: string) => void;
 }
 
+function getProjectPathIds(projectPath: string): { clientId: string; projectId: string } {
+  const normalized = projectPath.replace(/\\/g, '/');
+  const parts = normalized.split('/').filter(Boolean);
+  const clientsIndex = parts.lastIndexOf('clients');
+  const projectsIndex = parts.lastIndexOf('projects');
+  const clientId = clientsIndex >= 0 && parts[clientsIndex + 1] ? parts[clientsIndex + 1] : '';
+  const projectId = projectsIndex >= 0 && parts[projectsIndex + 1] ? parts[projectsIndex + 1] : parts[parts.length - 1] || '';
+  return { clientId, projectId };
+}
+
 export default function ProjectOverview({
   projectPath,
   projectName,
@@ -60,8 +70,7 @@ export default function ProjectOverview({
     markdown: doc.markdown || '',
   }));
 
-  const clientId = projectPath.split('/').slice(-2, -1)[0] || '';
-  const projectId = projectPath.split('/').pop() || '';
+  const { clientId, projectId } = getProjectPathIds(projectPath);
 
   const Header = (
     <div className="page-header-inner page-container-wide">
@@ -96,6 +105,9 @@ export default function ProjectOverview({
       <ProjectLifecycleCommandCenter
         scanFiles={scanFiles}
         onOpenDocument={onOpenDocument}
+        onOpenProject={() => onOpenDocument(projectPath)}
+        onStartBriefIntake={onStartBriefIntake ? () => onStartBriefIntake(clientId, projectId, projectPath) : undefined}
+        onCreateDocument={(initialType) => onCreateDocument(clientId, projectId, projectPath, initialType)}
       />
 
       <ProjectWorkflowStepper
