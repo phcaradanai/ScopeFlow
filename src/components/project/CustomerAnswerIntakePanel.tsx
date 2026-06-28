@@ -24,7 +24,16 @@ function riskClassName(riskLevel: string) {
   return 'bg-success/10 text-success border-success/20';
 }
 
-export default function CustomerAnswerIntakePanel() {
+interface CustomerAnswerIntakePanelProps {
+  onStartBriefIntake?: () => void;
+  onCreateChangeRequest?: () => void;
+  onCreateFollowUp?: () => void;
+}
+
+export default function CustomerAnswerIntakePanel({
+  onCreateChangeRequest,
+  onCreateFollowUp
+}: CustomerAnswerIntakePanelProps) {
   const [answer, setAnswer] = useState('');
   const result = useMemo(() => classifyCustomerAnswer(answer), [answer]);
   const hasAnswer = answer.trim().length > 0;
@@ -86,6 +95,47 @@ export default function CustomerAnswerIntakePanel() {
               Follow-up: {result.shouldAskFollowUp ? 'ควรถามต่อ' : 'ไม่จำเป็น'}
             </div>
           </div>
+
+          {hasAnswer && (
+            <div className="mt-2 flex items-center justify-end border-t border-border/50 pt-3">
+              {result.intent === 'approval' && (
+                <button 
+                  type="button" 
+                  disabled
+                  className="btn btn-primary text-xs py-1.5 opacity-50 cursor-not-allowed"
+                >
+                  Use lifecycle next action
+                </button>
+              )}
+              {result.intent === 'clarification' && (
+                <button 
+                  type="button" 
+                  onClick={onCreateFollowUp}
+                  className="btn btn-primary text-xs py-1.5"
+                >
+                  Prepare follow-up
+                </button>
+              )}
+              {result.intent === 'rejection' && (
+                <button 
+                  type="button" 
+                  disabled
+                  className="btn btn-primary text-xs py-1.5 opacity-50 cursor-not-allowed"
+                >
+                  Start revision review
+                </button>
+              )}
+              {(result.intent === 'scope_change' || result.intent === 'new_requirement') && (
+                <button 
+                  type="button" 
+                  onClick={onCreateChangeRequest}
+                  className="btn btn-primary text-xs py-1.5"
+                >
+                  Prepare CR/DCR
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
