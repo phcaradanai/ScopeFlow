@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { FileEntry } from '../lib/tauri-commands';
 import { useProjectDocuments } from '../hooks/useProjectDocuments';
 import { RefreshCw, Briefcase, Plus, Search } from 'lucide-react';
@@ -75,6 +76,13 @@ export default function ProjectOverview({
   }));
 
   const { clientId, projectId } = getProjectPathIds(projectPath);
+  const feedbackBelongsToProject = Boolean(lifecycleFeedback?.projectPath && lifecycleFeedback.projectPath === projectPath);
+
+  useEffect(() => {
+    if (feedbackBelongsToProject) {
+      loadDocuments();
+    }
+  }, [feedbackBelongsToProject, loadDocuments]);
 
   const Header = (
     <div className="page-header-inner page-container-wide">
