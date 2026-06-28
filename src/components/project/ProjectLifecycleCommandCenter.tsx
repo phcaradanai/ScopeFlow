@@ -4,6 +4,7 @@ import { type LifecycleScanFile, scanDocumentLifecycleFromFiles } from '../../li
 import { buildDocumentLifecycleSummary } from '../../lib/ai/document-lifecycle/documentLifecycle';
 import { getDocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
 import { getLifecycleCommandAction } from '../../lib/ai/document-lifecycle/documentLifecycleCommandAction';
+import { shouldClearLifecycleFeedback, shouldShowLifecycleFeedback } from '../../lib/ai/document-lifecycle/lifecycleFeedbackGuard';
 import { getCloseoutReopenRequestSummary } from '../../lib/ai/closeout/closeoutReopenDetection';
 import { getLatestCloseoutReopenDecisionSummary } from '../../lib/ai/closeout/closeoutReopenDecisionDetection';
 import { getCloseoutReopenNextAction } from '../../lib/ai/closeout/closeoutReopenNextAction';
@@ -25,6 +26,7 @@ interface ProjectLifecycleCommandCenterProps {
 
 export default function ProjectLifecycleCommandCenter({ projectName, projectPath, scanFiles, onOpenDocument, onOpenProject, onStartBriefIntake, onCreateDocument, lifecycleFeedback, onClearLifecycleFeedback }: ProjectLifecycleCommandCenterProps) {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [now, setNow] = useState(Date.now());
   const lifecycleInput = scanDocumentLifecycleFromFiles(scanFiles);
   const summary = buildDocumentLifecycleSummary(lifecycleInput);
   const actionTarget = getDocumentLifecycleActionTarget(scanFiles, lifecycleInput);
@@ -35,38 +37,24 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
   const displayNextAction = getCloseoutReopenNextAction(reopenDecisionSummary, summary.next_action);
   const displayActionTarget = getCloseoutReopenActionTarget(actionTarget, reopenSummary, reopenDecisionSummary);
   const commandAction = getLifecycleCommandAction(displayActionTarget, lifecycleInput);
-  const feedbackBelongsToProject = !lifecycleFeedback?.projectPath || lifecycleFeedback.projectPath === projectPath;
-  
-  const [isFeedbackStale, setIsFeedbackStale] = useState(false);
+  const showFeedback = shouldShowLifecycleFeedback(lifecycleFeedback, projectPath, now);
 
   useEffect(() => {
-    if (!lifecycleFeedback) {
-      setIsFeedbackStale(false);
+    if (!lifecycleFeedback?.createdAt) {
+      setNow(Date.now());
       return;
     }
-    if (lifecycleFeedback.createdAt) {
-      const isStale = Date.now() - lifecycleFeedback.createdAt > 2 * 60 * 1000;
-      setIsFeedbackStale(isStale);
-      
-      // Auto-clear after 2 minutes if it's not already stale
-      if (!isStale) {
-        const timeout = setTimeout(() => {
-          setIsFeedbackStale(true);
-        }, (lifecycleFeedback.createdAt + 2 * 60 * 1000) - Date.now());
-        return () => clearTimeout(timeout);
-      }
-    }
+
+    const delayMs = Math.max(0, lifecycleFeedback.createdAt + 2 * 60 * 1000 - Date.now() + 1);
+    const timeout = setTimeout(() => setNow(Date.now()), delayMs);
+    return () => clearTimeout(timeout);
   }, [lifecycleFeedback]);
 
-  const showFeedback = lifecycleFeedback && feedbackBelongsToProject && !isFeedbackStale && lifecycleFeedback.source === 'recommended_next_action';
-
   useEffect(() => {
-    if (lifecycleFeedback && onClearLifecycleFeedback) {
-      if (!feedbackBelongsToProject || isFeedbackStale) {
-        onClearLifecycleFeedback();
-      }
+    if (shouldClearLifecycleFeedback(lifecycleFeedback, projectPath, now)) {
+      onClearLifecycleFeedback?.();
     }
-  }, [lifecycleFeedback, feedbackBelongsToProject, isFeedbackStale, onClearLifecycleFeedback]);
+  }, [lifecycleFeedback, projectPath, now, onClearLifecycleFeedback]);
 
   const firstBlocked = summary.items.find(doc => doc.status === 'blocked');
 
