@@ -2,6 +2,7 @@ import { ExternalLink, LockKeyhole, AlertTriangle } from 'lucide-react';
 import { type LifecycleScanFile, scanDocumentLifecycleFromFiles } from '../../lib/ai/document-lifecycle/documentLifecycleFileScan';
 import { buildDocumentLifecycleSummary } from '../../lib/ai/document-lifecycle/documentLifecycle';
 import { getDocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
+import { getLifecycleCommandAction } from '../../lib/ai/document-lifecycle/documentLifecycleCommandAction';
 import { getCloseoutReopenRequestSummary } from '../../lib/ai/closeout/closeoutReopenDetection';
 import { getLatestCloseoutReopenDecisionSummary } from '../../lib/ai/closeout/closeoutReopenDecisionDetection';
 import { getCloseoutReopenNextAction } from '../../lib/ai/closeout/closeoutReopenNextAction';
@@ -12,9 +13,11 @@ interface ProjectLifecycleCommandCenterProps {
   scanFiles: LifecycleScanFile[];
   onOpenDocument: (path: string) => void;
   onOpenProject?: () => void;
+  onStartBriefIntake?: () => void;
+  onCreateDocument?: (initialType?: string) => void;
 }
 
-export default function ProjectLifecycleCommandCenter({ scanFiles, onOpenDocument, onOpenProject }: ProjectLifecycleCommandCenterProps) {
+export default function ProjectLifecycleCommandCenter({ scanFiles, onOpenDocument, onOpenProject, onStartBriefIntake, onCreateDocument }: ProjectLifecycleCommandCenterProps) {
   const lifecycleInput = scanDocumentLifecycleFromFiles(scanFiles);
   const summary = buildDocumentLifecycleSummary(lifecycleInput);
   const actionTarget = getDocumentLifecycleActionTarget(scanFiles, lifecycleInput);
@@ -24,15 +27,24 @@ export default function ProjectLifecycleCommandCenter({ scanFiles, onOpenDocumen
   const reopenDecisionSummary = getLatestCloseoutReopenDecisionSummary(scanFiles);
   const displayNextAction = getCloseoutReopenNextAction(reopenDecisionSummary, summary.next_action);
   const displayActionTarget = getCloseoutReopenActionTarget(actionTarget, reopenSummary, reopenDecisionSummary);
+  const commandAction = getLifecycleCommandAction(displayActionTarget, lifecycleInput);
 
   const firstBlocked = summary.items.find(doc => doc.status === 'blocked');
 
   const handleActionClick = () => {
-    if (displayActionTarget.file_path) {
-      onOpenDocument(displayActionTarget.file_path);
-    } else if (onOpenProject) {
-      onOpenProject();
+    if (commandAction.kind === 'open_document' && commandAction.file_path) {
+      onOpenDocument(commandAction.file_path);
+      return;
     }
+    if (commandAction.kind === 'start_brief_intake' && onStartBriefIntake) {
+      onStartBriefIntake();
+      return;
+    }
+    if (commandAction.kind === 'create_document' && onCreateDocument) {
+      onCreateDocument(commandAction.initial_type);
+      return;
+    }
+    onOpenProject?.();
   };
 
   return (
@@ -54,7 +66,7 @@ export default function ProjectLifecycleCommandCenter({ scanFiles, onOpenDocumen
             </span>
           </div>
           
-          <h4 className="text-base font-bold text-text mb-1">{displayActionTarget.reason}</h4>
+          <h4 className="text-base font-bold text-text mb-1">{commandAction.guidance}</h4>
           <p className="text-sm text-text-muted leading-relaxed">
             <span className="font-bold text-primary-light">Why:</span> {displayNextAction}
           </p>
@@ -73,8 +85,11 @@ export default function ProjectLifecycleCommandCenter({ scanFiles, onOpenDocumen
             className="btn btn-primary shadow-md hover:shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center gap-2 py-2.5 px-6 group"
           >
             <ExternalLink className="w-4 h-4 group-hover:scale-110 transition-transform" /> 
-            {displayActionTarget.label}
+            {commandAction.label}
           </button>
+          {commandAction.kind !== 'open_document' && (
+            <p className="text-[10px] text-text-dim text-center max-w-[220px]">ถ้า action นี้เปิด modal ไม่ได้ ระบบจะพากลับมาที่ Project Overview แทน</p>
+          )}
         </div>
 
       </div>
