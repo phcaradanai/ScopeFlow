@@ -13,6 +13,7 @@ import DocumentCreationPreviewModal from './DocumentCreationPreviewModal';
 
 interface ProjectLifecycleCommandCenterProps {
   projectName?: string;
+  projectPath: string;
   scanFiles: LifecycleScanFile[];
   onOpenDocument: (path: string) => void;
   onOpenProject?: () => void;
@@ -22,7 +23,7 @@ interface ProjectLifecycleCommandCenterProps {
   onClearLifecycleFeedback?: () => void;
 }
 
-export default function ProjectLifecycleCommandCenter({ projectName, scanFiles, onOpenDocument, onOpenProject, onStartBriefIntake, onCreateDocument, lifecycleFeedback, onClearLifecycleFeedback }: ProjectLifecycleCommandCenterProps) {
+export default function ProjectLifecycleCommandCenter({ projectName, projectPath, scanFiles, onOpenDocument, onOpenProject, onStartBriefIntake, onCreateDocument, lifecycleFeedback, onClearLifecycleFeedback }: ProjectLifecycleCommandCenterProps) {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const lifecycleInput = scanDocumentLifecycleFromFiles(scanFiles);
   const summary = buildDocumentLifecycleSummary(lifecycleInput);
@@ -34,6 +35,7 @@ export default function ProjectLifecycleCommandCenter({ projectName, scanFiles, 
   const displayNextAction = getCloseoutReopenNextAction(reopenDecisionSummary, summary.next_action);
   const displayActionTarget = getCloseoutReopenActionTarget(actionTarget, reopenSummary, reopenDecisionSummary);
   const commandAction = getLifecycleCommandAction(displayActionTarget, lifecycleInput);
+  const feedbackBelongsToProject = !lifecycleFeedback?.projectPath || lifecycleFeedback.projectPath === projectPath;
 
   const firstBlocked = summary.items.find(doc => doc.status === 'blocked');
 
@@ -58,9 +60,9 @@ export default function ProjectLifecycleCommandCenter({ projectName, scanFiles, 
     if (onCreateDocument) {
       onCreateDocument(commandAction.initial_type, {
         source: 'recommended_next_action',
-        initialType: commandAction.initial_type,
+        initialType: commandAction.initial_type || 'document',
         reason: commandAction.guidance,
-        projectPath: '',
+        projectPath,
         recommendationWhy: displayNextAction,
       });
     }
@@ -68,7 +70,7 @@ export default function ProjectLifecycleCommandCenter({ projectName, scanFiles, 
 
   return (
     <>
-      {lifecycleFeedback && (
+      {lifecycleFeedback && feedbackBelongsToProject && (
         <div className="mb-4 rounded-xl border border-success/30 bg-success/10 p-4 shadow-sm relative animate-in fade-in slide-in-from-top-2 duration-300">
           <button onClick={onClearLifecycleFeedback} className="absolute top-2 right-2 p-1 text-success/60 hover:text-success transition-colors">
             <X className="w-4 h-4" />
