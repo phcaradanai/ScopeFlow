@@ -9,6 +9,7 @@ import ProjectRisksPanel from './project/ProjectRisksPanel';
 import ProjectWorkflowStats from './project/ProjectWorkflowStats';
 import DocumentList from './project/DocumentList';
 import ProjectLifecycleCommandCenter from './project/ProjectLifecycleCommandCenter';
+import CustomerAnswerIntakePanel from './project/CustomerAnswerIntakePanel';
 
 interface ProjectOverviewProps {
   projectPath: string;
@@ -117,6 +118,14 @@ export default function ProjectOverview({
         lifecycleFeedback={lifecycleFeedback}
         onClearLifecycleFeedback={onClearLifecycleFeedback}
       />
+
+      <div className="my-6">
+        <CustomerAnswerIntakePanel 
+          onStartBriefIntake={onStartBriefIntake ? () => onStartBriefIntake(clientId, projectId, projectPath) : undefined}
+          onCreateChangeRequest={() => onCreateDocument(clientId, projectId, projectPath, 'cr')}
+          onCreateFollowUp={() => { /* TODO: hook up to message/followup generator */ }}
+        />
+      </div>
 
       <ProjectWorkflowStepper
         workflowState={workflowState}
