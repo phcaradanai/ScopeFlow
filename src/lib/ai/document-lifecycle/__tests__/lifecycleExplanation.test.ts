@@ -94,4 +94,40 @@ describe('buildLifecycleExplanation', () => {
     const quoteMissing = explanation.missingDocuments.find(e => e.label.includes('Quotation (ยังไม่มี'));
     expect(quoteMissing?.sourcePath).toBeUndefined();
   });
+
+  it('8. quote approved uses quotation actionTarget for missing baseline', () => {
+    const input: DocumentLifecycleInput = { hasBrief: true, hasScope: true, hasQuotation: true, quotationApproved: true };
+    const summary = buildDocumentLifecycleSummary(input);
+    const actionTarget = { file_path: '/projects/A/quotation/quote.md', label: '', reason: '' };
+
+    const explanation = buildLifecycleExplanation(input, summary, [], actionTarget);
+    const baselineMissing = explanation.missingDocuments.find(e => e.label.includes('Scope Baseline'));
+    expect(baselineMissing?.sourcePath).toBe('/projects/A/quotation/quote.md');
+  });
+
+  it('9. CR approved uses CR actionTarget for missing change baseline', () => {
+    const input: DocumentLifecycleInput = { 
+      hasBrief: true, hasScope: true, hasQuotation: true, quotationApproved: true, 
+      scopeBaselineReady: true, hasChangeRequest: true, changeRequestApproved: true 
+    };
+    const summary = buildDocumentLifecycleSummary(input);
+    const actionTarget = { file_path: '/projects/A/changes/cr.md', label: '', reason: '' };
+
+    const explanation = buildLifecycleExplanation(input, summary, [], actionTarget);
+    const baselineMissing = explanation.missingDocuments.find(e => e.label.includes('Change Baseline'));
+    expect(baselineMissing?.sourcePath).toBe('/projects/A/changes/cr.md');
+  });
+
+  it('10. acceptance ready uses acceptance actionTarget for unsigned acceptance', () => {
+    const input: DocumentLifecycleInput = { 
+      hasBrief: true, hasScope: true, hasQuotation: true, quotationApproved: true, 
+      scopeBaselineReady: true, acceptanceReadyForSignoff: true, acceptanceSignedOff: false 
+    };
+    const summary = buildDocumentLifecycleSummary(input);
+    const actionTarget = { file_path: '/projects/A/acceptance/acceptance.md', label: '', reason: '' };
+
+    const explanation = buildLifecycleExplanation(input, summary, [], actionTarget);
+    const acceptanceMissing = explanation.missingDocuments.find(e => e.label.includes('Acceptance Sign-off'));
+    expect(acceptanceMissing?.sourcePath).toBe('/projects/A/acceptance/acceptance.md');
+  });
 });

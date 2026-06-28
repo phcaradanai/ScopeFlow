@@ -36,7 +36,7 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
   const displayNextAction = getCloseoutReopenNextAction(reopenDecisionSummary, summary.next_action);
   const displayActionTarget = getCloseoutReopenActionTarget(actionTarget, reopenSummary, reopenDecisionSummary);
   const commandAction = getLifecycleCommandAction(displayActionTarget, lifecycleInput);
-  const explanation = buildLifecycleExplanation(lifecycleInput, summary, scanFiles);
+  const explanation = buildLifecycleExplanation(lifecycleInput, summary, scanFiles, displayActionTarget);
   const feedbackBelongsToProject = !lifecycleFeedback?.projectPath || lifecycleFeedback.projectPath === projectPath;
   
   const [isFeedbackStale, setIsFeedbackStale] = useState(false);

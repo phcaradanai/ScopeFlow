@@ -1,5 +1,6 @@
 import { type DocumentLifecycleInput, type DocumentLifecycleSummary } from './documentLifecycle';
 import { type LifecycleScanFile } from './documentLifecycleFileScan';
+import type { DocumentLifecycleActionTarget } from './documentLifecycleAction';
 
 export interface LifecycleExplanationItem {
   label: string;
@@ -30,7 +31,8 @@ function findNewestFile(files: LifecycleScanFile[], predicate: (path: string) =>
 export function buildLifecycleExplanation(
   input: DocumentLifecycleInput,
   summary: DocumentLifecycleSummary,
-  scanFiles: LifecycleScanFile[] = []
+  scanFiles: LifecycleScanFile[] = [],
+  actionTarget?: DocumentLifecycleActionTarget
 ): LifecycleExplanation {
   const explanation: LifecycleExplanation = {
     headline: '',
@@ -75,7 +77,7 @@ export function buildLifecycleExplanation(
       explanation.blockingReasons.push({ label: 'ยังไม่สามารถเริ่มงานได้หากลูกค้ายังไม่เห็นชอบในราคาและเงื่อนไข', kind: 'blocker' });
       explanation.expectedNextState = { label: 'ส่งใบเสนอราคาให้ลูกค้าพิจารณา', kind: 'expected' };
     } else {
-      explanation.missingDocuments.push({ label: 'Quotation Approval (ยังไม่ได้รับการอนุมัติ)', kind: 'missing', sourcePath: quotePath, actionLabel: 'เปิด Quotation' });
+      explanation.missingDocuments.push({ label: 'Quotation Approval (ยังไม่ได้รับการอนุมัติ)', kind: 'missing', sourcePath: actionTarget?.file_path || quotePath, actionLabel: 'เปิด Quotation' });
       explanation.blockingReasons.push({ label: 'ต้องมีหลักฐานว่าลูกค้ายอมรับ Quotation เพื่อสร้าง Scope Baseline', kind: 'blocker' });
       explanation.expectedNextState = { label: 'ลูกค้าอนุมัติเพื่อสามารถตั้ง Scope Baseline ล็อกขอบเขตงานได้', kind: 'expected' };
     }
@@ -83,7 +85,7 @@ export function buildLifecycleExplanation(
   } else if (!input.scopeBaselineReady) {
     explanation.headline = 'สร้าง Baseline เพื่อตีกรอบขอบเขตงานที่จะยึดเป็นหลัก';
     if (input.quotationApproved) explanation.evidence.push({ label: 'ลูกค้าอนุมัติ Quotation แล้ว', kind: 'evidence', sourcePath: quotePath, actionLabel: 'เปิด Quotation' });
-    explanation.missingDocuments.push({ label: 'Scope Baseline (เส้นฐานขอบเขตงาน)', kind: 'missing' });
+    explanation.missingDocuments.push({ label: 'Scope Baseline (เส้นฐานขอบเขตงาน)', kind: 'missing', sourcePath: actionTarget?.file_path, actionLabel: 'สร้าง Baseline' });
     explanation.blockingReasons.push({ label: 'ต้องนำ Quotation ที่อนุมัติมาแช่แข็ง (Freeze) เป็น Scope Baseline เพื่ออ้างอิงตอนจบงาน', kind: 'blocker' });
     explanation.riskIfIgnored = { label: 'ไม่มีหลักฐานแช่แข็งขอบเขต หากลูกค้าเปลี่ยนใจจะไม่มีเอกสารอ้างอิงสถานะที่ตกลงกันไว้', kind: 'risk' };
     explanation.expectedNextState = { label: 'สามารถเริ่มส่งมอบงาน หรือรับมือกับ Change Request (CR) ได้อย่างมีระบบ', kind: 'expected' };
@@ -98,7 +100,7 @@ export function buildLifecycleExplanation(
     } else {
       explanation.headline = 'บันทึกส่วนขยายของขอบเขตงานให้เป็นทางการ';
       explanation.evidence.push({ label: 'ลูกค้าอนุมัติ Change Request แล้ว', kind: 'evidence', sourcePath: crPath, actionLabel: 'เปิด CR' });
-      explanation.missingDocuments.push({ label: 'Change Baseline (เส้นฐานรวมสำหรับส่วนต่อขยาย)', kind: 'missing' });
+      explanation.missingDocuments.push({ label: 'Change Baseline (เส้นฐานรวมสำหรับส่วนต่อขยาย)', kind: 'missing', sourcePath: actionTarget?.file_path, actionLabel: 'สร้าง Change Baseline' });
       explanation.blockingReasons.push({ label: 'ต้องล็อก Change Request ให้เป็น Baseline เพื่อใช้ตรวจสอบการรับมอบงานตอนท้าย', kind: 'blocker' });
       explanation.riskIfIgnored = { label: 'ถ้างบประมาณ/เวลาถูกขยายแต่ไม่มี Change Baseline ตอนตรวจรับงานจะเกิดความสับสนระหว่างงานเก่ากับงานใหม่', kind: 'risk' };
       explanation.expectedNextState = { label: 'นำ Change Baseline ไปใช้รวมกับการตรวจรับใน Acceptance ได้ครบถ้วน', kind: 'expected' };
@@ -112,7 +114,7 @@ export function buildLifecycleExplanation(
       explanation.blockingReasons.push({ label: 'ต้องสรุปรายการส่งมอบ (Deliverables) ให้ลูกค้าตรวจเช็คให้เรียบร้อย', kind: 'blocker' });
       explanation.expectedNextState = { label: 'ส่ง Acceptance ให้ลูกค้าตรวจและ Sign-off เพื่อปิดงาน', kind: 'expected' };
     } else {
-      explanation.missingDocuments.push({ label: 'Acceptance Sign-off (ลายเซ็นรับงานจากลูกค้า)', kind: 'missing', sourcePath: acceptancePath, actionLabel: 'เปิด Acceptance' });
+      explanation.missingDocuments.push({ label: 'Acceptance Sign-off (ลายเซ็นรับงานจากลูกค้า)', kind: 'missing', sourcePath: actionTarget?.file_path || acceptancePath, actionLabel: 'เปิด Acceptance' });
       explanation.blockingReasons.push({ label: 'ต้องมีลายเซ็นรับมอบเพื่อยืนยันว่าโปรเจกต์สิ้นสุดแล้วตามขอบเขต', kind: 'blocker' });
       explanation.expectedNextState = { label: 'งานนี้จะถูกปิดอย่างสมบูรณ์', kind: 'expected' };
     }
