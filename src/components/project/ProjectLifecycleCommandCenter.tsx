@@ -4,6 +4,7 @@ import { type LifecycleScanFile, scanDocumentLifecycleFromFiles } from '../../li
 import { buildDocumentLifecycleSummary } from '../../lib/ai/document-lifecycle/documentLifecycle';
 import { getDocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
 import { getLifecycleCommandAction } from '../../lib/ai/document-lifecycle/documentLifecycleCommandAction';
+import { shouldClearLifecycleFeedback, shouldShowLifecycleFeedback } from '../../lib/ai/document-lifecycle/lifecycleFeedbackGuard';
 import { getCloseoutReopenRequestSummary } from '../../lib/ai/closeout/closeoutReopenDetection';
 import { getLatestCloseoutReopenDecisionSummary } from '../../lib/ai/closeout/closeoutReopenDecisionDetection';
 import { getCloseoutReopenNextAction } from '../../lib/ai/closeout/closeoutReopenNextAction';
@@ -26,6 +27,8 @@ interface ProjectLifecycleCommandCenterProps {
 
 export default function ProjectLifecycleCommandCenter({ projectName, projectPath, scanFiles, onOpenDocument, onOpenProject, onStartBriefIntake, onCreateDocument, lifecycleFeedback, onClearLifecycleFeedback }: ProjectLifecycleCommandCenterProps) {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [isExplanationExpanded, setIsExplanationExpanded] = useState(false);
+  const [now, setNow] = useState(0);
   const lifecycleInput = scanDocumentLifecycleFromFiles(scanFiles);
   const summary = buildDocumentLifecycleSummary(lifecycleInput);
   const actionTarget = getDocumentLifecycleActionTarget(scanFiles, lifecycleInput);
@@ -37,39 +40,28 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
   const displayActionTarget = getCloseoutReopenActionTarget(actionTarget, reopenSummary, reopenDecisionSummary);
   const commandAction = getLifecycleCommandAction(displayActionTarget, lifecycleInput);
   const explanation = buildLifecycleExplanation(lifecycleInput, summary, scanFiles, displayActionTarget);
-  const feedbackBelongsToProject = !lifecycleFeedback?.projectPath || lifecycleFeedback.projectPath === projectPath;
-  
-  const [isFeedbackStale, setIsFeedbackStale] = useState(false);
-  const [isExplanationExpanded, setIsExplanationExpanded] = useState(false);
+  const effectiveNow = now || lifecycleFeedback?.createdAt || 0;
+  const showFeedback = shouldShowLifecycleFeedback(lifecycleFeedback, projectPath, effectiveNow);
 
   useEffect(() => {
-    if (!lifecycleFeedback) {
-      setIsFeedbackStale(false);
+    const currentNow = Date.now();
+    setNow(currentNow);
+
+    if (!lifecycleFeedback?.createdAt) {
       return;
     }
-    if (lifecycleFeedback.createdAt) {
-      const isStale = Date.now() - lifecycleFeedback.createdAt > 2 * 60 * 1000;
-      setIsFeedbackStale(isStale);
-      
-      // Auto-clear after 2 minutes if it's not already stale
-      if (!isStale) {
-        const timeout = setTimeout(() => {
-          setIsFeedbackStale(true);
-        }, (lifecycleFeedback.createdAt + 2 * 60 * 1000) - Date.now());
-        return () => clearTimeout(timeout);
-      }
-    }
+
+    const delayMs = Math.max(0, lifecycleFeedback.createdAt + 2 * 60 * 1000 - currentNow + 1);
+    const timeout = setTimeout(() => setNow(Date.now()), delayMs);
+    return () => clearTimeout(timeout);
   }, [lifecycleFeedback]);
 
-  const showFeedback = lifecycleFeedback && feedbackBelongsToProject && !isFeedbackStale && lifecycleFeedback.source === 'recommended_next_action';
-
   useEffect(() => {
-    if (lifecycleFeedback && onClearLifecycleFeedback) {
-      if (!feedbackBelongsToProject || isFeedbackStale) {
-        onClearLifecycleFeedback();
-      }
+    if (!effectiveNow) return;
+    if (shouldClearLifecycleFeedback(lifecycleFeedback, projectPath, effectiveNow)) {
+      onClearLifecycleFeedback?.();
     }
-  }, [lifecycleFeedback, feedbackBelongsToProject, isFeedbackStale, onClearLifecycleFeedback]);
+  }, [lifecycleFeedback, projectPath, effectiveNow, onClearLifecycleFeedback]);
 
   const firstBlocked = summary.items.find(doc => doc.status === 'blocked');
 
@@ -141,144 +133,142 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
       )}
 
       <div className="mb-6 rounded-2xl border border-primary/30 bg-primary/5 shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500 relative">
-      <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-primary to-accent" />
-      <div className="p-5 pl-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <LockKeyhole className="w-4 h-4 text-primary shrink-0" />
-            <h3 className="text-xs font-bold uppercase tracking-widest text-primary">Recommended Next Action</h3>
-            {firstBlocked && (
-              <span className="badge text-[10px] bg-error/10 text-error border-error/20 flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3" /> Blocked
+        <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-primary to-accent" />
+        <div className="p-5 pl-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              <LockKeyhole className="w-4 h-4 text-primary shrink-0" />
+              <h3 className="text-xs font-bold uppercase tracking-widest text-primary">Recommended Next Action</h3>
+              {firstBlocked && (
+                <span className="badge text-[10px] bg-error/10 text-error border-error/20 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> Blocked
+                </span>
+              )}
+              <span className={`badge text-[10px] border ${priority.category === 'blocked' ? 'bg-error/10 text-error border-error/20' : priority.category === 'missing_docs' ? 'bg-warning/10 text-warning border-warning/20' : priority.category === 'can_close' ? 'bg-success/10 text-success border-success/20' : 'bg-surface-2 text-text-muted border-border'}`}>
+                {priority.label}
               </span>
-            )}
-            <span className={`badge text-[10px] border ${priority.category === 'blocked' ? 'bg-error/10 text-error border-error/20' : priority.category === 'missing_docs' ? 'bg-warning/10 text-warning border-warning/20' : priority.category === 'can_close' ? 'bg-success/10 text-success border-success/20' : 'bg-surface-2 text-text-muted border-border'}`}>
-              {priority.label}
-            </span>
-          </div>
-          
-          <h4 className="text-base font-bold text-text mb-1">{commandAction.guidance}</h4>
-          <p className="text-sm text-text-muted leading-relaxed mb-2">
-            <span className="font-bold text-primary-light">Why:</span> {displayNextAction}
-          </p>
+            </div>
 
-          <div className="border border-border/50 rounded-lg overflow-hidden bg-surface mb-3 text-[13px]">
-            <button 
-              type="button"
-              onClick={() => setIsExplanationExpanded(!isExplanationExpanded)}
-              className="w-full flex items-center justify-between p-2.5 bg-surface-2 hover:bg-surface-3 transition-colors text-text-muted font-medium"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-primary">Why this action?</span>
-                <span className="text-text-dim truncate max-w-[200px] md:max-w-md">{explanation.headline}</span>
-              </div>
-              {isExplanationExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-            {isExplanationExpanded && (
-              <div className="p-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
-                {explanation.evidence.length > 0 && (
-                  <div>
-                    <h5 className="font-bold text-text-muted mb-1 text-[11px] uppercase tracking-wider">Evidence</h5>
-                    <div className="flex flex-wrap gap-1.5">
-                      {explanation.evidence.map((e, i) => (
-                        e.sourcePath ? (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => onOpenDocument(e.sourcePath!)}
-                            className="px-2 py-0.5 rounded-full bg-success/10 text-success text-[11px] border border-success/20 flex items-center gap-1 hover:bg-success/20 transition-colors cursor-pointer"
-                            title={e.actionLabel}
-                          >
-                            <FileText className="w-3 h-3" />
-                            {e.label}
-                          </button>
-                        ) : (
-                          <span key={i} className="px-2 py-0.5 rounded-full bg-success/10 text-success text-[11px] border border-success/20">
-                            {e.label}
-                          </span>
-                        )
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {explanation.missingDocuments.length > 0 && (
-                  <div>
-                    <h5 className="font-bold text-text-muted mb-1 text-[11px] uppercase tracking-wider">Missing</h5>
-                    <div className="flex flex-wrap gap-1.5">
-                      {explanation.missingDocuments.map((e, i) => (
-                        e.sourcePath ? (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => onOpenDocument(e.sourcePath!)}
-                            className="px-2 py-0.5 rounded-full bg-warning/10 text-warning text-[11px] border border-warning/20 flex items-center gap-1 hover:bg-warning/20 transition-colors cursor-pointer"
-                            title={e.actionLabel}
-                          >
-                            <FileText className="w-3 h-3" />
-                            {e.label}
-                          </button>
-                        ) : (
-                          <span key={i} className="px-2 py-0.5 rounded-full bg-warning/10 text-warning text-[11px] border border-warning/20">
-                            {e.label}
-                          </span>
-                        )
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {explanation.riskIfIgnored && (
-                    <div className="bg-error/5 border border-error/10 p-2.5 rounded-md">
-                      <h5 className="font-bold text-error mb-1 text-[11px] uppercase tracking-wider">Risk If Ignored</h5>
-                      <p className="text-text-muted leading-relaxed">{explanation.riskIfIgnored.label}</p>
-                    </div>
-                  )}
-                  {explanation.expectedNextState && (
-                    <div className="bg-primary/5 border border-primary/10 p-2.5 rounded-md">
-                      <h5 className="font-bold text-primary mb-1 text-[11px] uppercase tracking-wider">Expected Outcome</h5>
-                      <p className="text-text-muted leading-relaxed">{explanation.expectedNextState.label}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-          
-          {firstBlocked && (
-            <p className="text-[11px] text-error mt-2 leading-relaxed flex items-start gap-1">
-              <span className="font-bold">Blocker:</span> {firstBlocked.label} - {firstBlocked.recommended_next_action}
+            <h4 className="text-base font-bold text-text mb-1">{commandAction.guidance}</h4>
+            <p className="text-sm text-text-muted leading-relaxed mb-2">
+              <span className="font-bold text-primary-light">Why:</span> {displayNextAction}
             </p>
-          )}
-        </div>
 
-        <div className="shrink-0 flex flex-col items-stretch gap-2">
-          <button 
-            type="button" 
-            onClick={handleActionClick}
-            className="btn btn-primary shadow-md hover:shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center gap-2 py-2.5 px-6 group"
-          >
-            <ExternalLink className="w-4 h-4 group-hover:scale-110 transition-transform" /> 
-            {commandAction.label}
-          </button>
-          {commandAction.kind !== 'open_document' && (
-            <p className="text-[10px] text-text-dim text-center max-w-[220px]">ถ้า action นี้เปิด modal ไม่ได้ ระบบจะพากลับมาที่ Project Overview แทน</p>
-          )}
-        </div>
+            <div className="border border-border/50 rounded-lg overflow-hidden bg-surface mb-3 text-[13px]">
+              <button
+                type="button"
+                onClick={() => setIsExplanationExpanded(!isExplanationExpanded)}
+                className="w-full flex items-center justify-between p-2.5 bg-surface-2 hover:bg-surface-3 transition-colors text-text-muted font-medium"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-primary">Why this action?</span>
+                  <span className="text-text-dim truncate max-w-[200px] md:max-w-md">{explanation.headline}</span>
+                </div>
+                {isExplanationExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+              {isExplanationExpanded && (
+                <div className="p-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                  {explanation.evidence.length > 0 && (
+                    <div>
+                      <h5 className="font-bold text-text-muted mb-1 text-[11px] uppercase tracking-wider">Evidence</h5>
+                      <div className="flex flex-wrap gap-1.5">
+                        {explanation.evidence.map((e, i) => (
+                          e.sourcePath ? (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => onOpenDocument(e.sourcePath!)}
+                              className="px-2 py-0.5 rounded-full bg-success/10 text-success text-[11px] border border-success/20 flex items-center gap-1 hover:bg-success/20 transition-colors cursor-pointer"
+                              title={e.actionLabel}
+                            >
+                              <FileText className="w-3 h-3" />
+                              {e.label}
+                            </button>
+                          ) : (
+                            <span key={i} className="px-2 py-0.5 rounded-full bg-success/10 text-success text-[11px] border border-success/20">
+                              {e.label}
+                            </span>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {explanation.missingDocuments.length > 0 && (
+                    <div>
+                      <h5 className="font-bold text-text-muted mb-1 text-[11px] uppercase tracking-wider">Missing</h5>
+                      <div className="flex flex-wrap gap-1.5">
+                        {explanation.missingDocuments.map((e, i) => (
+                          e.sourcePath ? (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => onOpenDocument(e.sourcePath!)}
+                              className="px-2 py-0.5 rounded-full bg-warning/10 text-warning text-[11px] border border-warning/20 flex items-center gap-1 hover:bg-warning/20 transition-colors cursor-pointer"
+                              title={e.actionLabel}
+                            >
+                              <FileText className="w-3 h-3" />
+                              {e.label}
+                            </button>
+                          ) : (
+                            <span key={i} className="px-2 py-0.5 rounded-full bg-warning/10 text-warning text-[11px] border border-warning/20">
+                              {e.label}
+                            </span>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {explanation.riskIfIgnored && (
+                      <div className="bg-error/5 border border-error/10 p-2.5 rounded-md">
+                        <h5 className="font-bold text-error mb-1 text-[11px] uppercase tracking-wider">Risk If Ignored</h5>
+                        <p className="text-text-muted leading-relaxed">{explanation.riskIfIgnored.label}</p>
+                      </div>
+                    )}
+                    {explanation.expectedNextState && (
+                      <div className="bg-primary/5 border border-primary/10 p-2.5 rounded-md">
+                        <h5 className="font-bold text-primary mb-1 text-[11px] uppercase tracking-wider">Expected Outcome</h5>
+                        <p className="text-text-muted leading-relaxed">{explanation.expectedNextState.label}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
+            {firstBlocked && (
+              <p className="text-[11px] text-error mt-2 leading-relaxed flex items-start gap-1">
+                <span className="font-bold">Blocker:</span> {firstBlocked.label} - {firstBlocked.recommended_next_action}
+              </p>
+            )}
+          </div>
+
+          <div className="shrink-0 flex flex-col items-stretch gap-2">
+            <button
+              type="button"
+              onClick={handleActionClick}
+              className="btn btn-primary shadow-md hover:shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center gap-2 py-2.5 px-6 group"
+            >
+              <ExternalLink className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              {commandAction.label}
+            </button>
+            {commandAction.kind !== 'open_document' && (
+              <p className="text-[10px] text-text-dim text-center max-w-[220px]">ถ้า action นี้เปิด modal ไม่ได้ ระบบจะพากลับมาที่ Project Overview แทน</p>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
 
-    <DocumentCreationPreviewModal
-      isOpen={showPreviewModal}
-      onClose={() => setShowPreviewModal(false)}
-      onConfirm={handleConfirmCreate}
-      documentType={commandAction.initial_type}
-      projectName={projectName || 'Current Project'}
-      reason={commandAction.guidance}
-      lifecycleStage={priority.label}
-      recommendationWhy={displayNextAction}
-    />
+      <DocumentCreationPreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        onConfirm={handleConfirmCreate}
+        documentType={commandAction.initial_type}
+        projectName={projectName || 'Current Project'}
+        reason={commandAction.guidance}
+        lifecycleStage={priority.label}
+        recommendationWhy={displayNextAction}
+      />
     </>
   );
 }
