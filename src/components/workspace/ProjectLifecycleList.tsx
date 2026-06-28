@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { CheckCircle2, CircleDashed, ExternalLink, FileArchive, FileClock, FileOutput, FolderOpen, LockKeyhole, OctagonAlert } from 'lucide-react';
 import { getCloseoutDeliveryChecklist } from '../../lib/ai/closeout/closeoutDeliveryChecklist';
 import {
@@ -280,11 +280,11 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
     alert('สร้าง Reopen / Change Request แล้ว ระบบเปิดไฟล์ให้กรอกรายละเอียดต่อ');
   };
 
-  const getFinalStatusKindForRow = (row: ProjectLifecycleRow) => {
+  const getFinalStatusKindForRow = useCallback((row: ProjectLifecycleRow) => {
     const closeoutStatus = getCloseoutStatusSummary(row.scanFiles);
     const savedDeliveryStatus = getCloseoutDeliveryStatus(deliveryStatuses, row.projectPath);
     return getCloseoutFinalStatus(closeoutStatus, savedDeliveryStatus).kind;
-  };
+  }, [deliveryStatuses]);
 
   const matchesReopenFilter = (row: ProjectLifecycleRow, filter: ReopenStatusFilter) => {
     const decision = getLatestCloseoutReopenDecisionSummary(row.scanFiles);
@@ -303,7 +303,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
       return rows.filter(row => matchesReopenFilter(row, activeFilter));
     }
     return rows.filter(row => row.priority.category === activeFilter);
-  }, [activeFilter, rows, deliveryStatuses]);
+  }, [activeFilter, rows, deliveryStatuses, getFinalStatusKindForRow]);
 
   const filterCounts = useMemo(() => {
     const counts = new Map<LifecycleFilter, number>([['all', rows.length]]);
@@ -326,7 +326,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
       }
     }
     return counts;
-  }, [rows, deliveryStatuses]);
+  }, [rows, deliveryStatuses, getFinalStatusKindForRow]);
 
   const projectNameByPath = useMemo(() => new Map(rows.map(row => [row.projectPath, row.projectName])), [rows]);
   const totalNeedsAttention = (filterCounts.get('blocked') || 0) + (filterCounts.get('missing_docs') || 0) + (filterCounts.get('can_close') || 0) + (filterCounts.get('closeout_ready') || 0);
@@ -574,25 +574,36 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
                     </div>
                   )}
 
-                  <p className="text-xs text-text-muted leading-relaxed">
-                    <span className="font-bold text-primary-light">Next:</span> {displayNextAction}
-                  </p>
                 </button>
 
-                <div className="mt-3 flex flex-col gap-2 rounded-xl border border-primary/20 bg-primary/10 p-3">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                    <p className="text-[11px] text-text-muted leading-relaxed">
-                      <span className="font-bold text-primary-light">Action file:</span> {displayActionTarget.reason}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => displayActionTarget.file_path ? onSelectFile(displayActionTarget.file_path) : onSelectProject(row.projectPath)}
-                      className="btn btn-primary text-xs gap-2 shrink-0"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" /> {displayActionTarget.label}
-                    </button>
+                <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 shadow-sm overflow-hidden relative">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary to-accent" />
+                  <div className="p-4 pl-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <LockKeyhole className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary">Recommended Next Action</h4>
+                      </div>
+                      <p className="text-sm font-bold text-text mb-1">{displayActionTarget.reason}</p>
+                      <p className="text-[11px] text-text-muted leading-relaxed">
+                        <span className="font-bold text-primary-light">Why:</span> {displayNextAction}
+                      </p>
+                    </div>
+                    <div className="shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => displayActionTarget.file_path ? onSelectFile(displayActionTarget.file_path) : onSelectProject(row.projectPath)}
+                        className="btn btn-primary shadow-sm hover:shadow-md hover:shadow-primary/20 transition-all text-xs flex items-center justify-center gap-2 py-2 px-4 group"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" /> 
+                        {displayActionTarget.label}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-2 border-t border-primary/10 pt-2">
+                </div>
+
+                <div className="mt-3 flex flex-col gap-2 rounded-xl border border-border bg-surface-2/30 p-3">
+                  <div className="flex flex-col gap-2">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                       <p className="text-[11px] text-text-muted leading-relaxed">
                         <span className="font-bold text-success">Closeout:</span> {closeoutStatus.closeout_pack_created ? 'Closeout Pack Created' : closeoutStatus.recommended_next_action}

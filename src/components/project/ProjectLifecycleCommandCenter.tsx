@@ -1,0 +1,83 @@
+import { ExternalLink, LockKeyhole, AlertTriangle } from 'lucide-react';
+import { type LifecycleScanFile, scanDocumentLifecycleFromFiles } from '../../lib/ai/document-lifecycle/documentLifecycleFileScan';
+import { buildDocumentLifecycleSummary } from '../../lib/ai/document-lifecycle/documentLifecycle';
+import { getDocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
+import { getCloseoutReopenRequestSummary } from '../../lib/ai/closeout/closeoutReopenDetection';
+import { getLatestCloseoutReopenDecisionSummary } from '../../lib/ai/closeout/closeoutReopenDecisionDetection';
+import { getCloseoutReopenNextAction } from '../../lib/ai/closeout/closeoutReopenNextAction';
+import { getCloseoutReopenActionTarget } from '../../lib/ai/closeout/closeoutReopenActionTarget';
+import { getProjectLifecyclePriority } from '../../lib/ai/document-lifecycle/documentLifecyclePriority';
+
+interface ProjectLifecycleCommandCenterProps {
+  scanFiles: LifecycleScanFile[];
+  onOpenDocument: (path: string) => void;
+  onOpenProject?: () => void;
+}
+
+export default function ProjectLifecycleCommandCenter({ scanFiles, onOpenDocument, onOpenProject }: ProjectLifecycleCommandCenterProps) {
+  const lifecycleInput = scanDocumentLifecycleFromFiles(scanFiles);
+  const summary = buildDocumentLifecycleSummary(lifecycleInput);
+  const actionTarget = getDocumentLifecycleActionTarget(scanFiles, lifecycleInput);
+  const priority = getProjectLifecyclePriority(summary, scanFiles);
+
+  const reopenSummary = getCloseoutReopenRequestSummary(scanFiles);
+  const reopenDecisionSummary = getLatestCloseoutReopenDecisionSummary(scanFiles);
+  const displayNextAction = getCloseoutReopenNextAction(reopenDecisionSummary, summary.next_action);
+  const displayActionTarget = getCloseoutReopenActionTarget(actionTarget, reopenSummary, reopenDecisionSummary);
+
+  const firstBlocked = summary.items.find(doc => doc.status === 'blocked');
+
+  const handleActionClick = () => {
+    if (displayActionTarget.file_path) {
+      onOpenDocument(displayActionTarget.file_path);
+    } else if (onOpenProject) {
+      onOpenProject();
+    }
+  };
+
+  return (
+    <div className="mb-6 rounded-2xl border border-primary/30 bg-primary/5 shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500 relative">
+      <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-primary to-accent" />
+      <div className="p-5 pl-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <LockKeyhole className="w-4 h-4 text-primary shrink-0" />
+            <h3 className="text-xs font-bold uppercase tracking-widest text-primary">Recommended Next Action</h3>
+            {firstBlocked && (
+              <span className="badge text-[10px] bg-error/10 text-error border-error/20 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> Blocked
+              </span>
+            )}
+            <span className={`badge text-[10px] border ${priority.category === 'blocked' ? 'bg-error/10 text-error border-error/20' : priority.category === 'missing_docs' ? 'bg-warning/10 text-warning border-warning/20' : priority.category === 'can_close' ? 'bg-success/10 text-success border-success/20' : 'bg-surface-2 text-text-muted border-border'}`}>
+              {priority.label}
+            </span>
+          </div>
+          
+          <h4 className="text-base font-bold text-text mb-1">{displayActionTarget.reason}</h4>
+          <p className="text-sm text-text-muted leading-relaxed">
+            <span className="font-bold text-primary-light">Why:</span> {displayNextAction}
+          </p>
+          
+          {firstBlocked && (
+            <p className="text-[11px] text-error mt-2 leading-relaxed flex items-start gap-1">
+              <span className="font-bold">Blocker:</span> {firstBlocked.label} - {firstBlocked.recommended_next_action}
+            </p>
+          )}
+        </div>
+
+        <div className="shrink-0 flex flex-col items-stretch gap-2">
+          <button 
+            type="button" 
+            onClick={handleActionClick}
+            className="btn btn-primary shadow-md hover:shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center gap-2 py-2.5 px-6 group"
+          >
+            <ExternalLink className="w-4 h-4 group-hover:scale-110 transition-transform" /> 
+            {displayActionTarget.label}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+}
