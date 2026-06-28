@@ -104,6 +104,8 @@ export interface LifecycleActionContext {
   reason: string;
   projectPath: string;
   recommendationWhy?: string;
+  createdAt?: number;
+  createdFilePath?: string;
 }
 
 interface DocumentCreatorModalProps {
@@ -277,7 +279,11 @@ export default function DocumentCreatorModal({
       setSelectedFile(finalPath);
       
       if (lifecycleContext && onDocumentCreated) {
-        onDocumentCreated(lifecycleContext);
+        onDocumentCreated({
+          ...lifecycleContext,
+          createdAt: Date.now(),
+          createdFilePath: finalPath,
+        });
       }
 
       onClose();

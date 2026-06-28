@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ExternalLink, LockKeyhole, AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ExternalLink, LockKeyhole, AlertTriangle, CheckCircle2, X, FileText } from 'lucide-react';
 import { type LifecycleScanFile, scanDocumentLifecycleFromFiles } from '../../lib/ai/document-lifecycle/documentLifecycleFileScan';
 import { buildDocumentLifecycleSummary } from '../../lib/ai/document-lifecycle/documentLifecycle';
 import { getDocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
@@ -36,6 +36,37 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
   const displayActionTarget = getCloseoutReopenActionTarget(actionTarget, reopenSummary, reopenDecisionSummary);
   const commandAction = getLifecycleCommandAction(displayActionTarget, lifecycleInput);
   const feedbackBelongsToProject = !lifecycleFeedback?.projectPath || lifecycleFeedback.projectPath === projectPath;
+  
+  const [isFeedbackStale, setIsFeedbackStale] = useState(false);
+
+  useEffect(() => {
+    if (!lifecycleFeedback) {
+      setIsFeedbackStale(false);
+      return;
+    }
+    if (lifecycleFeedback.createdAt) {
+      const isStale = Date.now() - lifecycleFeedback.createdAt > 2 * 60 * 1000;
+      setIsFeedbackStale(isStale);
+      
+      // Auto-clear after 2 minutes if it's not already stale
+      if (!isStale) {
+        const timeout = setTimeout(() => {
+          setIsFeedbackStale(true);
+        }, (lifecycleFeedback.createdAt + 2 * 60 * 1000) - Date.now());
+        return () => clearTimeout(timeout);
+      }
+    }
+  }, [lifecycleFeedback]);
+
+  const showFeedback = lifecycleFeedback && feedbackBelongsToProject && !isFeedbackStale && lifecycleFeedback.source === 'recommended_next_action';
+
+  useEffect(() => {
+    if (lifecycleFeedback && onClearLifecycleFeedback) {
+      if (!feedbackBelongsToProject || isFeedbackStale) {
+        onClearLifecycleFeedback();
+      }
+    }
+  }, [lifecycleFeedback, feedbackBelongsToProject, isFeedbackStale, onClearLifecycleFeedback]);
 
   const firstBlocked = summary.items.find(doc => doc.status === 'blocked');
 
@@ -70,7 +101,7 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
 
   return (
     <>
-      {lifecycleFeedback && feedbackBelongsToProject && (
+      {showFeedback && (
         <div className="mb-4 rounded-xl border border-success/30 bg-success/10 p-4 shadow-sm relative animate-in fade-in slide-in-from-top-2 duration-300">
           <button onClick={onClearLifecycleFeedback} className="absolute top-2 right-2 p-1 text-success/60 hover:text-success transition-colors">
             <X className="w-4 h-4" />
@@ -90,6 +121,16 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
                     <span className="font-bold text-success">Next step:</span> {lifecycleFeedback.recommendationWhy}
                   </p>
                 </div>
+              )}
+              {lifecycleFeedback.createdFilePath && (
+                <button
+                  type="button"
+                  onClick={() => onOpenDocument(lifecycleFeedback.createdFilePath)}
+                  className="mt-3 flex items-center gap-2 text-xs font-bold text-success hover:text-success-light transition-colors bg-success/10 hover:bg-success/20 py-1.5 px-3 rounded-md"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  เปิดไฟล์ที่สร้าง
+                </button>
               )}
             </div>
           </div>
