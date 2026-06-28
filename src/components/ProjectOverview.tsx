@@ -8,6 +8,7 @@ import ScopeReadinessGrid from './project/ScopeReadinessGrid';
 import ProjectRisksPanel from './project/ProjectRisksPanel';
 import ProjectWorkflowStats from './project/ProjectWorkflowStats';
 import DocumentList from './project/DocumentList';
+import ProjectLifecycleCommandCenter from './project/ProjectLifecycleCommandCenter';
 
 interface ProjectOverviewProps {
   projectPath: string;
@@ -27,6 +28,7 @@ export default function ProjectOverview({
   onStartBriefIntake,
 }: ProjectOverviewProps) {
   const {
+    documents,
     loading,
     searchQuery,
     setSearchQuery,
@@ -52,6 +54,11 @@ export default function ProjectOverview({
     uniqueTypes,
     uniqueStatuses,
   } = useProjectDocuments(projectPath, workspaceTree);
+
+  const scanFiles = documents.map(doc => ({
+    path: doc.file_path,
+    markdown: doc.markdown || '',
+  }));
 
   const clientId = projectPath.split('/').slice(-2, -1)[0] || '';
   const projectId = projectPath.split('/').pop() || '';
@@ -86,6 +93,11 @@ export default function ProjectOverview({
 
   return (
     <PageShell header={Header}>
+      <ProjectLifecycleCommandCenter
+        scanFiles={scanFiles}
+        onOpenDocument={onOpenDocument}
+      />
+
       <ProjectWorkflowStepper
         workflowState={workflowState}
         clientId={clientId}

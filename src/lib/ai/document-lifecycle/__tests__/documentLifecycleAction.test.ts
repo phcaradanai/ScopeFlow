@@ -44,6 +44,21 @@ describe('documentLifecycleAction', () => {
     expect(target.reason).toContain('Change Baseline');
   });
 
+  it('opens CR/DCR when scope baseline is ready and new CR draft is pending', () => {
+    const target = getDocumentLifecycleActionTarget([
+      { path: '/project/changes/CR-002-draft.md', markdown: '# CR' },
+      { path: '/project/baseline/scope-baseline.md', markdown: '# Scope Baseline' },
+    ], {
+      scopeBaselineReady: true,
+      hasChangeRequest: true,
+      changeRequestApproved: false,
+    });
+
+    expect(target.file_path).toContain('changes/CR-002-draft.md');
+    expect(target.reason).toContain('CR/DCR ยังรอ approval หรือยังไม่มีหลักฐานครบ');
+    expect(target.label).toBe('เปิด CR/DCR');
+  });
+
   it('opens quotation when quotation is approved but scope baseline is missing', () => {
     const target = getDocumentLifecycleActionTarget([
       { path: '/project/baseline/quotation-draft-v1.0.md', markdown: '# Quote' },
