@@ -1,0 +1,104 @@
+import { X, FileText, Target, Receipt, GitPullRequest, Code, LifeBuoy, Wrench, CheckSquare } from 'lucide-react';
+
+interface DocumentCreationPreviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  documentType?: string;
+  projectName: string;
+  reason: string;
+  lifecycleStage: string;
+  recommendationWhy: string;
+}
+
+const DOCUMENT_TYPE_LABELS: Record<string, { label: string, icon: any }> = {
+  scope: { label: 'ขอบเขตงาน (Scope)', icon: Target },
+  quotation: { label: 'ใบเสนอราคา (Quotation)', icon: Receipt },
+  invoice: { label: 'ใบแจ้งหนี้ (Invoice)', icon: FileText },
+  cr: { label: 'คำขอเปลี่ยนแปลง (CR)', icon: GitPullRequest },
+  dcr: { label: 'คำขอเปลี่ยนแปลงการพัฒนา (DCR)', icon: Code },
+  sup: { label: 'แจ้งปัญหา (Support Request)', icon: LifeBuoy },
+  ma: { label: 'แจ้งซ่อมบำรุง (MA Request)', icon: Wrench },
+  acceptance: { label: 'รายการตรวจรับ (Acceptance Checklist)', icon: CheckSquare },
+  brief: { label: 'Brief Intake', icon: FileText },
+};
+
+export default function DocumentCreationPreviewModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  documentType,
+  projectName,
+  reason,
+  lifecycleStage,
+  recommendationWhy,
+}: DocumentCreationPreviewModalProps) {
+  if (!isOpen) return null;
+
+  const docInfo = documentType && DOCUMENT_TYPE_LABELS[documentType] 
+    ? DOCUMENT_TYPE_LABELS[documentType] 
+    : { label: documentType || 'เอกสารใหม่', icon: FileText };
+    
+  const Icon = docInfo.icon;
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-container max-w-lg">
+        <div className="modal-header">
+          <div className="modal-header-content">
+            <h2 className="modal-title flex items-center gap-2">
+              <Icon className="w-5 h-5 text-primary" />
+              ยืนยันการสร้างเอกสาร
+            </h2>
+            <p className="modal-subtitle">
+              ระบบแนะนำให้สร้างเอกสารนี้เพื่อเดินหน้าโครงการต่อ
+            </p>
+          </div>
+          <button onClick={onClose} className="modal-close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="modal-body p-6 space-y-4">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex flex-col gap-3">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-text-muted mb-1">Target Project</p>
+              <p className="text-sm font-bold text-text">{projectName}</p>
+            </div>
+            
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-text-muted mb-1">Document Type</p>
+              <div className="flex items-center gap-2">
+                <span className="badge bg-primary/10 text-primary-light border border-primary/20">
+                  {docInfo.label}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-text-muted mb-1">Lifecycle Stage / Priority</p>
+              <p className="text-xs text-text">{lifecycleStage}</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border bg-surface-2 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-text-muted mb-1">Why is this recommended?</p>
+            <p className="text-sm font-bold text-text mb-2">{reason}</p>
+            <p className="text-xs text-text-muted leading-relaxed">
+              <span className="font-bold text-primary-light">Detail:</span> {recommendationWhy}
+            </p>
+          </div>
+        </div>
+
+        <div className="modal-footer flex justify-end gap-3 p-4 border-t border-border">
+          <button onClick={onClose} className="btn btn-ghost text-sm">
+            Cancel
+          </button>
+          <button onClick={onConfirm} className="btn btn-primary text-sm shadow-sm hover:shadow-md transition-all">
+            Continue to Create Document
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

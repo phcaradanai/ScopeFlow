@@ -103,6 +103,7 @@ export default function ProjectOverview({
   return (
     <PageShell header={Header}>
       <ProjectLifecycleCommandCenter
+        projectName={projectName}
         scanFiles={scanFiles}
         onOpenDocument={onOpenDocument}
         onOpenProject={() => onOpenDocument(projectPath)}

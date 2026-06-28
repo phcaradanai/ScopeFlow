@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ExternalLink, LockKeyhole, AlertTriangle } from 'lucide-react';
 import { type LifecycleScanFile, scanDocumentLifecycleFromFiles } from '../../lib/ai/document-lifecycle/documentLifecycleFileScan';
 import { buildDocumentLifecycleSummary } from '../../lib/ai/document-lifecycle/documentLifecycle';
@@ -8,8 +9,10 @@ import { getLatestCloseoutReopenDecisionSummary } from '../../lib/ai/closeout/cl
 import { getCloseoutReopenNextAction } from '../../lib/ai/closeout/closeoutReopenNextAction';
 import { getCloseoutReopenActionTarget } from '../../lib/ai/closeout/closeoutReopenActionTarget';
 import { getProjectLifecyclePriority } from '../../lib/ai/document-lifecycle/documentLifecyclePriority';
+import DocumentCreationPreviewModal from './DocumentCreationPreviewModal';
 
 interface ProjectLifecycleCommandCenterProps {
+  projectName?: string;
   scanFiles: LifecycleScanFile[];
   onOpenDocument: (path: string) => void;
   onOpenProject?: () => void;
@@ -17,7 +20,8 @@ interface ProjectLifecycleCommandCenterProps {
   onCreateDocument?: (initialType?: string) => void;
 }
 
-export default function ProjectLifecycleCommandCenter({ scanFiles, onOpenDocument, onOpenProject, onStartBriefIntake, onCreateDocument }: ProjectLifecycleCommandCenterProps) {
+export default function ProjectLifecycleCommandCenter({ projectName, scanFiles, onOpenDocument, onOpenProject, onStartBriefIntake, onCreateDocument }: ProjectLifecycleCommandCenterProps) {
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const lifecycleInput = scanDocumentLifecycleFromFiles(scanFiles);
   const summary = buildDocumentLifecycleSummary(lifecycleInput);
   const actionTarget = getDocumentLifecycleActionTarget(scanFiles, lifecycleInput);
@@ -41,14 +45,22 @@ export default function ProjectLifecycleCommandCenter({ scanFiles, onOpenDocumen
       return;
     }
     if (commandAction.kind === 'create_document' && onCreateDocument) {
-      onCreateDocument(commandAction.initial_type);
+      setShowPreviewModal(true);
       return;
     }
     onOpenProject?.();
   };
 
+  const handleConfirmCreate = () => {
+    setShowPreviewModal(false);
+    if (onCreateDocument) {
+      onCreateDocument(commandAction.initial_type);
+    }
+  };
+
   return (
-    <div className="mb-6 rounded-2xl border border-primary/30 bg-primary/5 shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500 relative">
+    <>
+      <div className="mb-6 rounded-2xl border border-primary/30 bg-primary/5 shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500 relative">
       <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-primary to-accent" />
       <div className="p-5 pl-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         
@@ -94,5 +106,17 @@ export default function ProjectLifecycleCommandCenter({ scanFiles, onOpenDocumen
 
       </div>
     </div>
+
+    <DocumentCreationPreviewModal
+      isOpen={showPreviewModal}
+      onClose={() => setShowPreviewModal(false)}
+      onConfirm={handleConfirmCreate}
+      documentType={commandAction.initial_type}
+      projectName={projectName || 'Current Project'}
+      reason={commandAction.guidance}
+      lifecycleStage={priority.label}
+      recommendationWhy={displayNextAction}
+    />
+    </>
   );
 }
