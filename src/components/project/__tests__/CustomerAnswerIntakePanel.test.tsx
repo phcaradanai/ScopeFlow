@@ -39,10 +39,13 @@ describe('CustomerAnswerIntakePanel', () => {
   it('renders correctly', () => {
     (customerAnswerIntake.classifyCustomerAnswer as Mock).mockReturnValue({
       intent: 'unknown',
+      confidence: 'low',
       riskLevel: 'low',
       summary: '',
       signals: [],
       recommendedAction: '',
+      shouldCreateChangeRequest: false,
+      shouldAskFollowUp: true,
     });
     
     renderPanel();
@@ -52,30 +55,39 @@ describe('CustomerAnswerIntakePanel', () => {
   it('triggers onContinueLifecycle for approval intent', () => {
     (customerAnswerIntake.classifyCustomerAnswer as Mock).mockReturnValue({
       intent: 'approval',
+      confidence: 'high',
       riskLevel: 'low',
       summary: 'Approved',
       signals: [],
       recommendedAction: 'Continue',
+      shouldCreateChangeRequest: false,
+      shouldAskFollowUp: false,
     });
 
     renderPanel();
     
-    // Simulate typing an answer
     fireEvent.change(screen.getByPlaceholderText(/เช่น: โอเค อนุมัติ/), { target: { value: 'Approved' } });
     
     const continueBtn = screen.getByRole('button', { name: /Continue Lifecycle/i });
     fireEvent.click(continueBtn);
     
     expect(onContinueLifecycleMock).toHaveBeenCalledTimes(1);
+    expect(onContinueLifecycleMock).toHaveBeenCalledWith(expect.objectContaining({
+      intent: 'approval',
+      originalAnswer: 'Approved',
+    }));
   });
 
   it('triggers onCreateFollowUp for clarification intent and passes context', () => {
     (customerAnswerIntake.classifyCustomerAnswer as Mock).mockReturnValue({
       intent: 'clarification',
+      confidence: 'high',
       riskLevel: 'medium',
       summary: 'Needs clarification',
       signals: ['question'],
       recommendedAction: 'Ask for clarification',
+      shouldCreateChangeRequest: false,
+      shouldAskFollowUp: true,
     });
 
     renderPanel();
@@ -85,23 +97,22 @@ describe('CustomerAnswerIntakePanel', () => {
     fireEvent.click(followUpBtn);
     
     expect(onCreateFollowUpMock).toHaveBeenCalledTimes(1);
-    expect(onCreateFollowUpMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        customerAnswerContext: expect.objectContaining({
-          intent: 'clarification',
-          originalAnswer: 'What about this?',
-        })
-      })
-    );
+    expect(onCreateFollowUpMock).toHaveBeenCalledWith(expect.objectContaining({
+      intent: 'clarification',
+      originalAnswer: 'What about this?',
+    }));
   });
 
   it('triggers onStartRevisionReview for rejection intent and passes context', () => {
     (customerAnswerIntake.classifyCustomerAnswer as Mock).mockReturnValue({
       intent: 'rejection',
+      confidence: 'high',
       riskLevel: 'high',
       summary: 'Rejected',
       signals: ['reject'],
       recommendedAction: 'Start revision review',
+      shouldCreateChangeRequest: false,
+      shouldAskFollowUp: true,
     });
 
     renderPanel();
@@ -111,23 +122,22 @@ describe('CustomerAnswerIntakePanel', () => {
     fireEvent.click(reviewBtn);
     
     expect(onStartRevisionReviewMock).toHaveBeenCalledTimes(1);
-    expect(onStartRevisionReviewMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        customerAnswerContext: expect.objectContaining({
-          intent: 'rejection',
-          originalAnswer: 'No, this is wrong.',
-        })
-      })
-    );
+    expect(onStartRevisionReviewMock).toHaveBeenCalledWith(expect.objectContaining({
+      intent: 'rejection',
+      originalAnswer: 'No, this is wrong.',
+    }));
   });
 
   it('triggers onCreateChangeRequest for scope_change intent and passes context', () => {
     (customerAnswerIntake.classifyCustomerAnswer as Mock).mockReturnValue({
       intent: 'scope_change',
+      confidence: 'high',
       riskLevel: 'high',
       summary: 'Change requested',
       signals: ['change', 'add'],
       recommendedAction: 'Create CR/DCR',
+      shouldCreateChangeRequest: true,
+      shouldAskFollowUp: true,
     });
 
     renderPanel();
@@ -137,13 +147,9 @@ describe('CustomerAnswerIntakePanel', () => {
     fireEvent.click(crBtn);
     
     expect(onCreateChangeRequestMock).toHaveBeenCalledTimes(1);
-    expect(onCreateChangeRequestMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        customerAnswerContext: expect.objectContaining({
-          intent: 'scope_change',
-          originalAnswer: 'Add login with Facebook',
-        })
-      })
-    );
+    expect(onCreateChangeRequestMock).toHaveBeenCalledWith(expect.objectContaining({
+      intent: 'scope_change',
+      originalAnswer: 'Add login with Facebook',
+    }));
   });
 });

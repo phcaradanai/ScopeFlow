@@ -12,6 +12,7 @@ import ProjectLifecycleCommandCenter from './project/ProjectLifecycleCommandCent
 import CustomerAnswerIntakePanel from './project/CustomerAnswerIntakePanel';
 import DocumentCreationPreviewModal from './project/DocumentCreationPreviewModal';
 import { useLifecycleActionDispatcher } from '../hooks/useLifecycleActionDispatcher';
+import type { CustomerAnswerWorkflowContext } from '../lib/ai/customer-answer/customerAnswerWorkflowContext';
 
 interface ProjectOverviewProps {
   projectPath: string;
@@ -32,6 +33,23 @@ function getProjectPathIds(projectPath: string): { clientId: string; projectId: 
   const clientId = clientsIndex >= 0 && parts[clientsIndex + 1] ? parts[clientsIndex + 1] : '';
   const projectId = projectsIndex >= 0 && parts[projectsIndex + 1] ? parts[projectsIndex + 1] : parts[parts.length - 1] || '';
   return { clientId, projectId };
+}
+
+function buildCustomerAnswerDocumentContext(
+  projectPath: string,
+  initialType: string,
+  reason: string,
+  recommendationWhy: string,
+  customerAnswerContext: CustomerAnswerWorkflowContext
+) {
+  return {
+    source: 'customer_answer' as const,
+    initialType,
+    reason,
+    projectPath,
+    recommendationWhy,
+    customerAnswerContext,
+  };
 }
 
 export default function ProjectOverview({
@@ -94,8 +112,23 @@ export default function ProjectOverview({
     onOpenDocument,
     onOpenProject: () => onOpenDocument(projectPath),
     onStartBriefIntake: onStartBriefIntake ? () => onStartBriefIntake(clientId, projectId, projectPath) : undefined,
-    onCreateDocument: (initialType, lifecycleContext) => onCreateDocument(clientId, projectId, projectPath, initialType, lifecycleContext),
+    onCreateDocument: (initialType?: string, lifecycleContext?: any) => onCreateDocument(clientId, projectId, projectPath, initialType, lifecycleContext),
   });
+
+  const handleCreateCustomerAnswerDocument = (
+    initialType: string,
+    customerAnswerContext: CustomerAnswerWorkflowContext,
+    reason: string,
+    recommendationWhy: string
+  ) => {
+    onCreateDocument(
+      clientId,
+      projectId,
+      projectPath,
+      initialType,
+      buildCustomerAnswerDocumentContext(projectPath, initialType, reason, recommendationWhy, customerAnswerContext)
+    );
+  };
 
   const Header = (
     <div className="page-header-inner page-container-wide">
@@ -143,10 +176,25 @@ export default function ProjectOverview({
         <CustomerAnswerIntakePanel
           scanFiles={scanFiles}
           onOpenDocument={onOpenDocument}
-          onCreateChangeRequest={(context) => onCreateDocument(clientId, projectId, projectPath, 'cr', context)}
-          onCreateFollowUp={(context) => onCreateDocument(clientId, projectId, projectPath, 'sup', context)}
+          onCreateChangeRequest={(customerAnswerContext: CustomerAnswerWorkflowContext) => handleCreateCustomerAnswerDocument(
+            'cr',
+            customerAnswerContext,
+            'Customer answer indicates a possible scope change. Prepare CR/DCR instead of silently changing the current scope.',
+            customerAnswerContext.recommendedAction
+          )}
+          onCreateFollowUp={(customerAnswerContext: CustomerAnswerWorkflowContext) => handleCreateCustomerAnswerDocument(
+            'followup',
+            customerAnswerContext,
+            'Customer answer needs clarification before updating the project baseline or commercial documents.',
+            customerAnswerContext.recommendedAction
+          )}
           onContinueLifecycle={() => executeAction()}
-          onStartRevisionReview={(context) => onCreateDocument(clientId, projectId, projectPath, 'revision', context)}
+          onStartRevisionReview={(customerAnswerContext: CustomerAnswerWorkflowContext) => handleCreateCustomerAnswerDocument(
+            'revision',
+            customerAnswerContext,
+            'Customer rejected or did not accept the current artifact. Start revision review before changing scope/quotation.',
+            customerAnswerContext.recommendedAction
+          )}
         />
       </div>
 

@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, HelpCircle, MessageSquareText, ShieldAlert
 import { classifyCustomerAnswer } from '../../lib/ai/customer-answer/customerAnswerIntake';
 import { computeCustomerAnswerImpactPreview } from '../../lib/ai/customer-answer/customerAnswerImpactPreview';
 import { getCustomerAnswerContextReferences } from '../../lib/ai/customer-answer/customerAnswerContextReferences';
+import { buildCustomerAnswerWorkflowContext, type CustomerAnswerWorkflowContext } from '../../lib/ai/customer-answer/customerAnswerWorkflowContext';
 import { type LifecycleScanFile, scanDocumentLifecycleFromFiles } from '../../lib/ai/document-lifecycle/documentLifecycleFileScan';
 import { buildDocumentLifecycleSummary } from '../../lib/ai/document-lifecycle/documentLifecycle';
 
@@ -31,10 +32,10 @@ function riskClassName(riskLevel: string) {
 interface CustomerAnswerIntakePanelProps {
   scanFiles: LifecycleScanFile[];
   onOpenDocument?: (path: string) => void;
-  onCreateChangeRequest?: (context?: any) => void;
-  onCreateFollowUp?: (context?: any) => void;
-  onContinueLifecycle?: () => void;
-  onStartRevisionReview?: (context?: any) => void;
+  onCreateChangeRequest?: (context: CustomerAnswerWorkflowContext) => void;
+  onCreateFollowUp?: (context: CustomerAnswerWorkflowContext) => void;
+  onContinueLifecycle?: (context: CustomerAnswerWorkflowContext) => void;
+  onStartRevisionReview?: (context: CustomerAnswerWorkflowContext) => void;
 }
 
 export default function CustomerAnswerIntakePanel({
@@ -63,15 +64,10 @@ export default function CustomerAnswerIntakePanel({
   }, [hasAnswer, result.intent, lifecycleSummary]);
 
   const contextReferences = useMemo(() => getCustomerAnswerContextReferences(scanFiles), [scanFiles]);
-
-  const customerAnswerContext = useMemo(() => ({
-    intent: result.intent,
-    originalAnswer: answer,
-    riskLevel: result.riskLevel,
-    signals: result.signals,
-    affectedDocs,
-    contextReferences
-  }), [result, answer, affectedDocs, contextReferences]);
+  const customerAnswerContext = useMemo(
+    () => buildCustomerAnswerWorkflowContext(answer, result, affectedDocs, contextReferences),
+    [answer, result, affectedDocs, contextReferences]
+  );
 
   return (
     <div className="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden">
@@ -206,7 +202,7 @@ export default function CustomerAnswerIntakePanel({
               {result.intent === 'approval' && (
                 <button 
                   type="button" 
-                  onClick={onContinueLifecycle}
+                  onClick={() => onContinueLifecycle?.(customerAnswerContext)}
                   className="btn btn-primary text-xs py-1.5"
                 >
                   Continue Lifecycle
@@ -215,7 +211,7 @@ export default function CustomerAnswerIntakePanel({
               {result.intent === 'clarification' && (
                 <button 
                   type="button" 
-                  onClick={() => onCreateFollowUp?.({ customerAnswerContext })}
+                  onClick={() => onCreateFollowUp?.(customerAnswerContext)}
                   className="btn btn-primary text-xs py-1.5"
                 >
                   Prepare Follow-up
@@ -224,7 +220,7 @@ export default function CustomerAnswerIntakePanel({
               {result.intent === 'rejection' && (
                 <button 
                   type="button" 
-                  onClick={() => onStartRevisionReview?.({ customerAnswerContext })}
+                  onClick={() => onStartRevisionReview?.(customerAnswerContext)}
                   className="btn btn-primary text-xs py-1.5"
                 >
                   Start Revision Review
@@ -233,7 +229,7 @@ export default function CustomerAnswerIntakePanel({
               {(result.intent === 'scope_change' || result.intent === 'new_requirement') && (
                 <button 
                   type="button" 
-                  onClick={() => onCreateChangeRequest?.({ customerAnswerContext })}
+                  onClick={() => onCreateChangeRequest?.(customerAnswerContext)}
                   className="btn btn-primary text-xs py-1.5"
                 >
                   Prepare CR/DCR
