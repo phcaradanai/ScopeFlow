@@ -10,9 +10,12 @@ import {
   generateSupportRequestDocument,
   generateAcceptanceChecklist,
   generateInvoiceDocument,
+  generateRevisionReviewDocument,
+  generateFollowUpDocument,
+  buildCustomerAnswerContextMarkdown
 } from '../lib/templates';
 import { validateSlug, nameToSlug } from '../lib/validation';
-import { X, Target, Receipt, GitPullRequest, Code, LifeBuoy, Wrench, CheckSquare, FileText } from 'lucide-react';
+import { X, Target, Receipt, GitPullRequest, Code, LifeBuoy, Wrench, CheckSquare, FileText, MessageCircle, FileWarning } from 'lucide-react';
 import SelectField from './ui/SelectField';
 
 const DOCUMENT_TYPES = [
@@ -96,6 +99,26 @@ const DOCUMENT_TYPES = [
     borderClass: 'border-teal-500/30',
     ringClass: 'ring-teal-500/50',
   },
+  {
+    value: 'revision',
+    label: 'ทบทวนการแก้ไข (Revision Review)',
+    description: 'ทบทวนสาเหตุและแนวทางเมื่อลูกค้าปฏิเสธงาน',
+    icon: FileWarning,
+    colorClass: 'text-red-500',
+    bgClass: 'bg-red-500/10',
+    borderClass: 'border-red-500/30',
+    ringClass: 'ring-red-500/50',
+  },
+  {
+    value: 'followup',
+    label: 'ขอความชัดเจน (Follow-up)',
+    description: 'ติดตามผลและขอความชัดเจนจากลูกค้า',
+    icon: MessageCircle,
+    colorClass: 'text-sky-500',
+    bgClass: 'bg-sky-500/10',
+    borderClass: 'border-sky-500/30',
+    ringClass: 'ring-sky-500/50',
+  },
 ];
 
 export interface LifecycleActionContext {
@@ -106,6 +129,7 @@ export interface LifecycleActionContext {
   recommendationWhy?: string;
   createdAt?: number;
   createdFilePath?: string;
+  customerAnswerContext?: any;
 }
 
 interface DocumentCreatorModalProps {
@@ -145,7 +169,7 @@ export default function DocumentCreatorModal({
     }
   }, [workspacePath, clientId, projectId]);
 
-  const requiresSlug = ['cr', 'dcr', 'sup', 'ma'].includes(type);
+  const requiresSlug = ['cr', 'dcr', 'sup', 'ma', 'revision', 'followup'].includes(type);
 
   // Suggest a slug when title changes, if possible
   useEffect(() => {
@@ -261,6 +285,32 @@ export default function DocumentCreatorModal({
           client: clientId,
           author: '',
         });
+      } else if (type === 'revision') {
+        const revNumber = getNextDocumentNumber(documents, 'REV');
+        filename = `REV-${revNumber}-${slug}.md`;
+        finalPath = `${finalProjectPath}/reviews/${filename}`;
+        finalContent = generateRevisionReviewDocument({
+          project: finalProjectId,
+          client: clientId,
+          author: '',
+          reviewNumber: `REV-${revNumber}`,
+          title,
+        });
+      } else if (type === 'followup') {
+        const fwNumber = getNextDocumentNumber(documents, 'FW');
+        filename = `FW-${fwNumber}-${slug}.md`;
+        finalPath = `${finalProjectPath}/support-requests/${filename}`;
+        finalContent = generateFollowUpDocument({
+          project: finalProjectId,
+          client: clientId,
+          author: '',
+          followUpNumber: `FW-${fwNumber}`,
+          title,
+        });
+      }
+
+      if (lifecycleContext && lifecycleContext.customerAnswerContext) {
+        finalContent += buildCustomerAnswerContextMarkdown(lifecycleContext.customerAnswerContext);
       }
 
       setSaving(true);

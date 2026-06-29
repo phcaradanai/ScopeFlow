@@ -898,3 +898,123 @@ export function lockDocument(originalContent: string, lockedDate: string): strin
   return output.join('\n');
 }
 
+/**
+ * Generate Revision Review document
+ */
+export function generateRevisionReviewDocument(data: {
+  project: string;
+  client: string;
+  author: string;
+  reviewNumber: string;
+  title: string;
+}): string {
+  const today = todayISO();
+  const frontmatter = toFrontmatter({
+    type: 'revision-review',
+    review_number: data.reviewNumber,
+    project: data.project,
+    client: data.client,
+    status: 'draft',
+    created: today,
+    updated: today,
+    author: data.author,
+    locked: false,
+  });
+
+  const body = `
+# ทบทวนการแก้ไข (Revision Review): ${data.reviewNumber} — ${data.title}
+
+## สาเหตุการแก้ไข (Reason for Revision)
+
+
+
+## การวิเคราะห์ผลกระทบ (Impact Analysis)
+
+
+
+## แนวทางการแก้ไข (Proposed Resolution)
+
+
+
+## หมายเหตุ (Notes)
+
+`;
+
+  return frontmatter + '\n' + body;
+}
+
+/**
+ * Generate Follow-up document
+ */
+export function generateFollowUpDocument(data: {
+  project: string;
+  client: string;
+  author: string;
+  followUpNumber: string;
+  title: string;
+}): string {
+  const today = todayISO();
+  const frontmatter = toFrontmatter({
+    type: 'followup',
+    followup_number: data.followUpNumber,
+    project: data.project,
+    client: data.client,
+    status: 'draft',
+    created: today,
+    updated: today,
+    author: data.author,
+    locked: false,
+  });
+
+  const body = `
+# ติดตามผล/ขอความชัดเจน (Follow-up): ${data.followUpNumber} — ${data.title}
+
+## ประเด็นที่ต้องการความชัดเจน (Points of Clarification)
+
+
+
+## ข้อมูลที่ได้รับจากลูกค้า (Customer Feedback)
+
+
+
+## บทสรุป / ข้อตกลง (Conclusion / Agreement)
+
+
+
+## หมายเหตุ (Notes)
+
+`;
+
+  return frontmatter + '\n' + body;
+}
+
+/**
+ * Format customer answer context into markdown block
+ */
+export function buildCustomerAnswerContextMarkdown(context?: any): string {
+  if (!context || !context.originalAnswer) return '';
+  
+  let md = `\n---\n\n## 📝 บริบทจากคำตอบลูกค้า (Customer Answer Context)\n\n`;
+  md += `**เจตนา (Intent):** ${context.intent} (Risk: ${context.riskLevel})\n\n`;
+  
+  if (context.signals && context.signals.length > 0) {
+    md += `**Signals:** ${context.signals.join(', ')}\n\n`;
+  }
+  
+  md += `**คำตอบต้นฉบับ:**\n> ${context.originalAnswer.split('\n').join('\n> ')}\n\n`;
+  
+  if (context.affectedDocs && context.affectedDocs.affected && context.affectedDocs.affected.length > 0) {
+    md += `**เอกสารที่ได้รับผลกระทบ:** ${context.affectedDocs.affected.join(', ')}\n\n`;
+  }
+  
+  if (context.contextReferences && context.contextReferences.length > 0) {
+    md += `**เอกสารอ้างอิง:**\n`;
+    context.contextReferences.forEach((ref: any) => {
+      md += `- ${ref.label} (${ref.actionLabel})\n`;
+    });
+    md += '\n';
+  }
+  
+  md += `*คำแนะนำ: กรุณานำข้อมูลนี้ไปเปรียบเทียบกับ Scope Baseline และ Approved Quotation เพื่อความถูกต้อง*`;
+  return md;
+}

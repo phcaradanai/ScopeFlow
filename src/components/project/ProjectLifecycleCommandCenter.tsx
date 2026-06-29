@@ -1,45 +1,32 @@
 import { useState, useEffect } from 'react';
 import { ExternalLink, LockKeyhole, AlertTriangle, CheckCircle2, X, FileText } from 'lucide-react';
-import { type LifecycleScanFile, scanDocumentLifecycleFromFiles } from '../../lib/ai/document-lifecycle/documentLifecycleFileScan';
-import { buildDocumentLifecycleSummary } from '../../lib/ai/document-lifecycle/documentLifecycle';
-import { getDocumentLifecycleActionTarget } from '../../lib/ai/document-lifecycle/documentLifecycleAction';
-import { getLifecycleCommandAction } from '../../lib/ai/document-lifecycle/documentLifecycleCommandAction';
-import { getCloseoutReopenRequestSummary } from '../../lib/ai/closeout/closeoutReopenDetection';
-import { getLatestCloseoutReopenDecisionSummary } from '../../lib/ai/closeout/closeoutReopenDecisionDetection';
-import { getCloseoutReopenNextAction } from '../../lib/ai/closeout/closeoutReopenNextAction';
-import { getCloseoutReopenActionTarget } from '../../lib/ai/closeout/closeoutReopenActionTarget';
-import { getProjectLifecyclePriority } from '../../lib/ai/document-lifecycle/documentLifecyclePriority';
-import { buildLifecycleExplanation } from '../../lib/ai/document-lifecycle/lifecycleExplanation';
 import { shouldShowLifecycleFeedback, shouldClearLifecycleFeedback } from '../../lib/ai/document-lifecycle/lifecycleFeedbackGuard';
-import DocumentCreationPreviewModal from './DocumentCreationPreviewModal';
 import LifecycleExplanationPanel from './LifecycleExplanationPanel';
 
 interface ProjectLifecycleCommandCenterProps {
   projectName?: string;
   projectPath: string;
-  scanFiles: LifecycleScanFile[];
-  onOpenDocument: (path: string) => void;
-  onOpenProject?: () => void;
-  onStartBriefIntake?: () => void;
-  onCreateDocument?: (initialType?: string, lifecycleContext?: any) => void;
+  priority: any;
+  displayNextAction: string;
+  commandAction: any;
+  explanation: any;
+  onExecuteAction: () => void;
   lifecycleFeedback?: any;
   onClearLifecycleFeedback?: () => void;
+  onOpenDocument?: (path: string) => void;
 }
 
-export default function ProjectLifecycleCommandCenter({ projectName, projectPath, scanFiles, onOpenDocument, onOpenProject, onStartBriefIntake, onCreateDocument, lifecycleFeedback, onClearLifecycleFeedback }: ProjectLifecycleCommandCenterProps) {
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const lifecycleInput = scanDocumentLifecycleFromFiles(scanFiles);
-  const summary = buildDocumentLifecycleSummary(lifecycleInput);
-  const actionTarget = getDocumentLifecycleActionTarget(scanFiles, lifecycleInput);
-  const priority = getProjectLifecyclePriority(summary, scanFiles);
-
-  const reopenSummary = getCloseoutReopenRequestSummary(scanFiles);
-  const reopenDecisionSummary = getLatestCloseoutReopenDecisionSummary(scanFiles);
-  const displayNextAction = getCloseoutReopenNextAction(reopenDecisionSummary, summary.next_action);
-  const displayActionTarget = getCloseoutReopenActionTarget(actionTarget, reopenSummary, reopenDecisionSummary);
-  const commandAction = getLifecycleCommandAction(displayActionTarget, lifecycleInput);
-  const explanation = buildLifecycleExplanation(lifecycleInput, summary, scanFiles, displayActionTarget);
-  
+export default function ProjectLifecycleCommandCenter({ 
+  projectPath, 
+  priority, 
+  displayNextAction, 
+  commandAction, 
+  explanation, 
+  onExecuteAction, 
+  lifecycleFeedback, 
+  onClearLifecycleFeedback, 
+  onOpenDocument 
+}: ProjectLifecycleCommandCenterProps) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -67,35 +54,10 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
     }
   }, [lifecycleFeedback, projectPath, now, onClearLifecycleFeedback]);
 
-  const firstBlocked = summary.items.find(doc => doc.status === 'blocked');
+  const firstBlocked = explanation.blockedItem;
 
   const handleActionClick = () => {
-    if (commandAction.kind === 'open_document' && commandAction.file_path) {
-      onOpenDocument(commandAction.file_path);
-      return;
-    }
-    if (commandAction.kind === 'start_brief_intake' && onStartBriefIntake) {
-      onStartBriefIntake();
-      return;
-    }
-    if (commandAction.kind === 'create_document' && onCreateDocument) {
-      setShowPreviewModal(true);
-      return;
-    }
-    onOpenProject?.();
-  };
-
-  const handleConfirmCreate = () => {
-    setShowPreviewModal(false);
-    if (onCreateDocument) {
-      onCreateDocument(commandAction.initial_type, {
-        source: 'recommended_next_action',
-        initialType: commandAction.initial_type || 'document',
-        reason: commandAction.guidance,
-        projectPath,
-        recommendationWhy: displayNextAction,
-      });
-    }
+    onExecuteAction();
   };
 
   return (
@@ -121,7 +83,7 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
                   </p>
                 </div>
               )}
-              {lifecycleFeedback.createdFilePath && (
+              {lifecycleFeedback.createdFilePath && onOpenDocument && (
                 <button
                   type="button"
                   onClick={() => onOpenDocument(lifecycleFeedback.createdFilePath)}
@@ -159,7 +121,7 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
             <span className="font-bold text-primary-light">Why:</span> {displayNextAction}
           </p>
 
-          <LifecycleExplanationPanel explanation={explanation} onOpenDocument={onOpenDocument} />
+          {onOpenDocument && <LifecycleExplanationPanel explanation={explanation} onOpenDocument={onOpenDocument} />}
           
           {firstBlocked && (
             <p className="text-[11px] text-error mt-2 leading-relaxed flex items-start gap-1">
@@ -185,16 +147,6 @@ export default function ProjectLifecycleCommandCenter({ projectName, projectPath
       </div>
     </div>
 
-    <DocumentCreationPreviewModal
-      isOpen={showPreviewModal}
-      onClose={() => setShowPreviewModal(false)}
-      onConfirm={handleConfirmCreate}
-      documentType={commandAction.initial_type}
-      projectName={projectName || 'Current Project'}
-      reason={commandAction.guidance}
-      lifecycleStage={priority.label}
-      recommendationWhy={displayNextAction}
-    />
     </>
   );
 }

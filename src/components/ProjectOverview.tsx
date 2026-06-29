@@ -10,6 +10,8 @@ import ProjectWorkflowStats from './project/ProjectWorkflowStats';
 import DocumentList from './project/DocumentList';
 import ProjectLifecycleCommandCenter from './project/ProjectLifecycleCommandCenter';
 import CustomerAnswerIntakePanel from './project/CustomerAnswerIntakePanel';
+import DocumentCreationPreviewModal from './project/DocumentCreationPreviewModal';
+import { useLifecycleActionDispatcher } from '../hooks/useLifecycleActionDispatcher';
 
 interface ProjectOverviewProps {
   projectPath: string;
@@ -77,6 +79,24 @@ export default function ProjectOverview({
 
   const { clientId, projectId } = getProjectPathIds(projectPath);
 
+  const {
+    showPreviewModal,
+    setShowPreviewModal,
+    priority,
+    displayNextAction,
+    commandAction,
+    explanation,
+    executeAction,
+    confirmCreateDocument,
+  } = useLifecycleActionDispatcher({
+    scanFiles,
+    projectPath,
+    onOpenDocument,
+    onOpenProject: () => onOpenDocument(projectPath),
+    onStartBriefIntake: onStartBriefIntake ? () => onStartBriefIntake(clientId, projectId, projectPath) : undefined,
+    onCreateDocument: (initialType, lifecycleContext) => onCreateDocument(clientId, projectId, projectPath, initialType, lifecycleContext),
+  });
+
   const Header = (
     <div className="page-header-inner page-container-wide">
       <div className="page-title-group">
@@ -110,11 +130,11 @@ export default function ProjectOverview({
       <ProjectLifecycleCommandCenter
         projectName={projectName}
         projectPath={projectPath}
-        scanFiles={scanFiles}
-        onOpenDocument={onOpenDocument}
-        onOpenProject={() => onOpenDocument(projectPath)}
-        onStartBriefIntake={onStartBriefIntake ? () => onStartBriefIntake(clientId, projectId, projectPath) : undefined}
-        onCreateDocument={(initialType, lifecycleContext) => onCreateDocument(clientId, projectId, projectPath, initialType, lifecycleContext)}
+        priority={priority}
+        displayNextAction={displayNextAction}
+        commandAction={commandAction}
+        explanation={explanation}
+        onExecuteAction={executeAction}
         lifecycleFeedback={lifecycleFeedback}
         onClearLifecycleFeedback={onClearLifecycleFeedback}
       />
@@ -123,10 +143,10 @@ export default function ProjectOverview({
         <CustomerAnswerIntakePanel
           scanFiles={scanFiles}
           onOpenDocument={onOpenDocument}
-          onCreateChangeRequest={() => onCreateDocument(clientId, projectId, projectPath, 'cr')}
-          onCreateFollowUp={() => { /* TODO: hook up to message/followup generator */ }}
-          onContinueLifecycle={() => { /* TODO: use commandAction to continue lifecycle */ }}
-          onStartRevisionReview={() => { /* TODO: start revision review flow */ }}
+          onCreateChangeRequest={(context) => onCreateDocument(clientId, projectId, projectPath, 'cr', context)}
+          onCreateFollowUp={(context) => onCreateDocument(clientId, projectId, projectPath, 'sup', context)}
+          onContinueLifecycle={() => executeAction()}
+          onStartRevisionReview={(context) => onCreateDocument(clientId, projectId, projectPath, 'revision', context)}
         />
       </div>
 
@@ -198,6 +218,17 @@ export default function ProjectOverview({
         projectPath={projectPath}
         onCreateDocument={onCreateDocument}
         onStartBriefIntake={onStartBriefIntake}
+      />
+
+      <DocumentCreationPreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        onConfirm={confirmCreateDocument}
+        documentType={commandAction.initial_type}
+        projectName={projectName || 'Current Project'}
+        reason={commandAction.guidance}
+        lifecycleStage={priority.label}
+        recommendationWhy={displayNextAction}
       />
     </PageShell>
   );
