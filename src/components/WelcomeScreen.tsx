@@ -3,7 +3,7 @@ import { useWorkspace } from '../lib/workspace-context';
 import { createWorkspace, restoreWorkspace } from '../lib/tauri-commands';
 import { generateWorkspaceConfig } from '../lib/templates';
 import { generateDemoWorkspace } from '../lib/demo-generator';
-import { FolderOpen, Plus, FileText, PackageOpen, Sparkles, CheckCircle } from 'lucide-react';
+import { FolderOpen, Plus, FileText, PackageOpen, Sparkles, CheckCircle, Route } from 'lucide-react';
 
 export default function WelcomeScreen() {
   const { setWorkspacePath } = useWorkspace();
@@ -113,43 +113,55 @@ export default function WelcomeScreen() {
       {/* Decorative background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-gradient-to-br from-primary/30 via-accent/25 to-transparent rounded-full blur-[140px] pointer-events-none animate-pulse-slow opacity-80" />
 
-      <div className="max-w-[560px] w-full px-8 text-center relative z-10">
+      <div className="max-w-[640px] w-full px-8 text-center relative z-10">
         {/* Logo area */}
-        <div className="flex flex-col items-center gap-4 mb-10">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mx-auto mb-7 shadow-2xl shadow-primary/30 border border-white/10">
+        <div className="flex flex-col items-center gap-4 mb-8">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mx-auto mb-5 shadow-2xl shadow-primary/30 border border-white/10">
             <FileText className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-text mb-3 tracking-tight">ScopeFlow</h1>
           <p className="text-text-muted text-lg font-medium">
-            เปลี่ยนคำขอลูกค้าให้เป็น Scope และใบเสนอราคา
+            เริ่มจากคำขอลูกค้า → ถามให้ครบ → สร้าง Brief, Scope และ Quotation
           </p>
+        </div>
+
+        <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4 text-left mb-5">
+          <div className="flex items-start gap-3">
+            <Route className="w-5 h-5 text-primary-light shrink-0 mt-0.5" />
+            <div>
+              <h2 className="text-sm font-extrabold text-text mb-1">ทางที่แนะนำสำหรับผู้ใช้ใหม่</h2>
+              <p className="text-sm text-text-muted leading-relaxed">
+                กด <b>สร้าง Demo</b> เพื่อดู workflow ที่เดินตามได้ทันที หรือสร้าง Workspace ใหม่แล้วเริ่มจากลูกค้า → โปรเจกต์ → <b>Start Discovery</b> เพื่อสร้างเอกสารจริงจากคำตอบลูกค้า
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Action buttons */}
         <div className="space-y-4 flex flex-col gap-4 p-4!">
           <button
-            onClick={handleCreate}
+            onClick={handleCreateDemo}
             className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-primary text-white font-semibold transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-[0_8px_30px_-5px] hover:shadow-primary/40 hover:-translate-y-1 border border-primary-light/20 min-h-[48px]"
+          >
+            <Sparkles className="w-5 h-5" />
+            สร้าง Demo แล้วเดินตาม Tutorial
+          </button>
+
+          <button
+            onClick={handleCreate}
+            className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-text font-semibold transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 backdrop-blur-sm min-h-[48px]"
           >
             <Plus className="w-5 h-5" />
             สร้าง Workspace ใหม่
           </button>
 
-          <button
-            onClick={handleOpen}
-            className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-text font-semibold transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 backdrop-blur-sm min-h-[48px]"
-          >
-            <FolderOpen className="w-5 h-5" />
-            เปิด Workspace ที่มีอยู่
-          </button>
-
           <div className="grid grid-cols-2 gap-4 pt-2">
             <button
-              onClick={handleCreateDemo}
+              onClick={handleOpen}
               className="btn btn-ghost w-full"
             >
-              <Sparkles className="w-4 h-4 text-accent" />
-              สร้าง Demo
+              <FolderOpen className="w-4 h-4" />
+              เปิด Workspace
             </button>
             <button
               onClick={handleRestoreBackup}
@@ -162,24 +174,24 @@ export default function WelcomeScreen() {
         </div>
 
         {/* Benefits */}
-        <div className="flex flex-col gap-2 mt-10 space-y-3 p-2">
+        <div className="flex flex-col gap-2 mt-8 space-y-3 p-2">
           <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
             <CheckCircle className="w-4 h-4 text-success" />
-            <span>บันทึกหลักฐานอนุมัติ</span>
+            <span>Start Discovery ช่วยถามต่อก่อนออกเอกสาร</span>
           </div>
           <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
             <CheckCircle className="w-4 h-4 text-success" />
-            <span>กันงานงอกด้วย CR/DCR</span>
+            <span>สร้าง Brief, Scope, Quotation จากข้อมูลชุดเดียว</span>
           </div>
           <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
             <CheckCircle className="w-4 h-4 text-success" />
-            <span>ข้อมูลอยู่ในเครื่องคุณ</span>
+            <span>ข้อมูลอยู่ในเครื่องคุณ • Offline-first • File-first</span>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-10 text-sm text-text-dim/50 font-medium tracking-wide mt-10!">
-          <p>Offline-first • File-first</p>
+        <div className="mt-8 text-sm text-text-dim/50 font-medium tracking-wide mt-10!">
+          <p>Production MVP flow: Customer Request → Discovery → Brief → Scope → Quotation</p>
         </div>
       </div>
     </div>
