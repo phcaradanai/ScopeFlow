@@ -4,8 +4,8 @@ import {
   ArrowRight,
   CheckCircle2,
   ClipboardCheck,
-  FileCheck2,
   FileText,
+  MessageSquareText,
   PackageCheck,
   ReceiptText,
   SearchCheck,
@@ -36,74 +36,74 @@ function pathFor(artifactPaths: Record<string, string> | undefined, key: string,
 function buildTutorialSteps(projectPath: string, artifactPaths?: Record<string, string>): TutorialStep[] {
   return [
     {
-      title: 'เริ่มที่ภาพรวมโครงการ',
-      goal: 'เข้าใจว่า Project Overview คือศูนย์กลางของงาน: เห็น Next Action, Scope Readiness, ความเสี่ยง และเอกสารทั้งหมด',
+      title: 'เริ่มที่ Project Overview',
+      goal: 'ใช้หน้านี้เป็นศูนย์กลางของงาน ก่อนเริ่มสร้างเอกสารจากคำขอลูกค้า',
       whatToLookFor: [
-        'ดูแถบ Scope Readiness ว่าเอกสารสำคัญครบหรือยัง',
-        'ดู Next Action ว่าระบบแนะนำให้ทำอะไรต่อจากสถานะจริงของเอกสาร',
-        'สังเกตว่าระบบใช้เอกสารจริงใน project ไม่ใช่ข้อมูลตัวอย่างลอย ๆ',
+        'เปิด project ก่อน แล้วมองหาปุ่มเริ่มจากคำขอลูกค้า / Start Discovery',
+        'ดูสถานะเอกสารและ next action ว่าระบบแนะนำให้ทำอะไรต่อ',
+        'ทุกไฟล์ที่สร้างจาก Discovery จะถูกเก็บใน baseline ของ project นี้',
       ],
       actionLabel: 'เปิด Project Overview',
       targetPath: projectPath,
       icon: SearchCheck,
     },
     {
-      title: 'เปิด Brief เพื่อดูคำขอลูกค้า',
-      goal: 'ดูว่าคำขอที่ยังคลุมเครือถูกแปลงเป็น Brief ที่ใช้เริ่มงานได้อย่างไร',
+      title: 'เริ่ม Discovery จากคำขอลูกค้า',
+      goal: 'วางข้อความจากลูกค้า แล้วให้ระบบถามต่อจนข้อมูลพร้อมพอสำหรับ Brief, Scope และ Quotation',
       whatToLookFor: [
-        'เป้าหมายหลักของลูกค้า',
-        'Must-have หรือสิ่งจำเป็นที่ระบบต้องมี',
-        'คำถามที่เคยไม่ชัดและถูก resolve แล้ว',
+        'วางคำขอลูกค้า แชท อีเมล หรือ note ประชุมใน Start Discovery',
+        'ดู Readiness และ Next Best Question ก่อนสร้างเอกสาร',
+        'ถ้าคำตอบยังไม่ครบ ให้ตอบคำถามเพิ่มก่อนกด generate',
       ],
-      actionLabel: 'เปิด Brief',
-      targetPath: pathFor(artifactPaths, 'brief', `${projectPath}/baseline/brief-v1.0.md`),
+      actionLabel: 'เปิด Project เพื่อเริ่ม Discovery',
+      targetPath: projectPath,
+      icon: MessageSquareText,
+    },
+    {
+      title: 'สร้างและตรวจ Brief จาก Discovery',
+      goal: 'ยืนยันว่าระบบเปลี่ยนคำขอลูกค้าเป็น Brief ที่เริ่มคุยงานต่อได้',
+      whatToLookFor: [
+        'ไฟล์ที่ควรเห็นคือ baseline/brief-from-discovery.md',
+        'Brief ต้องมีคำขอลูกค้า ข้อเท็จจริงที่ยืนยันแล้ว และคำถามที่ยังไม่ชัด',
+        'ถ้าข้อมูลยังไม่พอ ให้กลับไป Discovery แล้วถามเพิ่ม',
+      ],
+      actionLabel: 'เปิด Brief จาก Discovery',
+      targetPath: pathFor(artifactPaths, 'discoveryBrief', `${projectPath}/baseline/brief-from-discovery.md`),
       icon: FileText,
     },
     {
-      title: 'ตรวจ Scope เพื่อคุมขอบเขตงาน',
-      goal: 'ดูว่า ScopeFlow ช่วยแยก In-Scope / Out-of-Scope / Deliverables / Acceptance Criteria เพื่อลด scope creep อย่างไร',
+      title: 'สร้างและตรวจ Scope จาก Discovery',
+      goal: 'ดูว่า ScopeFlow แยก In-Scope, Out-of-Scope, Deliverables และ Acceptance Criteria เพื่อกันงานบานอย่างไร',
       whatToLookFor: [
-        'In-Scope: สิ่งที่รับทำจริง',
-        'Out-of-Scope: สิ่งที่ไม่รวม เพื่อกันงานบาน',
-        'Acceptance Criteria: เงื่อนไขตรวจรับที่ลูกค้าและทีมต้องเห็นตรงกัน',
+        'ไฟล์ที่ควรเห็นคือ baseline/scope-from-discovery.md',
+        'In-Scope ต้องสะท้อน feature/platform/data/integration ที่ลูกค้าตอบแล้ว',
+        'Out-of-Scope ต้องบอกสิ่งที่ยังไม่ล็อกหรือยังไม่รวม',
       ],
-      actionLabel: 'เปิด Scope',
-      targetPath: pathFor(artifactPaths, 'scope', `${projectPath}/baseline/scope-v1.0.md`),
+      actionLabel: 'เปิด Scope จาก Discovery',
+      targetPath: pathFor(artifactPaths, 'discoveryScope', `${projectPath}/baseline/scope-from-discovery.md`),
       icon: ClipboardCheck,
     },
     {
-      title: 'ดู Quote และ Invoice',
-      goal: 'ดูว่าขอบเขตงานถูกแปลงเป็นราคาและเอกสารเรียกเก็บเงินได้อย่างไร',
+      title: 'สร้างและตรวจ Quotation จาก Discovery',
+      goal: 'ดูว่าข้อมูลเชิงพาณิชย์ เช่น งบประมาณ เวลา และขอบเขต ถูกแปลงเป็นใบเสนอราคาตั้งต้นได้อย่างไร',
       whatToLookFor: [
-        'Quotation มียอดรวม ส่วนลด VAT และ grand total',
-        'Invoice หรือเงื่อนไขชำระเงินเชื่อมกับ Scope/Quote',
-        'เอกสารราคาอ้างอิงจาก Scope ไม่ใช่คิดแยกจากขอบเขตงาน',
+        'ไฟล์ที่ควรเห็นคือ baseline/quotation-from-discovery.md',
+        'Quotation ต้องอ้างอิง scope-from-discovery.md',
+        'ถ้างบหรือเงื่อนไขยังไม่ชัด ให้ถือว่าเป็น draft และกลับไปถามลูกค้าเพิ่ม',
       ],
-      actionLabel: 'เปิด Quotation',
-      targetPath: pathFor(artifactPaths, 'quotation', `${projectPath}/baseline/quotation-v1.0.md`),
+      actionLabel: 'เปิด Quotation จาก Discovery',
+      targetPath: pathFor(artifactPaths, 'discoveryQuotation', `${projectPath}/baseline/quotation-from-discovery.md`),
       icon: ReceiptText,
     },
     {
-      title: 'ตรวจ Approval Record',
-      goal: 'ดูหลักฐานการอนุมัติว่าเอกสารที่ approved/locked มี reference กลับไปยัง approval record',
+      title: 'ไปต่อหลังเอกสารหลักครบ',
+      goal: 'เมื่อ Brief, Scope และ Quotation พร้อมแล้ว จึงค่อยเดินงานตรวจรับ ปิดงาน และ export ชุดเอกสาร',
       whatToLookFor: [
-        'approval_number ตรงกับ approval_ref ในเอกสารหลัก',
-        'approved_document ชี้กลับไปยัง Brief/Scope/Quote/Acceptance',
-        'evidence file อยู่ใน attachments เพื่อใช้ตรวจสอบย้อนหลัง',
+        'Project ควรมี Brief, Scope และ Quotation ที่มาจาก Discovery Session เดียวกัน',
+        'ใช้ Scope และ Quotation ที่ตกลงแล้วเป็นฐานก่อนเริ่มส่งมอบงาน',
+        'หลังจากนั้นจึงค่อยใช้ Acceptance และ Export เพื่อปิด loop',
       ],
-      actionLabel: 'เปิด Approval ของ Scope',
-      targetPath: pathFor(artifactPaths, 'scopeApproval', `${projectPath}/approvals`),
-      icon: FileCheck2,
-    },
-    {
-      title: 'ปิด loop ด้วย Acceptance และ Export',
-      goal: 'ดูขั้นสุดท้ายของงาน: ตรวจรับแล้ว export ชุดเอกสารส่งมอบได้',
-      whatToLookFor: [
-        'Acceptance checklist ผ่านครบหรือยัง',
-        'เอกสารถูก locked หลังอนุมัติ',
-        'มีไฟล์ export เพื่อส่งมอบหรือเก็บหลักฐานปิดงาน',
-      ],
-      actionLabel: 'เปิด Acceptance',
+      actionLabel: 'เปิด Acceptance / Closeout',
       targetPath: pathFor(artifactPaths, 'acceptance', `${projectPath}/acceptance/acceptance-v1.0.md`),
       icon: PackageCheck,
     },
@@ -137,16 +137,16 @@ export default function DemoFlowGuideModal({ projectPath, artifactPaths, onOpenP
           <div className="modal-header-content">
             <div className="flex items-center gap-2 mb-2">
               <span className="badge badge-success">
-                <Sparkles className="w-3.5 h-3.5 mr-1" /> Demo Tutorial
+                <Sparkles className="w-3.5 h-3.5 mr-1" /> Discovery-first Tutorial
               </span>
               <span className="badge badge-muted">ขั้นที่ {currentStep + 1}/{steps.length}</span>
             </div>
             <h2 className="modal-title flex items-center gap-2.5">
               <CheckCircle2 className="w-5 h-5 text-success" />
-              เดิน Demo ให้จบทั้ง ScopeFlow loop
+              เดิน MVP ให้จบ: Discovery → Brief → Scope → Quotation
             </h2>
             <p className="modal-subtitle">
-              ทำตามทีละขั้นเพื่อเห็นภาพตั้งแต่คำขอลูกค้า → Brief → Scope → Quote → Approval → Acceptance → Export
+              ทำตามทีละขั้นเพื่อเห็น flow จริง: เริ่มจากคำขอลูกค้า ถามต่อจนข้อมูลพร้อม แล้วสร้างเอกสารหลักจาก Discovery Session เดียวกัน
             </p>
           </div>
           <button onClick={onClose} className="modal-close" aria-label="ปิด tutorial">
@@ -191,7 +191,7 @@ export default function DemoFlowGuideModal({ projectPath, artifactPaths, onOpenP
               <p className="text-sm text-text-muted leading-relaxed mt-3">{step.goal}</p>
 
               <div className="mt-5 rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                <h4 className="text-sm font-bold text-text mb-3">ให้สังเกตอะไรบ้าง</h4>
+                <h4 className="text-sm font-bold text-text mb-3">Checklist ที่ต้องเห็น</h4>
                 <ul className="space-y-2">
                   {step.whatToLookFor.map((item) => (
                     <li key={item} className="flex items-start gap-2.5 text-sm text-text-muted leading-relaxed">
