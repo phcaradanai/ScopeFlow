@@ -2,10 +2,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, expect, it, vi } from 'vitest';
 import DiscoveryStartModal from '../DiscoveryStartModal';
-import { createDocument } from '../../../lib/tauri-commands';
+import { createDiscoveryBriefFile } from '../../../lib/ai/brief-assistant/discoveryBriefFile';
 
-vi.mock('../../../lib/tauri-commands', () => ({
-  createDocument: vi.fn().mockResolvedValue(undefined),
+vi.mock('../../../lib/ai/brief-assistant/discoveryBriefFile', () => ({
+  createDiscoveryBriefFile: vi.fn().mockResolvedValue({
+    path: '/workspace/clients/client-a/projects/project-a/baseline/brief-from-discovery.md',
+    markdown: '---\ntype: brief\n---',
+  }),
 }));
 
 describe('DiscoveryStartModal', () => {
@@ -49,11 +52,12 @@ describe('DiscoveryStartModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Generate Brief' }));
 
     await waitFor(() => {
-      expect(createDocument).toHaveBeenCalledWith(
-        '/workspace/clients/client-a/projects/project-a/baseline/brief-discovery-draft.md',
-        expect.stringContaining('type: brief')
-      );
-      expect(onBriefCreated).toHaveBeenCalledWith('/workspace/clients/client-a/projects/project-a/baseline/brief-discovery-draft.md');
+      expect(createDiscoveryBriefFile).toHaveBeenCalledWith(expect.objectContaining({
+        clientId: 'client-a',
+        projectId: 'project-a',
+        projectPath: '/workspace/clients/client-a/projects/project-a',
+      }));
+      expect(onBriefCreated).toHaveBeenCalledWith('/workspace/clients/client-a/projects/project-a/baseline/brief-from-discovery.md');
     });
   });
 });
