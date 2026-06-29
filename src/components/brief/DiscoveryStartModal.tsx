@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import DiscoveryWorkspaceContainer from './DiscoveryWorkspaceContainer';
 import { createDiscoveryBriefFile } from '../../lib/ai/brief-assistant/discoveryBriefFile';
+import { createDiscoveryScopeFile } from '../../lib/ai/brief-assistant/discoveryScopeFile';
 import type { DiscoverySession } from '../../lib/ai/brief-assistant/discoverySession';
 
 interface DiscoveryStartModalProps {
@@ -10,14 +11,16 @@ interface DiscoveryStartModalProps {
   projectPath?: string;
   onClose: () => void;
   onBriefCreated?: (path: string) => void;
+  onScopeCreated?: (path: string) => void;
   onCreateBriefDraft?: (session: DiscoverySession) => void;
 }
 
-export default function DiscoveryStartModal({ clientId, projectId, projectPath, onClose, onBriefCreated, onCreateBriefDraft }: DiscoveryStartModalProps) {
+export default function DiscoveryStartModal({ clientId, projectId, projectPath, onClose, onBriefCreated, onScopeCreated, onCreateBriefDraft }: DiscoveryStartModalProps) {
   const [rawRequest, setRawRequest] = useState('');
   const [started, setStarted] = useState(false);
   const [notice, setNotice] = useState('');
   const [savingBrief, setSavingBrief] = useState(false);
+  const [savingScope, setSavingScope] = useState(false);
 
   const canStart = rawRequest.trim().length > 0;
 
@@ -46,6 +49,28 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
       setNotice(`สร้าง Brief Draft ไม่สำเร็จ: ${error}`);
     } finally {
       setSavingBrief(false);
+    }
+  };
+
+  const handleGenerateScope = async (session: DiscoverySession) => {
+    if (!projectId || !projectPath) {
+      setNotice('Scope ready. Create or open a project first, then run Start Discovery from that project to write Scope.md.');
+      return;
+    }
+
+    try {
+      setSavingScope(true);
+      const result = await createDiscoveryScopeFile({
+        session,
+        projectId,
+        projectPath,
+      });
+      setNotice(`สร้าง Scope Draft แล้ว: ${result.path}`);
+      onScopeCreated?.(result.path);
+    } catch (error) {
+      setNotice(`สร้าง Scope Draft ไม่สำเร็จ: ${error}`);
+    } finally {
+      setSavingScope(false);
     }
   };
 
@@ -89,7 +114,7 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
               projectId={projectId}
               rawRequest={rawRequest}
               onGenerateBrief={handleGenerateBrief}
-              onGenerateScope={() => setNotice('Scope readiness reached. Next integration will generate Scope from this session.')}
+              onGenerateScope={handleGenerateScope}
               onGenerateQuotation={() => setNotice('Quotation readiness reached. Next integration will generate Quotation from this session.')}
             />
           )}
@@ -97,6 +122,12 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
           {savingBrief && (
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-primary">
               กำลังสร้าง Brief file จาก Discovery Session...
+            </div>
+          )}
+
+          {savingScope && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-primary">
+              กำลังสร้าง Scope file จาก Discovery Session...
             </div>
           )}
 
