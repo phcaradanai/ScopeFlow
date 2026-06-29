@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import DiscoveryStartModal from '../DiscoveryStartModal';
 import { createDiscoveryBriefFile } from '../../../lib/ai/brief-assistant/discoveryBriefFile';
 import { createDiscoveryScopeFile } from '../../../lib/ai/brief-assistant/discoveryScopeFile';
+import { createDiscoveryQuotationFile } from '../../../lib/ai/brief-assistant/discoveryQuotationFile';
 
 vi.mock('../../../lib/ai/brief-assistant/discoveryBriefFile', () => ({
   createDiscoveryBriefFile: vi.fn().mockResolvedValue({
@@ -16,6 +17,13 @@ vi.mock('../../../lib/ai/brief-assistant/discoveryScopeFile', () => ({
   createDiscoveryScopeFile: vi.fn().mockResolvedValue({
     path: '/workspace/clients/client-a/projects/project-a/baseline/scope-from-discovery.md',
     markdown: '---\ntype: scope\n---',
+  }),
+}));
+
+vi.mock('../../../lib/ai/brief-assistant/discoveryQuotationFile', () => ({
+  createDiscoveryQuotationFile: vi.fn().mockResolvedValue({
+    path: '/workspace/clients/client-a/projects/project-a/baseline/quotation-from-discovery.md',
+    markdown: '---\ntype: quotation\n---',
   }),
 }));
 
@@ -90,6 +98,33 @@ describe('DiscoveryStartModal', () => {
         projectPath: '/workspace/clients/client-a/projects/project-a',
       }));
       expect(onScopeCreated).toHaveBeenCalledWith('/workspace/clients/client-a/projects/project-a/baseline/scope-from-discovery.md');
+    });
+  });
+
+  it('writes a discovery quotation draft when project context exists', async () => {
+    const onQuotationCreated = vi.fn();
+    render(
+      <DiscoveryStartModal
+        clientId="client-a"
+        projectId="project-a"
+        projectPath="/workspace/clients/client-a/projects/project-a"
+        onClose={vi.fn()}
+        onQuotationCreated={onQuotationCreated}
+      />
+    );
+
+    const textarea = screen.getByPlaceholderText('วางข้อความจากลูกค้าที่นี่ เช่น อยากทำระบบขายของออนไลน์...');
+    fireEvent.change(textarea, { target: { value: readyRequest } });
+    fireEvent.click(screen.getByRole('button', { name: 'Start Discovery' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate Quotation' }));
+
+    await waitFor(() => {
+      expect(createDiscoveryQuotationFile).toHaveBeenCalledWith(expect.objectContaining({
+        clientId: 'client-a',
+        projectId: 'project-a',
+        projectPath: '/workspace/clients/client-a/projects/project-a',
+      }));
+      expect(onQuotationCreated).toHaveBeenCalledWith('/workspace/clients/client-a/projects/project-a/baseline/quotation-from-discovery.md');
     });
   });
 });
