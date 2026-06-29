@@ -1,7 +1,12 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, expect, it, vi } from 'vitest';
 import DiscoveryStartModal from '../DiscoveryStartModal';
+import { createDocument } from '../../../lib/tauri-commands';
+
+vi.mock('../../../lib/tauri-commands', () => ({
+  createDocument: vi.fn().mockResolvedValue(undefined),
+}));
 
 describe('DiscoveryStartModal', () => {
   it('starts discovery from a raw customer request', () => {
@@ -20,5 +25,35 @@ describe('DiscoveryStartModal', () => {
     render(<DiscoveryStartModal clientId="client-a" onClose={vi.fn()} />);
 
     expect(screen.getByRole('button', { name: 'Start Discovery' })).toBeDisabled();
+  });
+
+  it('writes a discovery brief draft when project context exists', async () => {
+    const onBriefCreated = vi.fn();
+    render(
+      <DiscoveryStartModal
+        clientId="client-a"
+        projectId="project-a"
+        projectPath="/workspace/clients/client-a/projects/project-a"
+        onClose={vi.fn()}
+        onBriefCreated={onBriefCreated}
+      />
+    );
+
+    const textarea = screen.getByPlaceholderText('วางข้อความจากลูกค้าที่นี่ เช่น อยากทำระบบขายของออนไลน์...');
+    fireEvent.change(textarea, {
+      target: {
+        value: 'ต้องการเว็บขายของ มี admin ลูกค้า สินค้า ตะกร้า checkout ใช้งานบน web browser ข้อมูลจาก excel เชื่อม payment มีงบ 100000 บาท ภายใน 1 เดือน ตรวจรับเมื่อสั่งซื้อและรายงานใช้งานได้',
+      },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Start Discovery' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate Brief' }));
+
+    await waitFor(() => {
+      expect(createDocument).toHaveBeenCalledWith(
+        '/workspace/clients/client-a/projects/project-a/baseline/brief-discovery-draft.md',
+        expect.stringContaining('type: brief')
+      );
+      expect(onBriefCreated).toHaveBeenCalledWith('/workspace/clients/client-a/projects/project-a/baseline/brief-discovery-draft.md');
+    });
   });
 });
