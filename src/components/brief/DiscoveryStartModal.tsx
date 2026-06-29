@@ -1,21 +1,51 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import { useWorkspace } from '../../lib/workspace-context';
 import DiscoveryWorkspaceContainer from './DiscoveryWorkspaceContainer';
+import { createDiscoveryBriefFile } from '../../lib/ai/brief-assistant/discoveryBriefFile';
 import type { DiscoverySession } from '../../lib/ai/brief-assistant/discoverySession';
 
 interface DiscoveryStartModalProps {
   clientId: string;
   projectId?: string;
+  projectPath?: string;
   onClose: () => void;
   onCreateBriefDraft?: (session: DiscoverySession) => void;
 }
 
-export default function DiscoveryStartModal({ clientId, projectId, onClose, onCreateBriefDraft }: DiscoveryStartModalProps) {
+export default function DiscoveryStartModal({ clientId, projectId, projectPath, onClose, onCreateBriefDraft }: DiscoveryStartModalProps) {
+  const { refreshTree, setSelectedFile } = useWorkspace();
   const [rawRequest, setRawRequest] = useState('');
   const [started, setStarted] = useState(false);
   const [notice, setNotice] = useState('');
+  const [savingBrief, setSavingBrief] = useState(false);
 
   const canStart = rawRequest.trim().length > 0;
+
+  const handleGenerateBrief = async (session: DiscoverySession) => {
+    if (onCreateBriefDraft) {
+      onCreateBriefDraft(session);
+      return;
+    }
+
+    if (!projectId || !projectPath) {
+      setNotice('ต้องสร้างหรือเลือกโปรเจกต์ก่อน จึงจะบันทึก Brief file จาก Discovery Session ได้');
+      return;
+    }
+
+    try {
+      setSavingBrief(true);
+      setNotice('');
+      const result = await createDiscoveryBriefFile({ session, clientId, projectId, projectPath });
+      await refreshTree();
+      setSelectedFile(result.path);
+      onClose();
+    } catch (error) {
+      setNotice(String(error));
+    } finally {
+      setSavingBrief(false);
+    }
+  };
 
   return (
     <div className="modal-overlay">
@@ -56,16 +86,16 @@ export default function DiscoveryStartModal({ clientId, projectId, onClose, onCr
               clientId={clientId}
               projectId={projectId}
               rawRequest={rawRequest}
-              onGenerateBrief={(session) => {
-                if (onCreateBriefDraft) {
-                  onCreateBriefDraft(session);
-                  return;
-                }
-                setNotice('Brief readiness reached. Open Preview Brief + Scope to generate documents.');
-              }}
+              onGenerateBrief={handleGenerateBrief}
               onGenerateScope={() => setNotice('Scope readiness reached. Next integration will generate Scope from this session.')}
               onGenerateQuotation={() => setNotice('Quotation readiness reached. Next integration will generate Quotation from this session.')}
             />
+          )}
+
+          {savingBrief && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-primary">
+              กำลังสร้าง Brief file จาก Discovery Session...
+            </div>
           )}
 
           {notice && (
