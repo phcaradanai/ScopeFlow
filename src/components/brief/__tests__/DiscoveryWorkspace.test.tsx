@@ -32,10 +32,10 @@ describe('DiscoveryWorkspace', () => {
     renderWorkspace();
 
     expect(screen.getByText('Discovery Workspace')).toBeInTheDocument();
-    expect(screen.getByText('อยากทำระบบให้ร้านหน่อย')).toBeInTheDocument();
+    expect(screen.getByText('Customer Request')).toBeInTheDocument();
     expect(screen.getByText('Next Best Question')).toBeInTheDocument();
-    expect(screen.getByText(/ฟีเจอร์ที่จำเป็นต้องมี/)).toBeInTheDocument();
     expect(screen.getByText('Brief Readiness')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('วางคำตอบลูกค้าหรือ note เพิ่มเติมที่นี่...')).toBeInTheDocument();
   });
 
   it('submits answer drafts through callbacks', () => {
