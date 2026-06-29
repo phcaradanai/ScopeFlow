@@ -1,11 +1,8 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { useWorkspace } from '../../lib/workspace-context';
 import DiscoveryWorkspaceContainer from './DiscoveryWorkspaceContainer';
 import { createDiscoveryBriefFile } from '../../lib/ai/brief-assistant/discoveryBriefFile';
 import type { DiscoverySession } from '../../lib/ai/brief-assistant/discoverySession';
-import { buildDiscoveryBriefMarkdown } from '../../lib/ai/brief-assistant/discoveryBriefDraft';
-import { createDocument } from '../../lib/tauri-commands';
 
 interface DiscoveryStartModalProps {
   clientId: string;
@@ -16,15 +13,10 @@ interface DiscoveryStartModalProps {
   onCreateBriefDraft?: (session: DiscoverySession) => void;
 }
 
-function buildDiscoveryBriefPath(projectPath: string): string {
-  return `${projectPath.replace(/\/$/, '')}/baseline/brief-discovery-draft.md`;
-}
-
 export default function DiscoveryStartModal({ clientId, projectId, projectPath, onClose, onBriefCreated, onCreateBriefDraft }: DiscoveryStartModalProps) {
   const [rawRequest, setRawRequest] = useState('');
   const [started, setStarted] = useState(false);
   const [notice, setNotice] = useState('');
-  const [isWritingBrief, setIsWritingBrief] = useState(false);
   const [savingBrief, setSavingBrief] = useState(false);
 
   const canStart = rawRequest.trim().length > 0;
@@ -41,16 +33,19 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
     }
 
     try {
-      setIsWritingBrief(true);
-      const outputPath = buildDiscoveryBriefPath(projectPath);
-      const markdown = buildDiscoveryBriefMarkdown(session, clientId, projectId);
-      await createDocument(outputPath, markdown);
-      setNotice(`สร้าง Brief Draft แล้ว: ${outputPath}`);
-      onBriefCreated?.(outputPath);
+      setSavingBrief(true);
+      const result = await createDiscoveryBriefFile({
+        session,
+        clientId,
+        projectId,
+        projectPath,
+      });
+      setNotice(`สร้าง Brief Draft แล้ว: ${result.path}`);
+      onBriefCreated?.(result.path);
     } catch (error) {
       setNotice(`สร้าง Brief Draft ไม่สำเร็จ: ${error}`);
     } finally {
-      setIsWritingBrief(false);
+      setSavingBrief(false);
     }
   };
 
