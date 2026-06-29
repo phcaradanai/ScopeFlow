@@ -221,6 +221,10 @@ function AppContent() {
             await refreshTree();
             setSelectedFile(path);
           }}
+          onQuotationCreated={async (path) => {
+            await refreshTree();
+            setSelectedFile(path);
+          }}
         />
       )}
       {showExportModal && <ExportModal {...exportModalProps} onClose={() => setShowExportModal(false)} />}
