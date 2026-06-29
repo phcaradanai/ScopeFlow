@@ -1,12 +1,21 @@
 import YAML from 'yaml';
 import { readFileContent, writeFileContent, pathExists } from '../../tauri-commands';
 import { getAiSettings } from '../../settings';
-import { AiProvidersData } from './types';
+import { AiProvider, AiProvidersData } from './types';
+
+function normalizeProviders(providers: AiProvider[]): AiProvider[] {
+  return providers.map((provider, index) => ({
+    ...provider,
+    enabled: provider.enabled ?? true,
+    priority: provider.priority ?? index + 1,
+  }));
+}
 
 const defaultProviders: AiProvidersData = {
   enabled: false,
   activeProviderId: 'ollama-local',
-  providers: [
+  routingMode: 'priority-fallback',
+  providers: normalizeProviders([
     {
       id: 'ollama-local',
       name: 'Ollama Local',
@@ -22,7 +31,7 @@ const defaultProviders: AiProvidersData = {
       model: '',
       apiKeyRef: 'custom-openai-compatible'
     }
-  ]
+  ])
 };
 
 export async function getAiProviders(workspacePath: string): Promise<AiProvidersData> {
@@ -42,7 +51,8 @@ export async function getAiProviders(workspacePath: string): Promise<AiProviders
         const migratedData: AiProvidersData = {
           enabled: oldSettings.enabled && oldSettings.mode !== 'off',
           activeProviderId: 'ollama-local',
-          providers: [
+          routingMode: 'priority-fallback',
+          providers: normalizeProviders([
             {
               id: 'ollama-local',
               name: 'Ollama Local (Migrated)',
@@ -58,7 +68,7 @@ export async function getAiProviders(workspacePath: string): Promise<AiProviders
               model: '',
               apiKeyRef: 'custom-openai-compatible'
             }
-          ]
+          ])
         };
         
         await saveAiProviders(workspacePath, migratedData);
@@ -81,7 +91,8 @@ export async function getAiProviders(workspacePath: string): Promise<AiProviders
     return {
       enabled: parsed.enabled ?? false,
       activeProviderId: parsed.activeProviderId || 'ollama-local',
-      providers: parsed.providers || defaultProviders.providers
+      routingMode: parsed.routingMode || 'priority-fallback',
+      providers: normalizeProviders(parsed.providers || defaultProviders.providers)
     };
   } catch (err) {
     console.error("Failed to parse ai-providers.yaml:", err);
@@ -94,11 +105,12 @@ export async function saveAiProviders(workspacePath: string, data: AiProvidersDa
   
   // Create a deep copy to scrub out potential secrets if they accidentally got in
   const dataToSave: AiProvidersData = JSON.parse(JSON.stringify(data));
+  dataToSave.routingMode = dataToSave.routingMode || 'priority-fallback';
   
   // Ensure we don't save raw api keys here if any leaked into the state object
   // (Assuming api keys are only kept in providerSecrets.ts and passed when needed,
   // but if the UI state mixes them, we strip them here)
-  dataToSave.providers = dataToSave.providers.map(p => {
+  dataToSave.providers = normalizeProviders(dataToSave.providers).map(p => {
     const { ...safeProvider } = p;
     // (We only store apiKeyRef here, not the actual key)
     return safeProvider;
