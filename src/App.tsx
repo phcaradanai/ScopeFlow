@@ -14,6 +14,7 @@ import WorkspaceOverview from './components/WorkspaceOverview';
 import BriefIntakeModal from './components/BriefIntakeModal';
 import ClientOverview from './components/ClientOverview';
 import DemoFlowGuideModal from './components/demo/DemoFlowGuideModal';
+import DiscoveryStartModal from './components/brief/DiscoveryStartModal';
 import { listProjectDocuments, DocumentInfo, backupWorkspace } from './lib/tauri-commands';
 import { FolderOpen, Briefcase } from 'lucide-react';
 import { save } from '@tauri-apps/plugin-dialog';
@@ -36,6 +37,8 @@ function AppContent() {
   const [documentCreatorProps, setDocumentCreatorProps] = useState({ clientId: '', projectId: '', projectPath: '', initialType: undefined as string | undefined });
   const [showBriefIntakeModal, setShowBriefIntakeModal] = useState(false);
   const [briefIntakeProps, setBriefIntakeProps] = useState({ clientId: '', projectId: undefined as string | undefined, projectPath: undefined as string | undefined });
+  const [showDiscoveryStartModal, setShowDiscoveryStartModal] = useState(false);
+  const [discoveryStartProps, setDiscoveryStartProps] = useState({ clientId: '', projectId: undefined as string | undefined });
   const [showExportModal, setShowExportModal] = useState(false);
   const [showCompanySettings, setShowCompanySettings] = useState(false);
   const [showHealthCheck, setShowHealthCheck] = useState(false);
@@ -80,8 +83,9 @@ function AppContent() {
     setShowBriefIntakeModal(true);
   }
 
-  function handleStartFromCustomerRequest(clientId: string) {
-    handleStartBriefIntake(clientId);
+  function handleStartFromCustomerRequest(clientId: string, projectId?: string) {
+    setDiscoveryStartProps({ clientId, projectId });
+    setShowDiscoveryStartModal(true);
   }
 
   async function handleExportProject(clientId: string, projectId: string, projectPath: string) {
@@ -199,6 +203,7 @@ function AppContent() {
       {showProjectForm && <ProjectForm clientId={projectFormClientId} onClose={() => setShowProjectForm(false)} />}
       {showDocumentCreator && <DocumentCreatorModal {...documentCreatorProps} onDocumentCreated={setLifecycleFeedback} onClose={() => setShowDocumentCreator(false)} />}
       {showBriefIntakeModal && <BriefIntakeModal {...briefIntakeProps} onClose={() => setShowBriefIntakeModal(false)} />}
+      {showDiscoveryStartModal && <DiscoveryStartModal {...discoveryStartProps} onClose={() => setShowDiscoveryStartModal(false)} />}
       {showExportModal && <ExportModal {...exportModalProps} onClose={() => setShowExportModal(false)} />}
       {showCompanySettings && <CompanySettingsModal workspacePath={activeWorkspacePath} onClose={() => setShowCompanySettings(false)} />}
       {showHealthCheck && <HealthCheckModal onClose={() => setShowHealthCheck(false)} />}
