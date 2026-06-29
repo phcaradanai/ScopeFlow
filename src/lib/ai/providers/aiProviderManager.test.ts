@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getAiProviders } from './providerSettings';
+import { generateJsonWithTrace } from './aiProviderRouter';
 import { generateOpenAi } from './openAiCompatibleProvider';
 import { generateOllama } from './ollamaProvider';
 import { AiProvider } from './types';
 import * as tauriCommands from '../../tauri-commands';
 import * as settings from '../../settings';
+import * as providerSecrets from './providerSecrets';
 
 // Mock dependencies
 vi.mock('../../tauri-commands', () => ({
@@ -15,6 +17,10 @@ vi.mock('../../tauri-commands', () => ({
 
 vi.mock('../../settings', () => ({
   getAiSettings: vi.fn(),
+}));
+
+vi.mock('./providerSecrets', () => ({
+  getProviderApiKey: vi.fn(),
 }));
 
 // Mock fetch globally
@@ -45,8 +51,11 @@ describe('AI Provider Manager', () => {
       const providersData = await getAiProviders('/mock/workspace');
       
       expect(providersData.enabled).toBe(true);
+      expect(providersData.routingMode).toBe('priority-fallback');
       expect(providersData.providers[0].baseUrl).toBe('http://custom-host:11434');
       expect(providersData.providers[0].model).toBe('custom-model');
+      expect(providersData.providers[0].enabled).toBe(true);
+      expect(providersData.providers[0].priority).toBe(1);
       expect(tauriCommands.writeFileContent).toHaveBeenCalledWith(
         '/mock/workspace/.scopeflow/ai-providers.yaml',
         expect.any(String)
@@ -59,9 +68,87 @@ describe('AI Provider Manager', () => {
       const providersData = await getAiProviders('/mock/workspace');
       
       expect(providersData.enabled).toBe(false);
+      expect(providersData.routingMode).toBe('priority-fallback');
       expect(providersData.providers.length).toBe(2);
       expect(providersData.providers[0].type).toBe('ollama');
       expect(providersData.providers[1].type).toBe('openai-compatible');
+    });
+  });
+
+  describe('Provider routing', () => {
+    it('should try the active provider first and fall back to the next usable provider', async () => {
+      vi.mocked(tauriCommands.pathExists).mockResolvedValue(true);
+      vi.mocked(providerSecrets.getProviderApiKey).mockResolvedValue('fallback-key');
+      vi.mocked(tauriCommands.readFileContent).mockResolvedValue(`
+enabled: true
+activeProviderId: primary
+routingMode: priority-fallback
+providers:
+  - id: primary
+    name: Primary Provider
+    type: openai-compatible
+    baseUrl: https://primary.test/v1
+    model: primary-model
+    apiKeyRef: primary
+    enabled: true
+    priority: 1
+  - id: fallback
+    name: Fallback Provider
+    type: openai-compatible
+    baseUrl: https://fallback.test/v1
+    model: fallback-model
+    apiKeyRef: fallback
+    enabled: true
+    priority: 2
+`);
+
+      globalFetch
+        .mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Server Error' })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ choices: [{ message: { content: '{"ok":true}' } }] })
+        });
+
+      const routed = await generateJsonWithTrace('/mock/workspace', 'Build JSON');
+
+      expect(routed.result).toEqual({ ok: true });
+      expect(routed.providerId).toBe('fallback');
+      expect(routed.attempts).toEqual([
+        expect.objectContaining({ providerId: 'primary', ok: false }),
+        expect.objectContaining({ providerId: 'fallback', ok: true }),
+      ]);
+    });
+
+    it('should respect active-only routing mode', async () => {
+      vi.mocked(tauriCommands.pathExists).mockResolvedValue(true);
+      vi.mocked(providerSecrets.getProviderApiKey).mockResolvedValue('key');
+      vi.mocked(tauriCommands.readFileContent).mockResolvedValue(`
+enabled: true
+activeProviderId: primary
+routingMode: active-only
+providers:
+  - id: primary
+    name: Primary Provider
+    type: openai-compatible
+    baseUrl: https://primary.test/v1
+    model: primary-model
+    apiKeyRef: primary
+    enabled: true
+    priority: 1
+  - id: fallback
+    name: Fallback Provider
+    type: openai-compatible
+    baseUrl: https://fallback.test/v1
+    model: fallback-model
+    apiKeyRef: fallback
+    enabled: true
+    priority: 2
+`);
+
+      globalFetch.mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Server Error' });
+
+      await expect(generateJsonWithTrace('/mock/workspace', 'Build JSON')).rejects.toThrow('All configured AI providers failed');
+      expect(globalFetch).toHaveBeenCalledTimes(1);
     });
   });
 
