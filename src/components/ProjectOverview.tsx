@@ -10,15 +10,9 @@ import ProjectWorkflowStats from './project/ProjectWorkflowStats';
 import DocumentList from './project/DocumentList';
 import ProjectLifecycleCommandCenter from './project/ProjectLifecycleCommandCenter';
 import CustomerAnswerIntakePanel from './project/CustomerAnswerIntakePanel';
+import DocumentCreationPreviewModal from './project/DocumentCreationPreviewModal';
+import { useLifecycleActionDispatcher } from '../hooks/useLifecycleActionDispatcher';
 import type { CustomerAnswerWorkflowContext } from '../lib/ai/customer-answer/customerAnswerWorkflowContext';
-import { scanDocumentLifecycleFromFiles } from '../lib/ai/document-lifecycle/documentLifecycleFileScan';
-import { buildDocumentLifecycleSummary } from '../lib/ai/document-lifecycle/documentLifecycle';
-import { getDocumentLifecycleActionTarget } from '../lib/ai/document-lifecycle/documentLifecycleAction';
-import { getLifecycleCommandAction } from '../lib/ai/document-lifecycle/documentLifecycleCommandAction';
-import { getCloseoutReopenRequestSummary } from '../lib/ai/closeout/closeoutReopenDetection';
-import { getLatestCloseoutReopenDecisionSummary } from '../lib/ai/closeout/closeoutReopenDecisionDetection';
-import { getCloseoutReopenNextAction } from '../lib/ai/closeout/closeoutReopenNextAction';
-import { getCloseoutReopenActionTarget } from '../lib/ai/closeout/closeoutReopenActionTarget';
 
 interface ProjectOverviewProps {
   projectPath: string;
@@ -49,7 +43,7 @@ function buildCustomerAnswerDocumentContext(
   customerAnswerContext: CustomerAnswerWorkflowContext
 ) {
   return {
-    source: 'customer_answer',
+    source: 'customer_answer' as const,
     initialType,
     reason,
     projectPath,
@@ -101,16 +95,25 @@ export default function ProjectOverview({
     markdown: doc.markdown || '',
   }));
 
-  const lifecycleInput = scanDocumentLifecycleFromFiles(scanFiles);
-  const lifecycleSummary = buildDocumentLifecycleSummary(lifecycleInput);
-  const lifecycleActionTarget = getDocumentLifecycleActionTarget(scanFiles, lifecycleInput);
-  const reopenSummary = getCloseoutReopenRequestSummary(scanFiles);
-  const reopenDecisionSummary = getLatestCloseoutReopenDecisionSummary(scanFiles);
-  const lifecycleDisplayNextAction = getCloseoutReopenNextAction(reopenDecisionSummary, lifecycleSummary.next_action);
-  const lifecycleDisplayActionTarget = getCloseoutReopenActionTarget(lifecycleActionTarget, reopenSummary, reopenDecisionSummary);
-  const lifecycleCommandAction = getLifecycleCommandAction(lifecycleDisplayActionTarget, lifecycleInput);
-
   const { clientId, projectId } = getProjectPathIds(projectPath);
+
+  const {
+    showPreviewModal,
+    setShowPreviewModal,
+    priority,
+    displayNextAction,
+    commandAction,
+    explanation,
+    executeAction,
+    confirmCreateDocument,
+  } = useLifecycleActionDispatcher({
+    scanFiles,
+    projectPath,
+    onOpenDocument,
+    onOpenProject: () => onOpenDocument(projectPath),
+    onStartBriefIntake: onStartBriefIntake ? () => onStartBriefIntake(clientId, projectId, projectPath) : undefined,
+    onCreateDocument: (initialType?: string, lifecycleContext?: any) => onCreateDocument(clientId, projectId, projectPath, initialType, lifecycleContext),
+  });
 
   const handleCreateCustomerAnswerDocument = (
     initialType: string,
@@ -125,30 +128,6 @@ export default function ProjectOverview({
       initialType,
       buildCustomerAnswerDocumentContext(projectPath, initialType, reason, recommendationWhy, customerAnswerContext)
     );
-  };
-
-  const handleContinueCustomerAnswerLifecycle = (customerAnswerContext: CustomerAnswerWorkflowContext) => {
-    if (lifecycleCommandAction.kind === 'open_document' && lifecycleCommandAction.file_path) {
-      onOpenDocument(lifecycleCommandAction.file_path);
-      return;
-    }
-
-    if (lifecycleCommandAction.kind === 'start_brief_intake' && onStartBriefIntake) {
-      onStartBriefIntake(clientId, projectId, projectPath);
-      return;
-    }
-
-    if (lifecycleCommandAction.kind === 'create_document') {
-      handleCreateCustomerAnswerDocument(
-        lifecycleCommandAction.initial_type || 'document',
-        customerAnswerContext,
-        lifecycleCommandAction.guidance,
-        lifecycleDisplayNextAction
-      );
-      return;
-    }
-
-    onOpenDocument(projectPath);
   };
 
   const Header = (
@@ -184,11 +163,11 @@ export default function ProjectOverview({
       <ProjectLifecycleCommandCenter
         projectName={projectName}
         projectPath={projectPath}
-        scanFiles={scanFiles}
-        onOpenDocument={onOpenDocument}
-        onOpenProject={() => onOpenDocument(projectPath)}
-        onStartBriefIntake={onStartBriefIntake ? () => onStartBriefIntake(clientId, projectId, projectPath) : undefined}
-        onCreateDocument={(initialType, lifecycleContext) => onCreateDocument(clientId, projectId, projectPath, initialType, lifecycleContext)}
+        priority={priority}
+        displayNextAction={displayNextAction}
+        commandAction={commandAction}
+        explanation={explanation}
+        onExecuteAction={executeAction}
         lifecycleFeedback={lifecycleFeedback}
         onClearLifecycleFeedback={onClearLifecycleFeedback}
       />
@@ -197,20 +176,20 @@ export default function ProjectOverview({
         <CustomerAnswerIntakePanel
           scanFiles={scanFiles}
           onOpenDocument={onOpenDocument}
-          onCreateChangeRequest={(customerAnswerContext) => handleCreateCustomerAnswerDocument(
+          onCreateChangeRequest={(customerAnswerContext: CustomerAnswerWorkflowContext) => handleCreateCustomerAnswerDocument(
             'cr',
             customerAnswerContext,
             'Customer answer indicates a possible scope change. Prepare CR/DCR instead of silently changing the current scope.',
             customerAnswerContext.recommendedAction
           )}
-          onCreateFollowUp={(customerAnswerContext) => handleCreateCustomerAnswerDocument(
+          onCreateFollowUp={(customerAnswerContext: CustomerAnswerWorkflowContext) => handleCreateCustomerAnswerDocument(
             'followup',
             customerAnswerContext,
             'Customer answer needs clarification before updating the project baseline or commercial documents.',
             customerAnswerContext.recommendedAction
           )}
-          onContinueLifecycle={handleContinueCustomerAnswerLifecycle}
-          onStartRevisionReview={(customerAnswerContext) => handleCreateCustomerAnswerDocument(
+          onContinueLifecycle={() => executeAction()}
+          onStartRevisionReview={(customerAnswerContext: CustomerAnswerWorkflowContext) => handleCreateCustomerAnswerDocument(
             'revision',
             customerAnswerContext,
             'Customer rejected or did not accept the current artifact. Start revision review before changing scope/quotation.',
@@ -287,6 +266,17 @@ export default function ProjectOverview({
         projectPath={projectPath}
         onCreateDocument={onCreateDocument}
         onStartBriefIntake={onStartBriefIntake}
+      />
+
+      <DocumentCreationPreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        onConfirm={confirmCreateDocument}
+        documentType={commandAction.initial_type}
+        projectName={projectName || 'Current Project'}
+        reason={commandAction.guidance}
+        lifecycleStage={priority.label}
+        recommendationWhy={displayNextAction}
       />
     </PageShell>
   );
