@@ -217,6 +217,10 @@ function AppContent() {
             await refreshTree();
             setSelectedFile(path);
           }}
+          onScopeCreated={async (path) => {
+            await refreshTree();
+            setSelectedFile(path);
+          }}
         />
       )}
       {showExportModal && <ExportModal {...exportModalProps} onClose={() => setShowExportModal(false)} />}
