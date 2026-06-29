@@ -38,7 +38,7 @@ function AppContent() {
   const [showBriefIntakeModal, setShowBriefIntakeModal] = useState(false);
   const [briefIntakeProps, setBriefIntakeProps] = useState({ clientId: '', projectId: undefined as string | undefined, projectPath: undefined as string | undefined });
   const [showDiscoveryStartModal, setShowDiscoveryStartModal] = useState(false);
-  const [discoveryStartProps, setDiscoveryStartProps] = useState({ clientId: '', projectId: undefined as string | undefined });
+  const [discoveryStartProps, setDiscoveryStartProps] = useState({ clientId: '', projectId: undefined as string | undefined, projectPath: undefined as string | undefined });
   const [showExportModal, setShowExportModal] = useState(false);
   const [showCompanySettings, setShowCompanySettings] = useState(false);
   const [showHealthCheck, setShowHealthCheck] = useState(false);
@@ -79,12 +79,12 @@ function AppContent() {
   }
 
   function handleStartBriefIntake(clientId: string, projectId?: string, projectPath?: string) {
-    setBriefIntakeProps({ clientId, projectId, projectPath });
-    setShowBriefIntakeModal(true);
+    setDiscoveryStartProps({ clientId, projectId, projectPath });
+    setShowDiscoveryStartModal(true);
   }
 
-  function handleStartFromCustomerRequest(clientId: string, projectId?: string) {
-    setDiscoveryStartProps({ clientId, projectId });
+  function handleStartFromCustomerRequest(clientId: string, projectId?: string, projectPath?: string) {
+    setDiscoveryStartProps({ clientId, projectId, projectPath });
     setShowDiscoveryStartModal(true);
   }
 
