@@ -10,8 +10,8 @@ describe('briefConversationLoop', () => {
 
     expect(state.status).toBe('collecting');
     expect(state.readiness.level).toBe('not_ready');
-    expect(state.nextQuestion?.signalId).toBe('users');
-    expect(state.nextQuestion?.question).toContain('ใครคือผู้ใช้งานหลัก');
+    expect(state.nextQuestion?.signalId).toBe('features');
+    expect(state.nextQuestion?.question).toContain('ฟีเจอร์ที่จำเป็นต้องมี');
   });
 
   it('appends customer answers and consolidates them into the next readiness pass', () => {
