@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import DiscoveryWorkspaceContainer from './DiscoveryWorkspaceContainer';
 import { createDiscoveryBriefFile } from '../../lib/ai/brief-assistant/discoveryBriefFile';
 import { createDiscoveryScopeFile } from '../../lib/ai/brief-assistant/discoveryScopeFile';
+import { createDiscoveryQuotationFile } from '../../lib/ai/brief-assistant/discoveryQuotationFile';
 import type { DiscoverySession } from '../../lib/ai/brief-assistant/discoverySession';
 
 interface DiscoveryStartModalProps {
@@ -12,15 +13,17 @@ interface DiscoveryStartModalProps {
   onClose: () => void;
   onBriefCreated?: (path: string) => void;
   onScopeCreated?: (path: string) => void;
+  onQuotationCreated?: (path: string) => void;
   onCreateBriefDraft?: (session: DiscoverySession) => void;
 }
 
-export default function DiscoveryStartModal({ clientId, projectId, projectPath, onClose, onBriefCreated, onScopeCreated, onCreateBriefDraft }: DiscoveryStartModalProps) {
+export default function DiscoveryStartModal({ clientId, projectId, projectPath, onClose, onBriefCreated, onScopeCreated, onQuotationCreated, onCreateBriefDraft }: DiscoveryStartModalProps) {
   const [rawRequest, setRawRequest] = useState('');
   const [started, setStarted] = useState(false);
   const [notice, setNotice] = useState('');
   const [savingBrief, setSavingBrief] = useState(false);
   const [savingScope, setSavingScope] = useState(false);
+  const [savingQuotation, setSavingQuotation] = useState(false);
 
   const canStart = rawRequest.trim().length > 0;
 
@@ -74,6 +77,29 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
     }
   };
 
+  const handleGenerateQuotation = async (session: DiscoverySession) => {
+    if (!projectId || !projectPath) {
+      setNotice('Quotation ready. Create or open a project first, then run Start Discovery from that project to write Quotation.md.');
+      return;
+    }
+
+    try {
+      setSavingQuotation(true);
+      const result = await createDiscoveryQuotationFile({
+        session,
+        clientId,
+        projectId,
+        projectPath,
+      });
+      setNotice(`สร้าง Quotation Draft แล้ว: ${result.path}`);
+      onQuotationCreated?.(result.path);
+    } catch (error) {
+      setNotice(`สร้าง Quotation Draft ไม่สำเร็จ: ${error}`);
+    } finally {
+      setSavingQuotation(false);
+    }
+  };
+
   return (
     <div className="modal-overlay">
       <div className="modal-container !max-w-6xl">
@@ -115,7 +141,7 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
               rawRequest={rawRequest}
               onGenerateBrief={handleGenerateBrief}
               onGenerateScope={handleGenerateScope}
-              onGenerateQuotation={() => setNotice('Quotation readiness reached. Next integration will generate Quotation from this session.')}
+              onGenerateQuotation={handleGenerateQuotation}
             />
           )}
 
@@ -128,6 +154,12 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
           {savingScope && (
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-primary">
               กำลังสร้าง Scope file จาก Discovery Session...
+            </div>
+          )}
+
+          {savingQuotation && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-primary">
+              กำลังสร้าง Quotation file จาก Discovery Session...
             </div>
           )}
 
