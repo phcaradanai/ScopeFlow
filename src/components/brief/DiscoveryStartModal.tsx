@@ -2,20 +2,54 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import DiscoveryWorkspaceContainer from './DiscoveryWorkspaceContainer';
 import type { DiscoverySession } from '../../lib/ai/brief-assistant/discoverySession';
+import { buildDiscoveryBriefMarkdown } from '../../lib/ai/brief-assistant/discoveryBriefDraft';
+import { createDocument } from '../../lib/tauri-commands';
 
 interface DiscoveryStartModalProps {
   clientId: string;
   projectId?: string;
+  projectPath?: string;
   onClose: () => void;
+  onBriefCreated?: (path: string) => void;
   onCreateBriefDraft?: (session: DiscoverySession) => void;
 }
 
-export default function DiscoveryStartModal({ clientId, projectId, onClose, onCreateBriefDraft }: DiscoveryStartModalProps) {
+function buildDiscoveryBriefPath(projectPath: string): string {
+  return `${projectPath.replace(/\/$/, '')}/baseline/brief-discovery-draft.md`;
+}
+
+export default function DiscoveryStartModal({ clientId, projectId, projectPath, onClose, onBriefCreated, onCreateBriefDraft }: DiscoveryStartModalProps) {
   const [rawRequest, setRawRequest] = useState('');
   const [started, setStarted] = useState(false);
   const [notice, setNotice] = useState('');
+  const [isWritingBrief, setIsWritingBrief] = useState(false);
 
   const canStart = rawRequest.trim().length > 0;
+
+  const handleGenerateBrief = async (session: DiscoverySession) => {
+    if (onCreateBriefDraft) {
+      onCreateBriefDraft(session);
+      return;
+    }
+
+    if (!projectId || !projectPath) {
+      setNotice('Brief ready. Create or open a project first, then run Start Discovery from that project to write Brief.md.');
+      return;
+    }
+
+    try {
+      setIsWritingBrief(true);
+      const outputPath = buildDiscoveryBriefPath(projectPath);
+      const markdown = buildDiscoveryBriefMarkdown(session, clientId, projectId);
+      await createDocument(outputPath, markdown);
+      setNotice(`สร้าง Brief Draft แล้ว: ${outputPath}`);
+      onBriefCreated?.(outputPath);
+    } catch (error) {
+      setNotice(`สร้าง Brief Draft ไม่สำเร็จ: ${error}`);
+    } finally {
+      setIsWritingBrief(false);
+    }
+  };
 
   return (
     <div className="modal-overlay">
@@ -56,16 +90,16 @@ export default function DiscoveryStartModal({ clientId, projectId, onClose, onCr
               clientId={clientId}
               projectId={projectId}
               rawRequest={rawRequest}
-              onGenerateBrief={(session) => {
-                if (onCreateBriefDraft) {
-                  onCreateBriefDraft(session);
-                  return;
-                }
-                setNotice('Brief readiness reached. Open Preview Brief + Scope to generate documents.');
-              }}
+              onGenerateBrief={handleGenerateBrief}
               onGenerateScope={() => setNotice('Scope readiness reached. Next integration will generate Scope from this session.')}
               onGenerateQuotation={() => setNotice('Quotation readiness reached. Next integration will generate Quotation from this session.')}
             />
+          )}
+
+          {isWritingBrief && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-primary">
+              กำลังสร้าง Brief Draft...
+            </div>
           )}
 
           {notice && (
