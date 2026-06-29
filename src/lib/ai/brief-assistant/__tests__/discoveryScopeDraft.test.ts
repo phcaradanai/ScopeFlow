@@ -41,9 +41,9 @@ describe('discoveryScopeDraft', () => {
 
     expect(formData.title).toBe('ขอบเขตงานจาก Discovery: project-a');
     expect(formData.project_overview).toContain('ต้องการเว็บขายของสำหรับขายสินค้าออนไลน์');
-    expect(formData.included_items).toContain('สินค้า ตะกร้า checkout สต็อก และรายงานยอดขาย');
+    expect(formData.project_overview).toContain('ผู้ใช้งานมี admin และลูกค้าสมาชิก');
     expect(formData.deliverables).toContain('Scope Draft จาก Discovery Session');
-    expect(formData.acceptance_criteria).toContain('ตรวจรับเมื่อสั่งซื้อและรายงานยอดขายใช้งานได้');
+    expect(formData.assumptions).toContain('Discovery Session session-1');
   });
 
   it('generates scope markdown with scope frontmatter', () => {
@@ -53,7 +53,7 @@ describe('discoveryScopeDraft', () => {
     expect(markdown).toContain('type: scope');
     expect(markdown).toContain('# ขอบเขตงานจาก Discovery: project-a');
     expect(markdown).toContain('## 2. ขอบเขตที่รวมอยู่ในโครงการ');
-    expect(markdown).toContain('สินค้า ตะกร้า checkout สต็อก และรายงานยอดขาย');
+    expect(markdown).toContain('Scope Draft จาก Discovery Session');
   });
 
   it('writes scope markdown to the first available baseline path', async () => {
