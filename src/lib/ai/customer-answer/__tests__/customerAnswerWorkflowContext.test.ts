@@ -11,7 +11,7 @@ const lifecycleSummary = {
 
 describe('buildCustomerAnswerWorkflowContext', () => {
   it('keeps the original answer and deterministic action metadata for scope changes', () => {
-    const answer = 'ขอเพิ่มระบบรายงานยอดขายอีกนิดได้ไหม';
+    const answer = 'ขอเปลี่ยนขอบเขตงานให้รวม export รายงานด้วย';
     const result = classifyCustomerAnswer(answer);
     const affectedDocs = computeCustomerAnswerImpactPreview(result.intent, true, lifecycleSummary);
     const contextReferences = [
