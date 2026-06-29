@@ -79,12 +79,18 @@ function AppContent() {
   }
 
   function handleStartBriefIntake(clientId: string, projectId?: string, projectPath?: string) {
-    setDiscoveryStartProps({ clientId, projectId, projectPath });
-    setShowDiscoveryStartModal(true);
+    if (projectPath) {
+      setDiscoveryStartProps({ clientId, projectId, projectPath });
+      setShowDiscoveryStartModal(true);
+      return;
+    }
+
+    setBriefIntakeProps({ clientId, projectId, projectPath });
+    setShowBriefIntakeModal(true);
   }
 
-  function handleStartFromCustomerRequest(clientId: string, projectId?: string, projectPath?: string) {
-    setDiscoveryStartProps({ clientId, projectId, projectPath });
+  function handleStartFromCustomerRequest(clientId: string, projectId?: string) {
+    setDiscoveryStartProps({ clientId, projectId, projectPath: undefined });
     setShowDiscoveryStartModal(true);
   }
 
@@ -203,7 +209,16 @@ function AppContent() {
       {showProjectForm && <ProjectForm clientId={projectFormClientId} onClose={() => setShowProjectForm(false)} />}
       {showDocumentCreator && <DocumentCreatorModal {...documentCreatorProps} onDocumentCreated={setLifecycleFeedback} onClose={() => setShowDocumentCreator(false)} />}
       {showBriefIntakeModal && <BriefIntakeModal {...briefIntakeProps} onClose={() => setShowBriefIntakeModal(false)} />}
-      {showDiscoveryStartModal && <DiscoveryStartModal {...discoveryStartProps} onClose={() => setShowDiscoveryStartModal(false)} />}
+      {showDiscoveryStartModal && (
+        <DiscoveryStartModal
+          {...discoveryStartProps}
+          onClose={() => setShowDiscoveryStartModal(false)}
+          onBriefCreated={async (path) => {
+            await refreshTree();
+            setSelectedFile(path);
+          }}
+        />
+      )}
       {showExportModal && <ExportModal {...exportModalProps} onClose={() => setShowExportModal(false)} />}
       {showCompanySettings && <CompanySettingsModal workspacePath={activeWorkspacePath} onClose={() => setShowCompanySettings(false)} />}
       {showHealthCheck && <HealthCheckModal onClose={() => setShowHealthCheck(false)} />}

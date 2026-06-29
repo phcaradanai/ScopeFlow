@@ -4,20 +4,27 @@ import { useWorkspace } from '../../lib/workspace-context';
 import DiscoveryWorkspaceContainer from './DiscoveryWorkspaceContainer';
 import { createDiscoveryBriefFile } from '../../lib/ai/brief-assistant/discoveryBriefFile';
 import type { DiscoverySession } from '../../lib/ai/brief-assistant/discoverySession';
+import { buildDiscoveryBriefMarkdown } from '../../lib/ai/brief-assistant/discoveryBriefDraft';
+import { createDocument } from '../../lib/tauri-commands';
 
 interface DiscoveryStartModalProps {
   clientId: string;
   projectId?: string;
   projectPath?: string;
   onClose: () => void;
+  onBriefCreated?: (path: string) => void;
   onCreateBriefDraft?: (session: DiscoverySession) => void;
 }
 
-export default function DiscoveryStartModal({ clientId, projectId, projectPath, onClose, onCreateBriefDraft }: DiscoveryStartModalProps) {
-  const { refreshTree, setSelectedFile } = useWorkspace();
+function buildDiscoveryBriefPath(projectPath: string): string {
+  return `${projectPath.replace(/\/$/, '')}/baseline/brief-discovery-draft.md`;
+}
+
+export default function DiscoveryStartModal({ clientId, projectId, projectPath, onClose, onBriefCreated, onCreateBriefDraft }: DiscoveryStartModalProps) {
   const [rawRequest, setRawRequest] = useState('');
   const [started, setStarted] = useState(false);
   const [notice, setNotice] = useState('');
+  const [isWritingBrief, setIsWritingBrief] = useState(false);
   const [savingBrief, setSavingBrief] = useState(false);
 
   const canStart = rawRequest.trim().length > 0;
@@ -29,21 +36,21 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
     }
 
     if (!projectId || !projectPath) {
-      setNotice('ต้องสร้างหรือเลือกโปรเจกต์ก่อน จึงจะบันทึก Brief file จาก Discovery Session ได้');
+      setNotice('Brief ready. Create or open a project first, then run Start Discovery from that project to write Brief.md.');
       return;
     }
 
     try {
-      setSavingBrief(true);
-      setNotice('');
-      const result = await createDiscoveryBriefFile({ session, clientId, projectId, projectPath });
-      await refreshTree();
-      setSelectedFile(result.path);
-      onClose();
+      setIsWritingBrief(true);
+      const outputPath = buildDiscoveryBriefPath(projectPath);
+      const markdown = buildDiscoveryBriefMarkdown(session, clientId, projectId);
+      await createDocument(outputPath, markdown);
+      setNotice(`สร้าง Brief Draft แล้ว: ${outputPath}`);
+      onBriefCreated?.(outputPath);
     } catch (error) {
-      setNotice(String(error));
+      setNotice(`สร้าง Brief Draft ไม่สำเร็จ: ${error}`);
     } finally {
-      setSavingBrief(false);
+      setIsWritingBrief(false);
     }
   };
 
