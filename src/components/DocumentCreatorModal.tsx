@@ -122,7 +122,7 @@ const DOCUMENT_TYPES = [
 ];
 
 export interface LifecycleActionContext {
-  source: 'recommended_next_action';
+  source: 'recommended_next_action' | 'customer_answer';
   initialType: string;
   reason: string;
   projectPath: string;
