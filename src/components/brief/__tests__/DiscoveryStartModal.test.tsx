@@ -3,6 +3,7 @@ import '@testing-library/jest-dom';
 import { describe, expect, it, vi } from 'vitest';
 import DiscoveryStartModal from '../DiscoveryStartModal';
 import { createDiscoveryBriefFile } from '../../../lib/ai/brief-assistant/discoveryBriefFile';
+import { createDiscoveryScopeFile } from '../../../lib/ai/brief-assistant/discoveryScopeFile';
 
 vi.mock('../../../lib/ai/brief-assistant/discoveryBriefFile', () => ({
   createDiscoveryBriefFile: vi.fn().mockResolvedValue({
@@ -10,6 +11,15 @@ vi.mock('../../../lib/ai/brief-assistant/discoveryBriefFile', () => ({
     markdown: '---\ntype: brief\n---',
   }),
 }));
+
+vi.mock('../../../lib/ai/brief-assistant/discoveryScopeFile', () => ({
+  createDiscoveryScopeFile: vi.fn().mockResolvedValue({
+    path: '/workspace/clients/client-a/projects/project-a/baseline/scope-from-discovery.md',
+    markdown: '---\ntype: scope\n---',
+  }),
+}));
+
+const readyRequest = 'ต้องการเว็บขายของ มี admin ลูกค้า สินค้า ตะกร้า checkout ใช้งานบน web browser ข้อมูลจาก excel เชื่อม payment มีงบ 100000 บาท ภายใน 1 เดือน ตรวจรับเมื่อสั่งซื้อและรายงานใช้งานได้';
 
 describe('DiscoveryStartModal', () => {
   it('starts discovery from a raw customer request', () => {
@@ -43,11 +53,7 @@ describe('DiscoveryStartModal', () => {
     );
 
     const textarea = screen.getByPlaceholderText('วางข้อความจากลูกค้าที่นี่ เช่น อยากทำระบบขายของออนไลน์...');
-    fireEvent.change(textarea, {
-      target: {
-        value: 'ต้องการเว็บขายของ มี admin ลูกค้า สินค้า ตะกร้า checkout ใช้งานบน web browser ข้อมูลจาก excel เชื่อม payment มีงบ 100000 บาท ภายใน 1 เดือน ตรวจรับเมื่อสั่งซื้อและรายงานใช้งานได้',
-      },
-    });
+    fireEvent.change(textarea, { target: { value: readyRequest } });
     fireEvent.click(screen.getByRole('button', { name: 'Start Discovery' }));
     fireEvent.click(screen.getByRole('button', { name: 'Generate Brief' }));
 
@@ -58,6 +64,32 @@ describe('DiscoveryStartModal', () => {
         projectPath: '/workspace/clients/client-a/projects/project-a',
       }));
       expect(onBriefCreated).toHaveBeenCalledWith('/workspace/clients/client-a/projects/project-a/baseline/brief-from-discovery.md');
+    });
+  });
+
+  it('writes a discovery scope draft when project context exists', async () => {
+    const onScopeCreated = vi.fn();
+    render(
+      <DiscoveryStartModal
+        clientId="client-a"
+        projectId="project-a"
+        projectPath="/workspace/clients/client-a/projects/project-a"
+        onClose={vi.fn()}
+        onScopeCreated={onScopeCreated}
+      />
+    );
+
+    const textarea = screen.getByPlaceholderText('วางข้อความจากลูกค้าที่นี่ เช่น อยากทำระบบขายของออนไลน์...');
+    fireEvent.change(textarea, { target: { value: readyRequest } });
+    fireEvent.click(screen.getByRole('button', { name: 'Start Discovery' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate Scope' }));
+
+    await waitFor(() => {
+      expect(createDiscoveryScopeFile).toHaveBeenCalledWith(expect.objectContaining({
+        projectId: 'project-a',
+        projectPath: '/workspace/clients/client-a/projects/project-a',
+      }));
+      expect(onScopeCreated).toHaveBeenCalledWith('/workspace/clients/client-a/projects/project-a/baseline/scope-from-discovery.md');
     });
   });
 });
