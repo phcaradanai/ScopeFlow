@@ -27,7 +27,7 @@ interface ProjectOverviewProps {
 }
 
 function getProjectPathIds(projectPath: string): { clientId: string; projectId: string } {
-  const normalized = projectPath.replace(/\/g, '/');
+  const normalized = projectPath.split('\\').join('/');
   const parts = normalized.split('/').filter(Boolean);
   const clientsIndex = parts.lastIndexOf('clients');
   const projectsIndex = parts.lastIndexOf('projects');
