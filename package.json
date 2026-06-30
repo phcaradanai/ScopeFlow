@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "eslint . --fix",
     "dev": "vite",
-    "build": "tsc && eslint . && vite build",
+    "build": "tsc -p tsconfig.app.json && eslint . && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
