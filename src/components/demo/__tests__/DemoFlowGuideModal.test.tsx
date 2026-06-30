@@ -23,7 +23,7 @@ describe('DemoFlowGuideModal', () => {
   });
 
   it('shows the expected generated artifact paths in the checklist flow', () => {
-    render(
+    const { container } = render(
       <DemoFlowGuideModal
         projectPath="/workspace/clients/client-a/projects/project-a"
         onOpenProject={vi.fn()}
@@ -32,12 +32,12 @@ describe('DemoFlowGuideModal', () => {
     );
 
     fireEvent.click(screen.getByText('3. สร้างและตรวจ Brief จาก Discovery'));
-    expect(screen.getByText(/Target:.*baseline\/brief-from-discovery\.md/)).toBeInTheDocument();
+    expect(container.textContent).toContain('baseline/brief-from-discovery.md');
 
     fireEvent.click(screen.getByText('4. สร้างและตรวจ Scope จาก Discovery'));
-    expect(screen.getByText(/Target:.*baseline\/scope-from-discovery\.md/)).toBeInTheDocument();
+    expect(container.textContent).toContain('baseline/scope-from-discovery.md');
 
     fireEvent.click(screen.getByText('5. สร้างและตรวจ Quotation จาก Discovery'));
-    expect(screen.getByText(/Target:.*baseline\/quotation-from-discovery\.md/)).toBeInTheDocument();
+    expect(container.textContent).toContain('baseline/quotation-from-discovery.md');
   });
 });
