@@ -27,7 +27,7 @@ interface ProjectOverviewProps {
 }
 
 function getProjectPathIds(projectPath: string): { clientId: string; projectId: string } {
-  const normalized = projectPath.replace(/\\/g, '/');
+  const normalized = projectPath.replace(/\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
   const clientsIndex = parts.lastIndexOf('clients');
   const projectsIndex = parts.lastIndexOf('projects');
@@ -172,9 +172,9 @@ export default function ProjectOverview({
   return (
     <PageShell header={Header}>
       <MvpGuidedPath
-        hasBrief={briefDocs.length > 0}
-        hasScope={scopeDocs.length > 0}
-        hasQuotation={quotationDocs.length > 0}
+        hasBrief={briefDocs > 0}
+        hasScope={scopeDocs > 0}
+        hasQuotation={quotationDocs > 0}
         onStartDiscovery={handleStartDiscovery}
       />
 
@@ -278,23 +278,17 @@ export default function ProjectOverview({
       </div>
 
       <DocumentList
-        filteredDocs={filteredDocs}
+        documents={filteredDocs}
         onOpenDocument={onOpenDocument}
-        clientId={clientId}
-        projectPath={projectPath}
-        onCreateDocument={onCreateDocument}
-        onStartBriefIntake={onStartBriefIntake}
       />
 
       <DocumentCreationPreviewModal
         isOpen={showPreviewModal}
         onClose={() => setShowPreviewModal(false)}
+        priority={priority}
+        action={displayNextAction}
+        explanation={explanation}
         onConfirm={confirmCreateDocument}
-        documentType={commandAction.initial_type}
-        projectName={projectName || 'Current Project'}
-        reason={commandAction.guidance}
-        lifecycleStage={priority.label}
-        recommendationWhy={displayNextAction}
       />
     </PageShell>
   );
