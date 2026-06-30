@@ -278,17 +278,23 @@ export default function ProjectOverview({
       </div>
 
       <DocumentList
-        documents={filteredDocs}
+        filteredDocs={filteredDocs}
         onOpenDocument={onOpenDocument}
+        clientId={clientId}
+        projectPath={projectPath}
+        onCreateDocument={onCreateDocument}
+        onStartBriefIntake={onStartBriefIntake}
       />
 
       <DocumentCreationPreviewModal
         isOpen={showPreviewModal}
         onClose={() => setShowPreviewModal(false)}
-        priority={priority}
-        action={displayNextAction}
-        explanation={explanation}
         onConfirm={confirmCreateDocument}
+        documentType={commandAction.initial_type}
+        projectName={projectName || 'Current Project'}
+        reason={commandAction.guidance}
+        lifecycleStage={priority.label}
+        recommendationWhy={displayNextAction}
       />
     </PageShell>
   );
