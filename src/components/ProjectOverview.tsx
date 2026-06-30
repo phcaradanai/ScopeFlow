@@ -11,6 +11,7 @@ import DocumentList from './project/DocumentList';
 import ProjectLifecycleCommandCenter from './project/ProjectLifecycleCommandCenter';
 import CustomerAnswerIntakePanel from './project/CustomerAnswerIntakePanel';
 import DocumentCreationPreviewModal from './project/DocumentCreationPreviewModal';
+import MvpGuidedPath from './project/MvpGuidedPath';
 import { useLifecycleActionDispatcher } from '../hooks/useLifecycleActionDispatcher';
 import type { CustomerAnswerWorkflowContext } from '../lib/ai/customer-answer/customerAnswerWorkflowContext';
 
@@ -140,9 +141,17 @@ export default function ProjectOverview({
         <p className="page-subtitle">ภาพรวมโครงการและดัชนีเอกสาร</p>
       </div>
       <div className="page-actions">
+        {onStartBriefIntake && (
+          <button
+            onClick={() => onStartBriefIntake(clientId, projectId, projectPath)}
+            className="btn btn-primary"
+          >
+            <Search className="w-4 h-4" /> Start Discovery
+          </button>
+        )}
         <button
           onClick={() => onCreateDocument(clientId, projectId, projectPath)}
-          className="btn btn-primary"
+          className="btn btn-outline"
         >
           <Plus className="w-4 h-4" /> สร้างเอกสาร
         </button>
@@ -160,6 +169,13 @@ export default function ProjectOverview({
 
   return (
     <PageShell header={Header}>
+      <MvpGuidedPath
+        hasBrief={briefDocs.length > 0}
+        hasScope={scopeDocs.length > 0}
+        hasQuotation={quotationDocs.length > 0}
+        onStartDiscovery={onStartBriefIntake ? () => onStartBriefIntake(clientId, projectId, projectPath) : undefined}
+      />
+
       <ProjectLifecycleCommandCenter
         projectName={projectName}
         projectPath={projectPath}
@@ -260,23 +276,17 @@ export default function ProjectOverview({
       </div>
 
       <DocumentList
-        filteredDocs={filteredDocs}
+        documents={filteredDocs}
         onOpenDocument={onOpenDocument}
-        clientId={clientId}
-        projectPath={projectPath}
-        onCreateDocument={onCreateDocument}
-        onStartBriefIntake={onStartBriefIntake}
       />
 
       <DocumentCreationPreviewModal
         isOpen={showPreviewModal}
         onClose={() => setShowPreviewModal(false)}
+        priority={priority}
+        action={displayNextAction}
+        explanation={explanation}
         onConfirm={confirmCreateDocument}
-        documentType={commandAction.initial_type}
-        projectName={projectName || 'Current Project'}
-        reason={commandAction.guidance}
-        lifecycleStage={priority.label}
-        recommendationWhy={displayNextAction}
       />
     </PageShell>
   );
