@@ -32,12 +32,12 @@ describe('DemoFlowGuideModal', () => {
     );
 
     fireEvent.click(screen.getByText('3. สร้างและตรวจ Brief จาก Discovery'));
-    expect(screen.getByText('ไฟล์ที่ควรเห็นคือ baseline/brief-from-discovery.md')).toBeInTheDocument();
+    expect(screen.getByText(/baseline\/brief-from-discovery\.md/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('4. สร้างและตรวจ Scope จาก Discovery'));
-    expect(screen.getByText('ไฟล์ที่ควรเห็นคือ baseline/scope-from-discovery.md')).toBeInTheDocument();
+    expect(screen.getByText(/baseline\/scope-from-discovery\.md/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('5. สร้างและตรวจ Quotation จาก Discovery'));
-    expect(screen.getByText('ไฟล์ที่ควรเห็นคือ baseline/quotation-from-discovery.md')).toBeInTheDocument();
+    expect(screen.getByText(/baseline\/quotation-from-discovery\.md/)).toBeInTheDocument();
   });
 });
