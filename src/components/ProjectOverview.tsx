@@ -11,6 +11,7 @@ import DocumentList from './project/DocumentList';
 import ProjectLifecycleCommandCenter from './project/ProjectLifecycleCommandCenter';
 import CustomerAnswerIntakePanel from './project/CustomerAnswerIntakePanel';
 import DocumentCreationPreviewModal from './project/DocumentCreationPreviewModal';
+import MvpGuidedPath from './project/MvpGuidedPath';
 import { useLifecycleActionDispatcher } from '../hooks/useLifecycleActionDispatcher';
 import type { CustomerAnswerWorkflowContext } from '../lib/ai/customer-answer/customerAnswerWorkflowContext';
 
@@ -130,6 +131,8 @@ export default function ProjectOverview({
     );
   };
 
+  const handleStartDiscovery = onStartBriefIntake ? () => onStartBriefIntake(clientId, projectId, projectPath) : undefined;
+
   const Header = (
     <div className="page-header-inner page-container-wide">
       <div className="page-title-group">
@@ -140,9 +143,17 @@ export default function ProjectOverview({
         <p className="page-subtitle">ภาพรวมโครงการและดัชนีเอกสาร</p>
       </div>
       <div className="page-actions">
+        {handleStartDiscovery && (
+          <button
+            onClick={handleStartDiscovery}
+            className="btn btn-primary"
+          >
+            <Search className="w-4 h-4" /> Start Discovery
+          </button>
+        )}
         <button
           onClick={() => onCreateDocument(clientId, projectId, projectPath)}
-          className="btn btn-primary"
+          className="btn btn-outline"
         >
           <Plus className="w-4 h-4" /> สร้างเอกสาร
         </button>
@@ -160,6 +171,13 @@ export default function ProjectOverview({
 
   return (
     <PageShell header={Header}>
+      <MvpGuidedPath
+        hasBrief={briefDocs.length > 0}
+        hasScope={scopeDocs.length > 0}
+        hasQuotation={quotationDocs.length > 0}
+        onStartDiscovery={handleStartDiscovery}
+      />
+
       <ProjectLifecycleCommandCenter
         projectName={projectName}
         projectPath={projectPath}
