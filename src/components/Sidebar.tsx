@@ -5,7 +5,6 @@ import { getWorkspaceClients, getProjectNodesForClient } from '../lib/workspace-
 import {
   ChevronRight,
   ChevronDown,
-  FolderOpen,
   FileText,
   User,
   Briefcase,
@@ -14,6 +13,7 @@ import {
   ShieldCheck,
   Download
 } from 'lucide-react';
+import Logo from './ui/Logo';
 
 interface SidebarProps {
   onCreateClient: () => void;
@@ -42,7 +42,7 @@ export default function Sidebar({ onCreateClient, onCreateProject, onCreateDocum
             }`}
             title="ดูภาพรวม Workspace"
           >
-            <FolderOpen className="w-5 h-5 text-primary-light shrink-0" />
+            <Logo className="w-5 h-5 text-primary-light shrink-0" />
             <h2 className="text-sm font-bold truncate flex-1">{workspaceName}</h2>
           </button>
         </div>

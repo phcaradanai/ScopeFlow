@@ -3,7 +3,8 @@ import { useWorkspace } from '../lib/workspace-context';
 import { createWorkspace, restoreWorkspace } from '../lib/tauri-commands';
 import { generateWorkspaceConfig } from '../lib/templates';
 import { generateDemoWorkspace } from '../lib/demo-generator';
-import { FolderOpen, Plus, FileText, PackageOpen, Sparkles, CheckCircle, Route } from 'lucide-react';
+import { FolderOpen, Plus, PackageOpen, Sparkles, CheckCircle, Route } from 'lucide-react';
+import Logo from './ui/Logo';
 
 export default function WelcomeScreen() {
   const { setWorkspacePath } = useWorkspace();
@@ -109,15 +110,15 @@ export default function WelcomeScreen() {
   }
 
   return (
-    <div className="h-full flex items-center justify-center gap-4 bg-gradient-to-b from-[#121214] to-[#09090b] relative overflow-hidden">
+    <div className="h-full w-full overflow-y-auto flex items-center justify-center bg-gradient-to-b from-[#121214] to-[#09090b] relative">
       {/* Decorative background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-gradient-to-br from-primary/30 via-accent/25 to-transparent rounded-full blur-[140px] pointer-events-none animate-pulse-slow opacity-80" />
 
-      <div className="max-w-[640px] w-full px-8 text-center relative z-10">
+      <div className="max-w-[640px] w-full px-8 py-8 my-auto text-center relative z-10">
         {/* Logo area */}
         <div className="flex flex-col items-center gap-4 mb-8">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mx-auto mb-5 shadow-2xl shadow-primary/30 border border-white/10">
-            <FileText className="w-10 h-10 text-white" />
+          <div className="w-20 h-20 rounded-3xl bg-surface-2/80 backdrop-blur-md flex items-center justify-center mx-auto mb-5 shadow-2xl shadow-black/50 border border-white/10">
+            <Logo className="w-12 h-12" />
           </div>
           <h1 className="text-4xl font-bold text-text mb-3 tracking-tight">ScopeFlow</h1>
           <p className="text-text-muted text-lg font-medium">
