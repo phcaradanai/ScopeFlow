@@ -1,5 +1,5 @@
 import { FileEntry, pathExists } from './tauri-commands';
-import { scanProjectDocuments } from './document-scanner';
+import { scanProjectDocuments, type ProjectDocument } from './document-scanner';
 
 export interface HealthIssue {
   type: 'error' | 'warning' | 'info';
@@ -28,12 +28,41 @@ function isReferenceOnlyDocument(folder: string) {
   return folder === 'current-system' || folder === 'attachments' || folder === 'exports';
 }
 
+function normalizeText(value?: string) {
+  return String(value || '').trim();
+}
+
+function dedupeDocumentsByPath(docs: ProjectDocument[]) {
+  const byPath = new Map<string, ProjectDocument>();
+  for (const doc of docs) {
+    byPath.set(doc.file_path.replace(/\\/g, '/'), doc);
+  }
+  return Array.from(byPath.values());
+}
+
+function approvalRecordMatches(approval: ProjectDocument, approvalRef: string) {
+  const ref = normalizeText(approvalRef);
+  if (!ref) return false;
+  return (
+    approval.file_name.includes(ref) ||
+    normalizeText(approval.document_number) === ref ||
+    normalizeText(approval.approval_number) === ref
+  );
+}
+
 export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEntry): Promise<HealthIssue[]> {
   const issues: HealthIssue[] = [];
+  const issueKeys = new Set<string>();
+  const pushIssue = (issue: HealthIssue) => {
+    const key = `${issue.type}:${issue.message}`;
+    if (issueKeys.has(key)) return;
+    issueKeys.add(key);
+    issues.push(issue);
+  };
 
   const hasConfig = tree.children?.some(c => c.name === 'scopeflow.yaml') || (await pathExists(`${_workspacePath}/scopeflow.yaml`));
   if (!hasConfig) {
-    issues.push({
+    pushIssue({
       type: 'error',
       message: 'ไม่พบไฟล์ scopeflow.yaml (ไม่ใช่ ScopeFlow Workspace)',
       fixAction: 'create_scopeflow_yaml',
@@ -44,7 +73,7 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
   const clientsFolder = tree.children?.find(c => c.name === 'clients' && c.is_dir);
   const hasClientsFolder = clientsFolder || (await pathExists(`${_workspacePath}/clients`));
   if (!hasClientsFolder) {
-    issues.push({ type: 'error', message: 'ไม่พบโฟลเดอร์ clients/ (กรุณาสร้างลูกค้าใหม่)' });
+    pushIssue({ type: 'error', message: 'ไม่พบโฟลเดอร์ clients/ (กรุณาสร้างลูกค้าใหม่)' });
     return issues;
   }
 
@@ -55,7 +84,7 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
     const clientPath = client.path;
     const hasClientYaml = await fileExistsFromTreeOrDisk(clientPath, client.children, '_client.yaml', false);
     if (!hasClientYaml) {
-       issues.push({ type: 'warning', message: `ลูกค้า "${client.name}" ไม่มีไฟล์ _client.yaml` });
+       pushIssue({ type: 'warning', message: `ลูกค้า "${client.name}" ไม่มีไฟล์ _client.yaml` });
     }
 
     const projectsFolder = client.children?.find(c => c.name === 'projects' && c.is_dir);
@@ -67,7 +96,7 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
       const projectPath = project.path;
       const hasProjectYaml = await fileExistsFromTreeOrDisk(projectPath, project.children, '_project.yaml', false);
       if (!hasProjectYaml) {
-        issues.push({ type: 'warning', message: `โครงการ "${project.name}" ไม่มีไฟล์ _project.yaml` });
+        pushIssue({ type: 'warning', message: `โครงการ "${project.name}" ไม่มีไฟล์ _project.yaml` });
       }
 
       const missingFolders: string[] = [];
@@ -77,7 +106,7 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
       }
 
       if (missingFolders.length > 0) {
-        issues.push({
+        pushIssue({
           type: 'warning',
           message: `โครงการ "${project.name}" ขาดโฟลเดอร์: ${missingFolders.join(', ')}`,
           fixAction: 'create_project_folders',
@@ -85,12 +114,12 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
         });
       }
 
-      const docs = await scanProjectDocuments(project.path, tree);
+      const docs = dedupeDocumentsByPath(await scanProjectDocuments(project.path, tree));
       const approvals = docs.filter(d => d.type === 'approval-record');
 
       for (const doc of docs) {
         if (doc.parse_status === 'warning' && doc.type !== 'export' && !isReferenceOnlyDocument(doc.folder)) {
-          issues.push({ type: 'warning', message: `เอกสาร "${doc.file_name}" มี YAML Frontmatter ไม่สมบูรณ์` });
+          pushIssue({ type: 'warning', message: `เอกสาร "${doc.file_name}" มี YAML Frontmatter ไม่สมบูรณ์` });
         }
 
         if (isReferenceOnlyDocument(doc.folder)) {
@@ -98,16 +127,16 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
         }
 
         if (doc.locked && !doc.approval_ref && doc.type !== 'export' && doc.type !== 'approval-record') {
-          issues.push({ type: 'warning', message: `เอกสาร "${doc.file_name}" ถูกล็อกแต่ไม่พบรหัสอนุมัติ (approval_ref)` });
+          pushIssue({ type: 'warning', message: `เอกสาร "${doc.file_name}" ถูกล็อกแต่ไม่พบรหัสอนุมัติ (approval_ref)` });
         }
 
         if (doc.status === 'approved' && doc.type !== 'export' && doc.type !== 'approval-record') {
           if (!doc.approval_ref) {
-             issues.push({ type: 'warning', message: `เอกสาร "${doc.file_name}" สถานะ approved แต่ไม่พบรหัสอนุมัติ` });
+             pushIssue({ type: 'warning', message: `เอกสาร "${doc.file_name}" สถานะ approved แต่ไม่พบรหัสอนุมัติ` });
           } else {
-             const record = approvals.find(a => a.file_name.includes(doc.approval_ref!) || a.document_number === doc.approval_ref);
+             const record = approvals.find(a => approvalRecordMatches(a, doc.approval_ref!));
              if (!record) {
-                issues.push({ type: 'error', message: `เอกสาร "${doc.file_name}" อ้างถึงการอนุมัติ "${doc.approval_ref}" แต่ไม่พบบันทึก` });
+                pushIssue({ type: 'error', message: `เอกสาร "${doc.file_name}" อ้างถึงการอนุมัติ "${doc.approval_ref}" แต่ไม่พบบันทึก` });
              }
           }
         }
@@ -115,7 +144,7 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
         if (doc.type === 'approval-record' && doc.approved_document) {
           const approvedDocExists = docs.find(d => d.file_name === doc.approved_document);
           if (!approvedDocExists) {
-             issues.push({ type: 'error', message: `บันทึกอนุมัติ "${doc.file_name}" อ้างถึงเอกสาร "${doc.approved_document}" ที่ไม่มีอยู่จริง` });
+             pushIssue({ type: 'error', message: `บันทึกอนุมัติ "${doc.file_name}" อ้างถึงเอกสาร "${doc.approved_document}" ที่ไม่มีอยู่จริง` });
           }
         }
 
@@ -127,7 +156,7 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
                 exists = await pathExists(`${project.path}/attachments/${evidence}`);
              }
              if (!exists) {
-                issues.push({ type: 'error', message: `เอกสาร "${doc.file_name}" แนบไฟล์หลักฐาน "${evidence}" ที่ไม่พบในโฟลเดอร์ attachments/` });
+                pushIssue({ type: 'error', message: `เอกสาร "${doc.file_name}" แนบไฟล์หลักฐาน "${evidence}" ที่ไม่พบในโฟลเดอร์ attachments/` });
              }
            }
         }
@@ -136,7 +165,7 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
   }
 
   if (issues.length === 0) {
-    issues.push({ type: 'info', message: 'Workspace สมบูรณ์ ไม่มีข้อผิดพลาด' });
+    pushIssue({ type: 'info', message: 'Workspace สมบูรณ์ ไม่มีข้อผิดพลาด' });
   }
 
   return issues;
