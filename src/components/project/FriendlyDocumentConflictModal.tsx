@@ -1,4 +1,5 @@
 import { AlertTriangle, Copy, FileText, RefreshCw, Trash2, Wand2, X } from 'lucide-react';
+import { t } from '../../lib/i18n/copy';
 
 export type FriendlyConflictAction = 'open' | 'ai-merge' | 'update' | 'version' | 'replace';
 
@@ -26,38 +27,38 @@ function getActionOptions(aiEnabled?: boolean): ConflictActionOption[] {
   return [
     {
       action: 'open',
-      title: 'เปิดเอกสารเดิม',
-      description: 'เปิดของเดิมทันที เพื่อดู decision, approval หรือข้อมูลลูกค้าที่มีอยู่แล้ว',
+      title: t('conflict.actions.openTitle'),
+      description: t('conflict.actions.openDescription'),
       icon: FileText,
       variant: 'outline',
     },
     {
       action: 'ai-merge',
-      title: aiEnabled ? 'ให้ AI ช่วยอัปเดต / merge' : 'รวมข้อมูลแบบปลอดภัย',
+      title: aiEnabled ? t('conflict.actions.aiMergeTitle') : t('conflict.actions.safeMergeTitle'),
       description: aiEnabled
-        ? 'ใช้ provider ที่ตั้งค่าไว้ช่วยรวมข้อมูลใหม่ โดยเก็บ approval, locked decision และ evidence เดิมไว้'
-        : 'ยังไม่มี AI provider ที่พร้อมใช้ ระบบจะรวมข้อมูลใหม่ต่อท้ายแบบ deterministic เพื่อไม่ทับข้อมูลสำคัญ',
+        ? t('conflict.actions.aiMergeDescription')
+        : t('conflict.actions.safeMergeDescription'),
       icon: Wand2,
       variant: 'primary',
     },
     {
       action: 'update',
-      title: 'อัปเดตทับเอกสารเดิม',
-      description: 'ใช้เนื้อหาที่สร้างล่าสุดเป็นฉบับปัจจุบัน แล้วเปิดผลลัพธ์ให้ตรวจทันที',
+      title: t('conflict.actions.updateTitle'),
+      description: t('conflict.actions.updateDescription'),
       icon: RefreshCw,
       variant: 'outline',
     },
     {
       action: 'version',
-      title: 'สร้างเวอร์ชันใหม่',
-      description: 'เก็บเอกสารเดิมไว้ แล้วสร้างฉบับใหม่แยกออกมาเพื่อเทียบหรือตรวจต่อ',
+      title: t('conflict.actions.versionTitle'),
+      description: t('conflict.actions.versionDescription'),
       icon: Copy,
       variant: 'outline',
     },
     {
       action: 'replace',
-      title: 'แทนที่หลังยืนยัน',
-      description: 'แทนที่เอกสารเดิมด้วยฉบับใหม่หลังยืนยัน เหมาะเมื่อมั่นใจว่าไม่ต้องเก็บข้อมูลเดิม',
+      title: t('conflict.actions.replaceTitle'),
+      description: t('conflict.actions.replaceDescription'),
       icon: Trash2,
       variant: 'danger',
     },
@@ -102,13 +103,13 @@ export default function FriendlyDocumentConflictModal({
           <div className="rounded-2xl border border-warning/20 bg-warning/10 p-4 text-sm text-warning leading-relaxed flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold">มี {documentLabel} อยู่แล้ว</p>
-              <p className="text-xs opacity-90 mt-1">เลือกวิธีไปต่อโดยระบบจะเปิดผลลัพธ์ให้ตรวจทันทีหลังทำงานเสร็จ</p>
+              <p className="font-bold">{t('conflict.existingTitle', undefined, { documentLabel })}</p>
+              <p className="text-xs opacity-90 mt-1">{t('conflict.existingDescription')}</p>
             </div>
           </div>
 
           <div className="rounded-2xl border border-border bg-surface-2 p-4">
-            <div className="text-xs font-bold uppercase tracking-widest text-text-muted mb-2">ตำแหน่งเอกสารเดิม</div>
+            <div className="text-xs font-bold uppercase tracking-widest text-text-muted mb-2">{t('conflict.existingLocation')}</div>
             <div className="font-mono text-xs text-text break-all">{existingPath}</div>
           </div>
 
@@ -120,7 +121,7 @@ export default function FriendlyDocumentConflictModal({
 
           {busy && (
             <div className="rounded-xl border border-primary/20 bg-primary/10 p-3 text-sm text-primary-light animate-pulse">
-              กำลังจัดการเอกสารและจะเปิดผลลัพธ์ให้ตรวจทันที...
+              {t('conflict.busy')}
             </div>
           )}
 
@@ -146,7 +147,7 @@ export default function FriendlyDocumentConflictModal({
           </div>
 
           <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4 text-xs text-primary-light leading-relaxed">
-            แนะนำ: ใช้ “ให้ AI ช่วยอัปเดต / merge” เมื่อเอกสารเดิมอาจมี decision, approval, locked scope, evidence หรือข้อตกลงกับลูกค้าอยู่แล้ว ถ้า AI ใช้ไม่ได้ ระบบจะรวมข้อมูลแบบ deterministic แทน
+            {t('conflict.recommendation')}
           </div>
         </div>
       </div>

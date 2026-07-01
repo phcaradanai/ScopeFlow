@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowRight, CheckCircle2, ClipboardCheck, FileText, GitPullRequest, MessageSquareText, PackageCheck, ReceiptText, ShieldCheck, Sparkles } from 'lucide-react';
 import type { GuidedOperatingModeState, GuidedPrimaryAction, GuidedStage } from '../../lib/guided-operating-mode';
+import { t } from '../../lib/i18n/copy';
 
 interface GuidedOperatingModePanelProps {
   state: GuidedOperatingModeState;
@@ -28,22 +29,22 @@ function getStageTone(stage: GuidedStage) {
 }
 
 function getStageStatusLabel(status: GuidedStage['status']) {
-  if (status === 'approved') return 'approved';
-  if (status === 'done') return 'done';
-  if (status === 'ready') return 'ready';
-  if (status === 'attention') return 'needs action';
-  if (status === 'draft') return 'draft';
-  return 'missing';
+  if (status === 'approved') return t('guided.stageStatus.approved');
+  if (status === 'done') return t('guided.stageStatus.done');
+  if (status === 'ready') return t('guided.stageStatus.ready');
+  if (status === 'attention') return t('guided.stageStatus.attention');
+  if (status === 'draft') return t('guided.stageStatus.draft');
+  return t('guided.stageStatus.missing');
 }
 
 function getPrimaryBadge(action: GuidedPrimaryAction) {
-  if (action.kind === 'start_discovery') return 'เริ่มจากลูกค้า';
-  if (action.kind === 'create_scope_from_brief') return 'Brief → Scope';
-  if (action.kind === 'create_document') return 'สร้างเอกสารถัดไป';
-  if (action.kind === 'open_document') return 'เปิดเพื่อตรวจ';
-  if (action.kind === 'create_change_request') return 'Scope Control';
-  if (action.kind === 'export_project') return 'Ready to handoff';
-  return 'Next Action';
+  if (action.kind === 'start_discovery') return t('guided.primaryBadge.startDiscovery');
+  if (action.kind === 'create_scope_from_brief') return t('guided.primaryBadge.scopeFromBrief');
+  if (action.kind === 'create_document') return t('guided.primaryBadge.createDocument');
+  if (action.kind === 'open_document') return t('guided.primaryBadge.openDocument');
+  if (action.kind === 'create_change_request') return t('guided.primaryBadge.changeRequest');
+  if (action.kind === 'export_project') return t('guided.primaryBadge.exportProject');
+  return t('guided.primaryBadge.nextAction');
 }
 
 export default function GuidedOperatingModePanel({ state, aiEnabled, onPrimaryAction, onSecondaryAction, onOpenDocument }: GuidedOperatingModePanelProps) {
@@ -56,22 +57,22 @@ export default function GuidedOperatingModePanel({ state, aiEnabled, onPrimaryAc
         <div className="min-w-0 max-w-3xl">
           <div className="flex items-center gap-2 flex-wrap mb-3">
             <span className="badge badge-success gap-1">
-              <Sparkles className="w-3.5 h-3.5" /> Guided Operating Mode
+              <Sparkles className="w-3.5 h-3.5" /> {t('guided.badge')}
             </span>
-            <span className="badge badge-muted">Project Command Center</span>
+            <span className="badge badge-muted">{t('guided.heroBadge')}</span>
             <span className={`badge ${aiEnabled ? 'badge-success' : 'badge-muted'}`}>
-              {aiEnabled ? 'AI assist ready' : 'Template fallback'}
+              {aiEnabled ? t('guided.aiReady') : t('guided.templateReady')}
             </span>
           </div>
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-text">ไม่ต้องจำขั้นตอนเอง — ทำ action ถัดไปจากตรงนี้</h2>
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-text">{t('guided.title')}</h2>
           <p className="text-sm md:text-base text-text-muted leading-relaxed mt-2">
-            ScopeFlow จะพาโครงการเดินจากคำขอลูกค้า → Brief → Scope → Quotation → Approval → Change Control → Acceptance โดยซ่อนความซับซ้อนของไฟล์ไว้เป็น detail view
+            {t('guided.description')}
           </p>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-surface/80 p-4 min-w-[260px] shadow-sm">
           <div className="flex items-center justify-between gap-3 mb-2">
-            <span className="text-xs font-bold uppercase tracking-widest text-text-muted">Readiness</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-text-muted">{t('common.readiness')}</span>
             <span className="text-xl font-black text-primary-light">{state.readinessScore}%</span>
           </div>
           <div className="h-2 rounded-full bg-surface-3 overflow-hidden border border-border">
@@ -108,7 +109,7 @@ export default function GuidedOperatingModePanel({ state, aiEnabled, onPrimaryAc
               <div className="mt-3 text-sm font-black text-text">{stage.shortLabel}</div>
               <div className="mt-1 text-[11px] font-bold uppercase tracking-wide opacity-80">{getStageStatusLabel(stage.status)}</div>
               <p className="mt-2 text-xs leading-relaxed text-text-muted line-clamp-3">{stage.description}</p>
-              {stage.count > 0 && <div className="mt-3 text-[11px] font-semibold opacity-80">{stage.count} document{stage.count > 1 ? 's' : ''}</div>}
+              {stage.count > 0 && <div className="mt-3 text-[11px] font-semibold opacity-80">{stage.count} รายการ</div>}
             </button>
           );
         })}
@@ -119,13 +120,13 @@ export default function GuidedOperatingModePanel({ state, aiEnabled, onPrimaryAc
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-2">
               <span className="badge badge-primary">{getPrimaryBadge(state.primaryAction)}</span>
-              <span className="badge badge-muted">One primary next action</span>
+              <span className="badge badge-muted">{t('guided.onePrimaryAction')}</span>
             </div>
             <h3 className="text-xl font-black text-text">{state.primaryAction.label}</h3>
             <p className="text-sm text-text-muted leading-relaxed mt-1">{state.primaryAction.description}</p>
           </div>
           <button type="button" onClick={onPrimaryAction} className="btn btn-primary min-h-[48px] px-6 shrink-0 shadow-lg shadow-primary/10">
-            ทำขั้นตอนนี้ต่อ
+            {t('guided.primaryButton')}
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
