@@ -4,7 +4,9 @@ import { scanProjectDocuments } from '../document-scanner';
 import { FileEntry } from '../tauri-commands';
 
 vi.mock('../tauri-commands', () => ({
+  createDocument: vi.fn(),
   readFileContent: vi.fn(),
+  writeFileContent: vi.fn(),
   copyEvidenceFiles: vi.fn(),
   backupWorkspace: vi.fn(),
   restoreWorkspace: vi.fn(),
@@ -18,7 +20,9 @@ vi.mock('../document-scanner', () => ({
 const mockedScanProjectDocuments = vi.mocked(scanProjectDocuments);
 const MOCK_WORKSPACE_PATH = '/mock/workspace';
 
-function createHealthyProjectTree(): FileEntry {
+function createHealthyProjectTree(projectPath = '/mock/workspace/clients/client1/projects/proj1'): FileEntry {
+  const clientPath = projectPath.split('/projects/')[0];
+  const projectName = projectPath.split('/').pop() || 'proj1';
   return {
     name: 'workspace',
     path: MOCK_WORKSPACE_PATH,
@@ -31,29 +35,29 @@ function createHealthyProjectTree(): FileEntry {
         is_dir: true,
         children: [
           {
-            name: 'client1',
-            path: '/mock/workspace/clients/client1',
+            name: clientPath.split('/').pop() || 'client1',
+            path: clientPath,
             is_dir: true,
             children: [
-              { name: '_client.yaml', path: '/mock/workspace/clients/client1/_client.yaml', is_dir: false },
+              { name: '_client.yaml', path: `${clientPath}/_client.yaml`, is_dir: false },
               {
                 name: 'projects',
-                path: '/mock/workspace/clients/client1/projects',
+                path: `${clientPath}/projects`,
                 is_dir: true,
                 children: [
                   {
-                    name: 'proj1',
-                    path: '/mock/workspace/clients/client1/projects/proj1',
+                    name: projectName,
+                    path: projectPath,
                     is_dir: true,
                     children: [
-                      { name: '_project.yaml', path: '/mock/workspace/clients/client1/projects/proj1/_project.yaml', is_dir: false },
-                      { name: 'baseline', path: '/mock/workspace/clients/client1/projects/proj1/baseline', is_dir: true },
-                      { name: 'change-requests', path: '/mock/workspace/clients/client1/projects/proj1/change-requests', is_dir: true },
-                      { name: 'support-requests', path: '/mock/workspace/clients/client1/projects/proj1/support-requests', is_dir: true },
-                      { name: 'approvals', path: '/mock/workspace/clients/client1/projects/proj1/approvals', is_dir: true },
-                      { name: 'acceptance', path: '/mock/workspace/clients/client1/projects/proj1/acceptance', is_dir: true },
-                      { name: 'exports', path: '/mock/workspace/clients/client1/projects/proj1/exports', is_dir: true },
-                      { name: 'attachments', path: '/mock/workspace/clients/client1/projects/proj1/attachments', is_dir: true },
+                      { name: '_project.yaml', path: `${projectPath}/_project.yaml`, is_dir: false },
+                      { name: 'baseline', path: `${projectPath}/baseline`, is_dir: true },
+                      { name: 'change-requests', path: `${projectPath}/change-requests`, is_dir: true },
+                      { name: 'support-requests', path: `${projectPath}/support-requests`, is_dir: true },
+                      { name: 'approvals', path: `${projectPath}/approvals`, is_dir: true },
+                      { name: 'acceptance', path: `${projectPath}/acceptance`, is_dir: true },
+                      { name: 'exports', path: `${projectPath}/exports`, is_dir: true },
+                      { name: 'attachments', path: `${projectPath}/attachments`, is_dir: true },
                     ]
                   }
                 ]
@@ -221,5 +225,29 @@ describe('Workspace Health Check', () => {
     const invoiceWarnings = issues.filter(issue => issue.message.includes('invoice-v1.0.md'));
 
     expect(invoiceWarnings).toHaveLength(1);
+  });
+
+  it('should offer a safe demo audit repair action for legacy demo records', async () => {
+    const projectPath = '/mock/workspace/clients/demo-flow-client-12345678/projects/complete-scope-flow-12345678';
+    mockedScanProjectDocuments.mockResolvedValue([
+      {
+        file_path: `${projectPath}/baseline/invoice-v1.0.md`,
+        file_name: 'invoice-v1.0.md',
+        folder: 'baseline',
+        type: 'invoice',
+        title: 'Invoice',
+        status: 'paid',
+        version: '1.0',
+        locked: true,
+        document_number: 'INV-12345678',
+        excerpt: '',
+        parse_status: 'success',
+      },
+    ]);
+
+    const issues = await checkWorkspaceHealth(MOCK_WORKSPACE_PATH, createHealthyProjectTree(projectPath));
+    const invoiceWarning = issues.find(issue => issue.message.includes('invoice-v1.0.md'));
+
+    expect(invoiceWarning?.fixAction).toBe('repair_demo_audit_records');
   });
 });
