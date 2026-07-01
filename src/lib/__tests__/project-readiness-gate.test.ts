@@ -91,10 +91,25 @@ describe('buildProjectReadinessGate', () => {
     expect(gate.canDeliver).toBe(false);
   });
 
+  it('does not treat approved status or locked flag alone as approval evidence', () => {
+    const approvedWithoutEvidence = doc({
+      type: 'quotation',
+      file_name: 'quotation-v1.0.md',
+      status: 'approved',
+      locked: true,
+      markdown: '# ใบเสนอราคา',
+    });
+    const gate = buildProjectReadinessGate([goodBrief, goodScope, approvedWithoutEvidence]);
+
+    expect(gate.stage).toBe('ready_for_approval');
+    expect(gate.canDeliver).toBe(false);
+    expect(gate.blockers.some(blocker => blocker.kind === 'quote_not_approved')).toBe(true);
+  });
+
   it('blocks delivery when open follow-up or CR exists', () => {
     const followUp = doc({ type: 'followup', folder: 'support-requests', file_name: 'FW-001-question.md', status: 'draft' });
     const cr = doc({ type: 'change-request', folder: 'change-requests', file_name: 'CR-001-extra.md', status: 'draft' });
-    const acceptance = doc({ type: 'acceptance', folder: 'acceptance', file_name: 'acceptance-checklist-v1.0.md', status: 'approved', locked: true });
+    const acceptance = doc({ type: 'acceptance', folder: 'acceptance', file_name: 'acceptance-checklist-v1.0.md', status: 'approved', locked: true, approved_by: 'Customer' });
     const gate = buildProjectReadinessGate([goodBrief, goodScope, quote, quoteApproval, acceptance, followUp, cr]);
 
     expect(gate.stage).toBe('blocked');
