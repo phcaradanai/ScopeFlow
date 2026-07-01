@@ -278,7 +278,7 @@ export function t(key: `${CopyCategory}.${string}`, locale: Locale = DEFAULT_LOC
   const fallback = getByPath(copy[FALLBACK_LOCALE][category], path);
   const template = localized || fallback || key;
   if (!params) return template;
-  return Object.entries(params).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), template);
+  return Object.entries(params).reduce((text, [name, value]) => text.split(`{${name}}`).join(String(value)), template);
 }
 
 export function getCurrentLocale(): Locale {
