@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { checkWorkspaceHealth, HealthIssue } from '../lib/workspace-health';
+import { checkWorkspaceHealth, HealthIssue, repairDemoAuditRecords } from '../lib/workspace-health';
 import { useWorkspace } from '../lib/workspace-context';
-import { ShieldCheck, AlertTriangle, XCircle, Info, RefreshCw, X, FolderPlus, Plus } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, XCircle, Info, RefreshCw, X, FolderPlus, Plus, Wrench } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { generateWorkspaceConfig } from '../lib/templates';
 
@@ -59,9 +59,29 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
     }
   };
 
+  const handleRepairDemoAuditRecords = async () => {
+    if (!workspacePath || !tree) return;
+    if (!window.confirm('ซ่อมเฉพาะ Demo Workspace รุ่นเก่าที่ขาด approval/audit record ใช่หรือไม่?\n\nระบบจะสร้างไฟล์บันทึกและหลักฐานจำลองในโฟลเดอร์ approvals/ และ attachments/ และอาจเพิ่ม approval_ref ให้ invoice demo ที่ถูกล็อกไว้แล้ว')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await repairDemoAuditRecords(workspacePath, tree);
+      await refreshTree();
+      await runCheck();
+      alert(`ซ่อม Demo Audit Records เสร็จแล้ว\n- ซ่อม: ${result.repaired}\n- ข้าม: ${result.skipped}${result.messages.length ? `\n\n${result.messages.slice(0, 8).join('\n')}` : ''}`);
+    } catch (err) {
+      alert(`ซ่อม Demo Audit Records ไม่สำเร็จ: ${err}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const errors = issues.filter(i => i.type === 'error');
   const warnings = issues.filter(i => i.type === 'warning');
   const infos = issues.filter(i => i.type === 'info');
+  const canRepairDemoAudit = issues.some(i => i.fixAction === 'repair_demo_audit_records');
 
   return (
     <div className="modal-overlay">
@@ -87,7 +107,18 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
             </div>
           ) : (
             <div className="space-y-6">
-              
+              {canRepairDemoAudit && (
+                <div className="rounded-2xl border border-primary/25 bg-primary/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-primary-light">พบ Demo รุ่นเก่าที่ขาด Audit Record</p>
+                    <p className="text-xs text-text-muted mt-1 leading-relaxed">กดซ่อมเพื่อสร้าง approval/audit record และ evidence จำลองที่ขาดหาย โดยจำกัดเฉพาะ demo project เท่านั้น</p>
+                  </div>
+                  <button type="button" onClick={handleRepairDemoAuditRecords} className="btn btn-sm btn-primary shrink-0">
+                    <Wrench className="w-3.5 h-3.5" /> ซ่อม Demo Audit
+                  </button>
+                </div>
+              )}
+
               {/* Errors */}
               {errors.length > 0 && (
                 <div className="space-y-4">
@@ -104,6 +135,14 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
                             className="btn btn-sm text-error bg-error/20 border border-error/30 hover:bg-error hover:text-white shrink-0"
                           >
                             <Plus className="w-3.5 h-3.5" /> สร้างไฟล์สำหรับ Workspace
+                          </button>
+                        )}
+                        {err.fixAction === 'repair_demo_audit_records' && (
+                          <button
+                            onClick={handleRepairDemoAuditRecords}
+                            className="btn btn-sm text-error bg-error/20 border border-error/30 hover:bg-error hover:text-white shrink-0"
+                          >
+                            <Wrench className="w-3.5 h-3.5" /> ซ่อม Demo Audit
                           </button>
                         )}
                       </div>
@@ -123,11 +162,19 @@ export default function HealthCheckModal({ onClose }: HealthCheckModalProps) {
                       <div key={i} className="p-4 bg-warning/10 border border-warning/20 rounded-xl text-sm text-text flex items-center justify-between gap-4">
                         <span className="font-medium">{warn.message}</span>
                         {warn.fixAction === 'create_project_folders' && (
-                          <button 
+                          <button
                             onClick={() => handleFixFolders(warn.payload)}
                             className="btn btn-sm text-warning bg-warning/20 border border-warning/30 hover:bg-warning hover:text-white shrink-0"
                           >
                             <FolderPlus className="w-3.5 h-3.5" /> ซ่อมแซมโฟลเดอร์
+                          </button>
+                        )}
+                        {warn.fixAction === 'repair_demo_audit_records' && (
+                          <button
+                            onClick={handleRepairDemoAuditRecords}
+                            className="btn btn-sm text-warning bg-warning/20 border border-warning/30 hover:bg-warning hover:text-white shrink-0"
+                          >
+                            <Wrench className="w-3.5 h-3.5" /> ซ่อม Demo Audit
                           </button>
                         )}
                       </div>
