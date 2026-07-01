@@ -8,29 +8,30 @@ import { nameToSlug, validateSlug } from '../lib/validation';
 import { mergeDocumentDeterministically, mergeDocumentWithAi } from '../lib/ai/documentMergeAssistant';
 import { getAiProviders } from '../lib/ai/providers/providerSettings';
 import { DOCUMENT_CREATION_INTENTS, getDocumentCreationCta, getDocumentCreationIntentForType, getDocumentCreationRecommendationReason, getDocumentCreationResult, getDocumentCreationTitleMissingMessage, getDocumentCreationTitlePrompt, requiresDocumentCreationTitle } from '../lib/document-creation-guidance';
+import { t } from '../lib/i18n/copy';
 import FriendlyDocumentConflictModal, { type FriendlyConflictAction } from './project/FriendlyDocumentConflictModal';
 import SelectField from './ui/SelectField';
 
 const DOCS = [
   ['scope', 'ขอบเขตงาน (Scope)', 'Brief → Scope ที่ควบคุมขอบเขตได้', Target, 'text-blue-500', 'bg-blue-500/10', 'ring-blue-500/50'],
-  ['quotation', 'ใบเสนอราคา (Quotation)', 'Quote สำหรับเสนอราคา', Receipt, 'text-emerald-500', 'bg-emerald-500/10', 'ring-emerald-500/50'],
-  ['invoice', 'ใบแจ้งหนี้ (Invoice)', 'Invoice สำหรับเก็บเงิน', FileText, 'text-indigo-500', 'bg-indigo-500/10', 'ring-indigo-500/50'],
-  ['cr', 'คำขอเปลี่ยนแปลง (CR)', 'Change Request สำหรับขอบเขตใหม่', GitPullRequest, 'text-amber-500', 'bg-amber-500/10', 'ring-amber-500/50'],
-  ['dcr', 'คำขอเปลี่ยนแปลงการพัฒนา (DCR)', 'Change Request เชิงเทคนิค', Code, 'text-purple-500', 'bg-purple-500/10', 'ring-purple-500/50'],
-  ['sup', 'แจ้งปัญหา (Support Request)', 'Support Request', LifeBuoy, 'text-rose-500', 'bg-rose-500/10', 'ring-rose-500/50'],
-  ['ma', 'แจ้งซ่อมบำรุง (MA Request)', 'Maintenance Request', Wrench, 'text-orange-500', 'bg-orange-500/10', 'ring-orange-500/50'],
-  ['acceptance', 'รายการตรวจรับ (Acceptance)', 'Acceptance สำหรับส่งมอบ', CheckSquare, 'text-teal-500', 'bg-teal-500/10', 'ring-teal-500/50'],
-  ['revision', 'ทบทวนการแก้ไข (Revision)', 'ทบทวนเมื่อไม่ผ่าน Acceptance', FileWarning, 'text-red-500', 'bg-red-500/10', 'ring-red-500/50'],
-  ['followup', 'ขอความชัดเจน (Follow-up)', 'ถามข้อมูลที่ยังขาด', MessageCircle, 'text-sky-500', 'bg-sky-500/10', 'ring-sky-500/50'],
+  ['quotation', 'ใบเสนอราคา', 'ใบเสนอราคาสำหรับส่งให้ลูกค้าอนุมัติ', Receipt, 'text-emerald-500', 'bg-emerald-500/10', 'ring-emerald-500/50'],
+  ['invoice', 'ใบแจ้งหนี้', 'Invoice สำหรับเก็บเงิน', FileText, 'text-indigo-500', 'bg-indigo-500/10', 'ring-indigo-500/50'],
+  ['cr', 'คำขอเปลี่ยนงาน', 'Change Request สำหรับขอบเขตใหม่', GitPullRequest, 'text-amber-500', 'bg-amber-500/10', 'ring-amber-500/50'],
+  ['dcr', 'คำขอเปลี่ยนงานด้านพัฒนา', 'Change Request เชิงเทคนิค', Code, 'text-purple-500', 'bg-purple-500/10', 'ring-purple-500/50'],
+  ['sup', 'แจ้งปัญหา / Support', 'Support Request', LifeBuoy, 'text-rose-500', 'bg-rose-500/10', 'ring-rose-500/50'],
+  ['ma', 'แจ้งซ่อมบำรุง', 'Maintenance Request', Wrench, 'text-orange-500', 'bg-orange-500/10', 'ring-orange-500/50'],
+  ['acceptance', 'รายการส่งมอบ/ตรวจรับ', 'Acceptance สำหรับส่งมอบ', CheckSquare, 'text-teal-500', 'bg-teal-500/10', 'ring-teal-500/50'],
+  ['revision', 'ทบทวนการแก้ไข', 'ทบทวนเมื่อไม่ผ่าน Acceptance', FileWarning, 'text-red-500', 'bg-red-500/10', 'ring-red-500/50'],
+  ['followup', 'ขอข้อมูลเพิ่ม', 'ถามข้อมูลที่ยังขาด', MessageCircle, 'text-sky-500', 'bg-sky-500/10', 'ring-sky-500/50'],
 ] as const;
-const LABEL: Record<string, string> = { scope: 'Scope', quotation: 'Quote', invoice: 'Invoice', cr: 'Change Request', dcr: 'Change Request', sup: 'Support Request', ma: 'Support Request', acceptance: 'Acceptance', revision: 'Acceptance Review', followup: 'Follow-up' };
+const LABEL: Record<string, string> = { scope: 'Scope', quotation: 'ใบเสนอราคา', invoice: 'Invoice', cr: 'Change Request', dcr: 'Change Request', sup: 'Support Request', ma: 'Support Request', acceptance: 'Acceptance', revision: 'Acceptance Review', followup: 'Follow-up' };
 
 export interface LifecycleActionContext { source: 'recommended_next_action' | 'customer_answer'; initialType: string; reason: string; projectPath: string; recommendationWhy?: string; createdAt?: number; createdFilePath?: string; customerAnswerContext?: any; }
 interface DocumentCreatorModalProps { clientId: string; projectId: string; projectPath: string; onClose: () => void; initialType?: string; lifecycleContext?: LifecycleActionContext; onDocumentCreated?: (context: LifecycleActionContext) => void; }
 interface ConflictInfo { path: string; name: string; content: string; documentType: string; }
 
 const friendlyError = 'ยังทำรายการนี้ไม่สำเร็จ กรุณาตรวจสอบสิทธิ์การแก้ไขเอกสารหรือการตั้งค่า Workspace แล้วลองอีกครั้ง';
-const docLabel = (t: string) => LABEL[t] || 'Document';
+const docLabel = (documentType: string) => LABEL[documentType] || 'Document';
 const canRun = (p: { enabled?: boolean; baseUrl?: string; model?: string }) => p.enabled !== false && Boolean(p.baseUrl?.trim()) && Boolean(p.model?.trim());
 const versionStamp = () => new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, '');
 
@@ -71,7 +72,7 @@ export default function DocumentCreatorModal({ clientId, projectId, projectPath,
   const hasSystemRecommendation = Boolean(lifecycleContext || initialType);
   const primaryTitle = selectedIntent?.title || selectedDoc?.[1] || docLabel(type);
   const primaryDescription = selectedIntent?.description || selectedDoc?.[2] || resultDescription;
-  const primaryBadge = selectedIntent?.badge || 'Manual';
+  const primaryBadge = selectedIntent?.badge || t('advanced.manual');
 
   const refreshAiState = useCallback(async () => {
     if (!workspacePath) { setAiEnabled(false); return false; }
@@ -177,7 +178,7 @@ export default function DocumentCreatorModal({ clientId, projectId, projectPath,
     try {
       const useAi = await refreshAiState();
       setSaving(true);
-      setSavingStatus(useAi ? 'กำลังให้ AI วิเคราะห์ข้อมูล...' : 'กำลังสร้างเอกสารจากเทมเพลต...');
+      setSavingStatus(useAi ? 'กำลังให้ AI วิเคราะห์ข้อมูล...' : 'กำลังสร้างเอกสารจากแบบฟอร์มพื้นฐาน...');
       const draft = await buildDraft(useAi);
       if (await pathExists(draft.path)) { setConflictInfo({ path: draft.path, name: draft.filename, content: draft.content, documentType: type }); setSaving(false); setSavingStatus(''); return; }
       setSavingStatus('กำลังเปิดเอกสารผลลัพธ์...');
@@ -191,40 +192,40 @@ export default function DocumentCreatorModal({ clientId, projectId, projectPath,
     }
   };
 
-  if (conflictInfo) return <FriendlyDocumentConflictModal title={`พบ ${docLabel(conflictInfo.documentType)} เดิมอยู่แล้ว`} description="เลือกวิธีไปต่อโดย ScopeFlow จะจัดการให้และเปิดเอกสารผลลัพธ์ทันทีหลังทำงานเสร็จ" documentLabel={docLabel(conflictInfo.documentType)} existingPath={conflictInfo.path} aiEnabled={aiEnabled} busy={saving} error={error} onAction={handleConflictAction} onClose={() => { if (!saving) setConflictInfo(null); }} />;
+  if (conflictInfo) return <FriendlyDocumentConflictModal title={`พบ ${docLabel(conflictInfo.documentType)} เดิมอยู่แล้ว`} description={t('conflict.existingDescription')} documentLabel={docLabel(conflictInfo.documentType)} existingPath={conflictInfo.path} aiEnabled={aiEnabled} busy={saving} error={error} onAction={handleConflictAction} onClose={() => { if (!saving) setConflictInfo(null); }} />;
 
   return (
     <div className="modal-overlay"><div className="modal-container">
-      <div className="modal-header"><div className="modal-header-content"><h2 className="modal-title">ตอนนี้ต้องการทำอะไรต่อกับลูกค้า/โครงการ?</h2><p className="modal-subtitle">เลือกจากสถานการณ์จริง แล้ว ScopeFlow จะเตรียมเอกสารที่เหมาะสมให้ตรวจทันที</p></div><button onClick={onClose} className="modal-close"><X className="w-5 h-5" /></button></div>
+      <div className="modal-header"><div className="modal-header-content"><h2 className="modal-title">{t('documentCreation.modalTitle')}</h2><p className="modal-subtitle">{t('documentCreation.modalSubtitle')}</p></div><button onClick={onClose} className="modal-close"><X className="w-5 h-5" /></button></div>
       <form id="document-creator-form" onSubmit={handleSubmit} className="modal-body pb-6">
         {error && <div className="p-4 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">{error}</div>}
         <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 md:p-5 shadow-sm">
-          <div className="flex flex-wrap items-center gap-2 mb-3"><span className="badge bg-primary/15 text-primary-light border border-primary/25 text-[10px]">{primaryBadge}</span>{hasSystemRecommendation && <span className="badge badge-muted text-[10px]">ระบบแนะนำจาก action ถัดไป</span>}</div>
+          <div className="flex flex-wrap items-center gap-2 mb-3"><span className="badge bg-primary/15 text-primary-light border border-primary/25 text-[10px]">{primaryBadge}</span>{hasSystemRecommendation && <span className="badge badge-muted text-[10px]">{t('documentCreation.recommendedFromNextAction')}</span>}</div>
           <h3 className="text-lg font-bold text-text leading-snug">{primaryTitle}</h3>
           <p className="mt-2 text-sm text-text-muted leading-relaxed">{primaryDescription}</p>
-          {hasSystemRecommendation && <div className="mt-4 rounded-xl border border-primary/20 bg-surface/70 p-3"><p className="text-[10px] font-bold uppercase tracking-wide text-primary-light">ทำไมระบบแนะนำ</p><p className="mt-1 text-xs text-text-muted leading-relaxed">{recommendationReason}</p></div>}
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3"><div className="rounded-xl border border-border bg-surface/70 p-3"><p className="text-[10px] font-bold uppercase tracking-wide text-success">ทำแล้วได้อะไร</p><p className="mt-1 text-xs text-text-muted leading-relaxed">{resultDescription}</p></div><div className="rounded-xl border border-border bg-surface/70 p-3"><p className="text-[10px] font-bold uppercase tracking-wide text-primary-light">ขั้นต่อไป</p><p className="mt-1 text-xs text-text-muted leading-relaxed">กด “{ctaLabel}” แล้ว ScopeFlow จะสร้างและเปิดเอกสารผลลัพธ์ให้ตรวจทันที</p></div></div>
+          {hasSystemRecommendation && <div className="mt-4 rounded-xl border border-primary/20 bg-surface/70 p-3"><p className="text-[10px] font-bold uppercase tracking-wide text-primary-light">{t('documentCreation.whyRecommended')}</p><p className="mt-1 text-xs text-text-muted leading-relaxed">{recommendationReason}</p></div>}
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3"><div className="rounded-xl border border-border bg-surface/70 p-3"><p className="text-[10px] font-bold uppercase tracking-wide text-success">{t('documentCreation.outcome')}</p><p className="mt-1 text-xs text-text-muted leading-relaxed">{resultDescription}</p></div><div className="rounded-xl border border-border bg-surface/70 p-3"><p className="text-[10px] font-bold uppercase tracking-wide text-primary-light">{t('documentCreation.nextStep')}</p><p className="mt-1 text-xs text-text-muted leading-relaxed">{t('documentCreation.createAndOpen', undefined, { cta: ctaLabel })}</p></div></div>
         </div>
         <div className="form-section !bg-transparent !border-transparent !p-0">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-2"><div><label className="form-label block">เปลี่ยนเป้าหมายได้ ถ้าสถานการณ์ไม่ตรง</label><p className="text-xs text-text-muted mt-1">ตัวเลือกด้านล่างเป็นทางลัด ไม่ใช่ขั้นตอนบังคับ</p></div></div>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-2"><div><label className="form-label block">{t('documentCreation.chooseDifferentGoal')}</label><p className="text-xs text-text-muted mt-1">{t('documentCreation.shortcutsNotRequired')}</p></div></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {DOCUMENT_CREATION_INTENTS.map(intent => {
               const selected = selectedIntent?.id === intent.id;
-              return <button key={intent.id} type="button" onClick={() => { setType(intent.documentType); setError(''); }} className={`text-left rounded-xl border p-3 transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${selected ? 'border-primary/40 bg-primary/10' : 'border-border bg-surface-2 hover:border-primary/30 hover:bg-surface-3'}`}><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-bold text-text">{intent.title}</p><p className="mt-1 text-[11px] text-text-muted leading-relaxed">ผลลัพธ์: {intent.compactResult}</p></div><span className={`badge text-[10px] shrink-0 ${selected ? 'bg-primary/15 text-primary-light border border-primary/25' : 'badge-muted'}`}>{selected ? 'เลือกอยู่' : intent.badge}</span></div></button>;
+              return <button key={intent.id} type="button" onClick={() => { setType(intent.documentType); setError(''); }} className={`text-left rounded-xl border p-3 transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${selected ? 'border-primary/40 bg-primary/10' : 'border-border bg-surface-2 hover:border-primary/30 hover:bg-surface-3'}`}><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-bold text-text">{intent.title}</p><p className="mt-1 text-[11px] text-text-muted leading-relaxed">{t('documentCreation.resultPrefix')}: {intent.compactResult}</p></div><span className={`badge text-[10px] shrink-0 ${selected ? 'bg-primary/15 text-primary-light border border-primary/25' : 'badge-muted'}`}>{selected ? t('documentCreation.selected') : intent.badge}</span></div></button>;
             })}
           </div>
         </div>
-        <div className="rounded-2xl border border-border bg-surface-2/60 p-4"><div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3"><div><p className="text-sm font-bold text-text">เอกสารที่จะสร้าง: {selectedDoc?.[1] || docLabel(type)}</p><p className="text-xs text-text-muted mt-1 leading-relaxed">ใช้ค่าเริ่มต้นนี้ได้เลย หรือเปิด manual เฉพาะกรณีต้องการเอกสารเฉพาะทาง</p></div><button type="button" onClick={() => setAdvancedOpen(open => !open)} className="btn btn-outline text-xs shrink-0">{advancedOpen ? 'ซ่อนการเลือกเอง' : 'เลือกประเภทเอกสารเอง'}</button></div>{advancedOpen && <div className="mt-4 pt-4 border-t border-border"><p className="text-xs font-bold text-text mb-1">Advanced / Manual</p><p className="text-xs text-text-muted mb-3 leading-relaxed">สำหรับ Invoice, DCR, MA หรือกรณีที่รู้ชัดว่าต้องใช้เอกสารชนิดไหน</p><div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+        <div className="rounded-2xl border border-border bg-surface-2/60 p-4"><div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3"><div><p className="text-sm font-bold text-text">{t('documentCreation.documentToCreate')}: {selectedDoc?.[1] || docLabel(type)}</p><p className="text-xs text-text-muted mt-1 leading-relaxed">{t('documentCreation.manualHint')}</p></div><button type="button" onClick={() => setAdvancedOpen(open => !open)} className="btn btn-outline text-xs shrink-0">{advancedOpen ? t('documentCreation.hideManual') : t('documentCreation.showManual')}</button></div>{advancedOpen && <div className="mt-4 pt-4 border-t border-border"><p className="text-xs font-bold text-text mb-1">{t('advanced.manual')}</p><p className="text-xs text-text-muted mb-3 leading-relaxed">{t('advanced.manualDescription')}</p><div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
           {DOCS.map(([value, label, description, Icon, color, bg, ring]) => {
             const selected = type === value;
             return <button key={value} type="button" onClick={() => { setType(value); setError(''); }} className={`text-left p-3 rounded-xl border transition-all duration-200 flex gap-3 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${selected ? `${bg} border-transparent ring-2 ring-offset-2 ring-offset-surface ${ring}` : 'bg-surface border-border hover:border-text-dim hover:bg-surface-3'}`}><div className={`p-2 rounded-lg h-fit transition-colors duration-200 ${selected ? `${color} bg-surface` : `${bg} ${color}`}`}><Icon className="w-4 h-4" /></div><div><div className="font-semibold text-xs mb-1 text-text">{label}</div><div className="text-[10px] text-text-muted line-clamp-2 leading-relaxed">{description}</div></div></button>;
           })}
         </div></div>}</div>
-        {requiresTitle && <div className="form-section"><div className="rounded-xl border border-warning/20 bg-warning/10 p-3"><p className="text-xs font-bold text-warning">ต้องเติมข้อมูลก่อนสร้าง</p><p className="mt-1 text-xs text-text-muted leading-relaxed">{topicPrompt}</p></div><div className="form-field"><label className="form-label">หัวข้อที่ลูกค้าหรือทีมจะจำได้ <span className="text-error">*</span></label><input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="เช่น เพิ่มระบบรายงานยอดขาย" className="form-input" autoFocus={!title} /></div><div className="form-field"><label className="form-label">รหัสสั้นภาษาอังกฤษสำหรับตามงาน <span className="text-error">*</span></label><input type="text" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="เช่น add-sales-report" className="form-input font-mono" />{!slug && title && <p className="form-helper text-error">ชื่อหัวข้อนี้ยังสร้างรหัสภาษาอังกฤษไม่ได้ กรุณาใส่เอง เช่น add-sales-report</p>}{slug && <p className="form-helper">ใช้เปิดดูและตามงานนี้ต่อ: <span className="font-mono text-text-muted">{type.toUpperCase()}-XXX-{slug}</span></p>}</div></div>}
+        {requiresTitle && <div className="form-section"><div className="rounded-xl border border-warning/20 bg-warning/10 p-3"><p className="text-xs font-bold text-warning">{t('documentCreation.topicRequired')}</p><p className="mt-1 text-xs text-text-muted leading-relaxed">{topicPrompt}</p></div><div className="form-field"><label className="form-label">{t('documentCreation.memorableTitle')} <span className="text-error">*</span></label><input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="เช่น เพิ่มระบบรายงานยอดขาย" className="form-input" autoFocus={!title} /></div><div className="form-field"><label className="form-label">{t('documentCreation.englishTrackingCode')} <span className="text-error">*</span></label><input type="text" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="เช่น add-sales-report" className="form-input font-mono" />{!slug && title && <p className="form-helper text-error">ชื่อหัวข้อนี้ยังสร้างรหัสภาษาอังกฤษไม่ได้ กรุณาใส่เอง เช่น add-sales-report</p>}{slug && <p className="form-helper">{t('documentCreation.trackingCodeHint')}: <span className="font-mono text-text-muted">{type.toUpperCase()}-XXX-{slug}</span></p>}</div></div>}
         {type === 'dcr' && <div className="form-section"><div className="form-field"><label className="form-label">ประเภทการเปลี่ยนแปลง <span className="text-error">*</span></label><SelectField value={changeKind} onChange={setChangeKind} options={[{ value: 'behavior', label: 'การทำงาน (Behavior / Logic)' }, { value: 'ui', label: 'หน้าจอ (UI / UX)' }, { value: 'database', label: 'ฐานข้อมูล (Database / Schema)' }, { value: 'report', label: 'รายงาน (Report / Dashboard)' }, { value: 'permission', label: 'สิทธิ์การใช้งาน (Permission / Role)' }, { value: 'integration', label: 'ระบบเชื่อมต่อ (Integration / API)' }, { value: 'technical-design', label: 'สถาปัตยกรรม (Technical Design)' }, { value: 'other', label: 'อื่นๆ (Other)' }]} /></div></div>}
         {(type === 'sup' || type === 'ma') && <div className="form-section"><div className="form-field"><label className="form-label">หมวดหมู่ <span className="text-error">*</span></label><SelectField value={category} onChange={setCategory} options={[{ value: 'bug', label: 'บั๊ก (Bug)' }, { value: 'feature-request', label: 'ขอเพิ่มฟีเจอร์ (Feature Request)' }, { value: 'update', label: 'อัปเดตข้อมูล (Update)' }, { value: 'maintenance', label: 'บำรุงรักษา (Maintenance)' }, { value: 'security', label: 'ความปลอดภัย (Security)' }, { value: 'other', label: 'อื่นๆ (Other)' }]} /></div></div>}
       </form>
-      <div className="modal-footer"><button type="button" onClick={onClose} className="btn btn-ghost">ยกเลิก</button><button type="submit" form="document-creator-form" disabled={saving} className="btn btn-primary">{saving ? savingStatus : ctaLabel}</button></div>
+      <div className="modal-footer"><button type="button" onClick={onClose} className="btn btn-ghost">{t('common.cancel')}</button><button type="submit" form="document-creator-form" disabled={saving} className="btn btn-primary">{saving ? savingStatus : ctaLabel}</button></div>
     </div></div>
   );
 }
