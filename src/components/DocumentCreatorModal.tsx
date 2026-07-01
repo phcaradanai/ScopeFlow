@@ -230,16 +230,53 @@ export default function DocumentCreatorModal({
         finalPath = `${finalProjectPath}/baseline/${filename}`;
         
         let aiPrefix = '';
-        if (useAi) {
-           aiPrefix = `---\nai_generated: true\n---\n> **AI Generated Document:** เอกสารนี้สร้างขึ้นโดย AI จากการวิเคราะห์ข้อมูลโครงการ (Brief)\n\n`;
+        const briefDoc = documents.find(d => d.type === 'brief');
+        let briefContent = '';
+        if (briefDoc) {
+          const { readFileContent } = await import('../lib/tauri-commands');
+          briefContent = await readFileContent(briefDoc.path);
         }
 
-        finalContent = aiPrefix + generateScopeDocument({
-          project: finalProjectId,
-          client: clientId,
-          author: '',
-          projectName: finalProjectId,
-        });
+        if (useAi && briefContent) {
+           aiPrefix = `---\nai_generated: true\n---\n> **AI Generated Document:** เอกสารนี้สร้างขึ้นโดย AI จากการวิเคราะห์ข้อมูลโครงการ (Brief)\n\n`;
+           try {
+             const { generateJsonWithTrace } = await import('../lib/ai/providers/aiProviderRouter');
+             const prompt = `Extract ScopeFormData for ScopeFlow from the following Brief.
+Return ONLY valid JSON matching this exact structure:
+{
+  "title": "string",
+  "project_overview": "string",
+  "included_items": "string",
+  "excluded_items": "string",
+  "deliverables": "string",
+  "acceptance_criteria": "string",
+  "assumptions": "string"
+}
+
+Brief Content:
+${briefContent}`;
+             const response = await generateJsonWithTrace(workspacePath!, prompt);
+             const data = typeof response.result === 'string' ? JSON.parse(response.result) : response.result;
+             const { generateScopeMarkdown } = await import('../lib/scope-builder');
+             finalContent = aiPrefix + generateScopeMarkdown(data, filename.replace('.md', ''));
+           } catch (err) {
+             console.error("AI Scope generation failed", err);
+             const { parseBriefToScope } = await import('../lib/brief-builder');
+             const { generateScopeMarkdown } = await import('../lib/scope-builder');
+             finalContent = generateScopeMarkdown({ title: '', acceptance_criteria: '', ...parseBriefToScope(briefContent) } as any, filename.replace('.md', ''));
+           }
+        } else if (briefContent) {
+           const { parseBriefToScope } = await import('../lib/brief-builder');
+           const { generateScopeMarkdown } = await import('../lib/scope-builder');
+           finalContent = generateScopeMarkdown({ title: '', acceptance_criteria: '', ...parseBriefToScope(briefContent) } as any, filename.replace('.md', ''));
+        } else {
+           finalContent = generateScopeDocument({
+             project: finalProjectId,
+             client: clientId,
+             author: '',
+             projectName: finalProjectId,
+           });
+        }
       } else if (type === 'quotation') {
         filename = 'quotation-v1.0.md';
         finalPath = `${finalProjectPath}/baseline/${filename}`;
@@ -419,13 +456,47 @@ export default function DocumentCreatorModal({
 
               <button
                 type="button"
-                onClick={() => {
-                  // In a real implementation this would trigger an AI merge
-                  alert('ฟีเจอร์ AI Update กำลังพัฒนา - ระบบจะทำการเปิดไฟล์ให้คุณแทนชั่วคราว');
-                  setSelectedFile(conflictInfo.path);
-                  onClose();
+                disabled={saving}
+                onClick={async () => {
+                  try {
+                    setError('');
+                    setSaving(true);
+                    const { readFileContent, writeFileContent } = await import('../lib/tauri-commands');
+                    const existingMarkdown = await readFileContent(conflictInfo.path);
+                    const { mergeDocumentWithAi, mergeDocumentDeterministically } = await import('../lib/ai/documentMergeAssistant');
+                    
+                    let useAi = false;
+                    try {
+                      if (workspacePath) {
+                        const { getAiSettings } = await import('../lib/settings');
+                        const aiSettings = await getAiSettings(workspacePath);
+                        useAi = aiSettings.enabled;
+                      }
+                    } catch { /* ignore */ }
+
+                    let finalMergedContent = '';
+                    if (useAi && workspacePath) {
+                      const result = await mergeDocumentWithAi(workspacePath, {
+                        existingMarkdown,
+                        newDraftMarkdown: conflictInfo.content,
+                        documentKind: conflictInfo.name
+                      });
+                      finalMergedContent = result.markdown;
+                    } else {
+                      finalMergedContent = mergeDocumentDeterministically(existingMarkdown, conflictInfo.content);
+                    }
+                    
+                    await writeFileContent(conflictInfo.path, finalMergedContent);
+                    await refreshTree();
+                    setSelectedFile(conflictInfo.path);
+                    onClose();
+                  } catch (err) {
+                    setError(`AI Merge ล้มเหลว: ${String(err)}`);
+                  } finally {
+                    setSaving(false);
+                  }
                 }}
-                className="text-left p-4 rounded-xl border border-border bg-surface-2 hover:border-accent hover:bg-accent/5 transition-all flex items-center gap-4 group"
+                className="text-left p-4 rounded-xl border border-border bg-surface-2 hover:border-accent hover:bg-accent/5 transition-all flex items-center gap-4 group disabled:opacity-50"
               >
                 <div className="p-2 rounded-lg bg-accent/10 text-accent">
                   <Wand2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -438,18 +509,21 @@ export default function DocumentCreatorModal({
 
               <button
                 type="button"
+                disabled={saving}
                 onClick={async () => {
                   try {
-                    let newPath = conflictInfo.path.replace(/\.md$/, `-${Date.now()}.md`);
+                    setSaving(true);
+                    const newPath = conflictInfo.path.replace(/\.md$/, `-${Date.now()}.md`);
                     await createDocument(newPath, conflictInfo.content);
                     await refreshTree();
                     setSelectedFile(newPath);
                     onClose();
                   } catch (err) {
                     setError(String(err));
+                    setSaving(false);
                   }
                 }}
-                className="text-left p-4 rounded-xl border border-border bg-surface-2 hover:border-success hover:bg-success/5 transition-all flex items-center gap-4 group"
+                className="text-left p-4 rounded-xl border border-border bg-surface-2 hover:border-success hover:bg-success/5 transition-all flex items-center gap-4 group disabled:opacity-50"
               >
                 <div className="p-2 rounded-lg bg-success/10 text-success">
                   <Copy className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -462,10 +536,11 @@ export default function DocumentCreatorModal({
 
               <button
                 type="button"
+                disabled={saving}
                 onClick={async () => {
                   if (window.confirm('คำเตือน: คุณแน่ใจหรือไม่ว่าต้องการเขียนทับไฟล์เดิม? ข้อมูลเก่าทั้งหมดจะหายไปและไม่สามารถกู้คืนได้')) {
                     try {
-                      // We must use writeFileContent to overwrite, as createDocument might block
+                      setSaving(true);
                       const { writeFileContent } = await import('../lib/tauri-commands');
                       await writeFileContent(conflictInfo.path, conflictInfo.content);
                       await refreshTree();
@@ -473,10 +548,11 @@ export default function DocumentCreatorModal({
                       onClose();
                     } catch (err) {
                       setError(String(err));
+                      setSaving(false);
                     }
                   }
                 }}
-                className="text-left p-4 rounded-xl border border-border bg-surface-2 hover:border-error hover:bg-error/5 transition-all flex items-center gap-4 group"
+                className="text-left p-4 rounded-xl border border-border bg-surface-2 hover:border-error hover:bg-error/5 transition-all flex items-center gap-4 group disabled:opacity-50"
               >
                 <div className="p-2 rounded-lg bg-error/10 text-error">
                   <AlertTriangle className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -487,8 +563,10 @@ export default function DocumentCreatorModal({
                 </div>
               </button>
             </div>
-            <div className="mt-6 flex justify-end">
-              <button type="button" onClick={() => setConflictInfo(null)} className="btn btn-ghost">ย้อนกลับ</button>
+            <div className="mt-6 flex justify-end items-center gap-3">
+              {error && <span className="text-error text-sm">{error}</span>}
+              {saving && <span className="text-primary text-sm animate-pulse">กำลังประมวลผล...</span>}
+              <button type="button" disabled={saving} onClick={() => setConflictInfo(null)} className="btn btn-ghost disabled:opacity-50">ย้อนกลับ</button>
             </div>
           </div>
         ) : (
