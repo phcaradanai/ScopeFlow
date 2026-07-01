@@ -39,7 +39,7 @@ function stripMarkdown(markdown = ''): string {
 
 function hasMeaningfulSection(markdown: string, labels: RegExp[]): boolean {
   return labels.some(label => {
-    const match = markdown.match(new RegExp(`##+\\s*.*${label.source}.*\\n([\\s\\S]*?)(?=\\n##+\\s|$)`, 'i'));
+    const match = markdown.match(new RegExp(`##+\\s*.*(?:${label.source}).*\\n([\\s\\S]*?)(?=\\n##+\\s|$)`, 'i'));
     if (!match) return false;
     return stripMarkdown(match[1] || '').length >= 20;
   });
