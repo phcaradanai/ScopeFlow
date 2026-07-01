@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FileEntry, createDocument, pathExists, readFileContent, replaceFileContent, updateFileContent } from '../lib/tauri-commands';
+import { FileEntry, createDocument, pathExists, readFileContent, updateFileContent } from '../lib/tauri-commands';
 import { useProjectDocuments } from '../hooks/useProjectDocuments';
-import { RefreshCw, Briefcase, Plus, Search, Sparkles, X, FileText, Wand2, Copy, Trash2 } from 'lucide-react';
+import { RefreshCw, Briefcase, Plus, Search, Sparkles } from 'lucide-react';
 import SelectField from './ui/SelectField';
 import PageShell from './ui/PageShell';
 import ProjectWorkflowStepper from './project/ProjectWorkflowStepper';
@@ -13,6 +13,7 @@ import ProjectLifecycleCommandCenter from './project/ProjectLifecycleCommandCent
 import CustomerAnswerIntakePanel from './project/CustomerAnswerIntakePanel';
 import DocumentCreationPreviewModal from './project/DocumentCreationPreviewModal';
 import GuidedOperatingModePanel from './project/GuidedOperatingModePanel';
+import FriendlyDocumentConflictModal, { type FriendlyConflictAction } from './project/FriendlyDocumentConflictModal';
 import { useLifecycleActionDispatcher } from '../hooks/useLifecycleActionDispatcher';
 import type { CustomerAnswerWorkflowContext } from '../lib/ai/customer-answer/customerAnswerWorkflowContext';
 import type { GuidedPrimaryAction } from '../lib/guided-operating-mode';
@@ -169,6 +170,7 @@ export default function ProjectOverview({
 
   const { clientId, projectId } = getProjectPathIds(projectPath);
   const guidedState = useMemo(() => buildGuidedOperatingModeState(documents), [documents]);
+  const isEmptyProject = documents.length === 0;
 
   useEffect(() => {
     let mounted = true;
@@ -323,7 +325,7 @@ export default function ProjectOverview({
     handlePrimaryAction();
   };
 
-  const runConflictAction = async (mode: 'ai-merge' | 'update' | 'replace' | 'version' | 'open') => {
+  const runConflictAction = async (mode: FriendlyConflictAction) => {
     if (!guidedConflict) return;
     if (mode === 'open') {
       onOpenDocument(guidedConflict.existingPath);
@@ -343,8 +345,8 @@ export default function ProjectOverview({
       }
 
       if (mode === 'replace') {
-        if (!window.confirm('ยืนยันลบไฟล์เดิมแล้วสร้างใหม่? การทำงานนี้ควรใช้เมื่อมั่นใจว่าไฟล์เดิมไม่ต้องเก็บแล้ว')) return;
-        await replaceFileContent(guidedConflict.existingPath, guidedConflict.newContent);
+        if (!window.confirm('ยืนยันแทนที่เอกสารเดิม? ใช้เมื่อมั่นใจว่าไม่ต้องเก็บฉบับเดิมแล้ว')) return;
+        await updateFileContent(guidedConflict.existingPath, guidedConflict.newContent);
         setGuidedConflict(null);
         await openAndRefresh(guidedConflict.existingPath);
         return;
@@ -369,10 +371,10 @@ export default function ProjectOverview({
           instruction: 'Update the existing Scope from the latest Brief while preserving existing approved or locked decisions. Summarize in Thai.',
         });
         mergedMarkdown = merged.markdown;
-        mergeSummary = `AI merge สำเร็จด้วย ${merged.provider || 'provider'} ${merged.model || ''}`.trim();
+        mergeSummary = `AI ช่วยอัปเดตสำเร็จด้วย ${merged.provider || 'provider'} ${merged.model || ''}`.trim();
       } catch (error) {
         mergedMarkdown = mergeDocumentDeterministically(existingMarkdown, guidedConflict.newContent, 'Scope update from latest Brief');
-        mergeSummary = `AI ใช้ไม่ได้ จึง fallback เป็น deterministic append: ${error}`;
+        mergeSummary = `AI ใช้ไม่ได้ จึงรวมข้อมูลแบบปลอดภัยแทน: ${error}`;
       }
 
       await updateFileContent(guidedConflict.existingPath, mergedMarkdown);
@@ -380,7 +382,7 @@ export default function ProjectOverview({
       setGuidedConflict(null);
       await openAndRefresh(guidedConflict.existingPath);
     } catch (err) {
-      setGuidedNotice(`จัดการไฟล์เดิมไม่สำเร็จ: ${err}`);
+      setGuidedNotice(`จัดการเอกสารเดิมไม่สำเร็จ: ${err}`);
     } finally {
       setGuidedBusy(false);
     }
@@ -413,28 +415,18 @@ export default function ProjectOverview({
           <Briefcase className="w-7 h-7 text-primary shrink-0" />
           <span className="page-title-text">{projectName}</span>
         </h1>
-        <p className="page-subtitle">Project Command Center: ทำขั้นตอนถัดไปโดยไม่ต้องจำโฟลเดอร์หรือไฟล์เอง</p>
+        <p className="page-subtitle">ศูนย์คุม Brief, Scope, Quote, Approval และ Change Request</p>
       </div>
       <div className="page-actions">
         {handleStartDiscovery && (
-          <button
-            onClick={handleStartDiscovery}
-            className="btn btn-primary"
-          >
-            <Search className="w-4 h-4" /> Start Discovery
+          <button onClick={handleStartDiscovery} className="btn btn-primary">
+            <Search className="w-4 h-4" /> เริ่มจากคำขอลูกค้า
           </button>
         )}
-        <button
-          onClick={() => onCreateDocument(clientId, projectId, projectPath)}
-          className="btn btn-outline"
-        >
+        <button onClick={() => onCreateDocument(clientId, projectId, projectPath)} className="btn btn-outline">
           <Plus className="w-4 h-4" /> สร้างเอกสาร
         </button>
-        <button
-          onClick={loadDocuments}
-          disabled={loading}
-          className="btn btn-ghost"
-        >
+        <button onClick={loadDocuments} disabled={loading} className="btn btn-ghost">
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           รีเฟรช
         </button>
@@ -452,6 +444,23 @@ export default function ProjectOverview({
         onOpenDocument={onOpenDocument}
       />
 
+      {isEmptyProject && (
+        <section className="mt-5 rounded-3xl border border-primary/20 bg-surface/80 p-6 text-center shadow-sm">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary-light">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <h2 className="text-xl font-black text-text">เริ่มจากข้อความลูกค้าเพียงอย่างเดียวก็พอ</h2>
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-text-muted">
+            วางคำขอจากลูกค้า แล้ว ScopeFlow จะช่วยถามข้อมูลที่ขาด สร้าง Brief และพาไปต่อเป็น Scope โดยไม่ต้องจำว่าเอกสารต้องอยู่ตรงไหน
+          </p>
+          {handleStartDiscovery && (
+            <button type="button" onClick={handleStartDiscovery} className="btn btn-primary mt-5">
+              เริ่มจากคำขอลูกค้า
+            </button>
+          )}
+        </section>
+      )}
+
       {guidedNotice && (
         <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm text-primary-light flex items-start gap-3">
           <Sparkles className="w-4 h-4 mt-0.5 shrink-0" />
@@ -459,80 +468,84 @@ export default function ProjectOverview({
         </div>
       )}
 
-      <ProjectLifecycleCommandCenter
-        projectName={projectName}
-        projectPath={projectPath}
-        priority={commandCenterPriority}
-        displayNextAction={workflowState.nextActionDescription}
-        commandAction={commandCenterAction}
-        explanation={commandCenterExplanation}
-        onExecuteAction={handlePrimaryAction}
-        lifecycleFeedback={lifecycleFeedback}
-        onClearLifecycleFeedback={onClearLifecycleFeedback}
-      />
+      <details className="mt-6 rounded-2xl border border-border bg-surface-2 group">
+        <summary className="p-4 font-semibold text-text cursor-pointer select-none outline-none group-focus-within:ring-2 group-focus-within:ring-primary rounded-2xl">
+          รายละเอียดขั้นสูง / ตรวจสุขภาพเอกสาร
+        </summary>
+        <div className="p-4 pt-0 border-t border-border mt-2 space-y-5">
+          <ProjectLifecycleCommandCenter
+            projectName={projectName}
+            projectPath={projectPath}
+            priority={commandCenterPriority}
+            displayNextAction={workflowState.nextActionDescription}
+            commandAction={commandCenterAction}
+            explanation={commandCenterExplanation}
+            onExecuteAction={handlePrimaryAction}
+            lifecycleFeedback={lifecycleFeedback}
+            onClearLifecycleFeedback={onClearLifecycleFeedback}
+          />
 
-      <div className="my-6">
-        <CustomerAnswerIntakePanel
-          scanFiles={scanFiles}
-          onOpenDocument={onOpenDocument}
-          onCreateChangeRequest={(customerAnswerContext: CustomerAnswerWorkflowContext) => handleCreateCustomerAnswerDocument(
-            'cr',
-            customerAnswerContext,
-            'Customer answer indicates a possible scope change. Prepare CR/DCR instead of silently changing the current scope.',
-            customerAnswerContext.recommendedAction
-          )}
-          onCreateFollowUp={(customerAnswerContext: CustomerAnswerWorkflowContext) => handleCreateCustomerAnswerDocument(
-            'followup',
-            customerAnswerContext,
-            'Customer answer needs clarification before updating the project baseline or commercial documents.',
-            customerAnswerContext.recommendedAction
-          )}
-          onContinueLifecycle={() => executeAction()}
-          onStartRevisionReview={(customerAnswerContext: CustomerAnswerWorkflowContext) => handleCreateCustomerAnswerDocument(
-            'revision',
-            customerAnswerContext,
-            'Customer rejected or did not accept the current artifact. Start revision review before changing scope/quotation.',
-            customerAnswerContext.recommendedAction
-          )}
-        />
-      </div>
+          <CustomerAnswerIntakePanel
+            scanFiles={scanFiles}
+            onOpenDocument={onOpenDocument}
+            onCreateChangeRequest={(customerAnswerContext: CustomerAnswerWorkflowContext) => handleCreateCustomerAnswerDocument(
+              'cr',
+              customerAnswerContext,
+              'Customer answer indicates a possible scope change. Prepare CR/DCR instead of silently changing the current scope.',
+              customerAnswerContext.recommendedAction
+            )}
+            onCreateFollowUp={(customerAnswerContext: CustomerAnswerWorkflowContext) => handleCreateCustomerAnswerDocument(
+              'followup',
+              customerAnswerContext,
+              'Customer answer needs clarification before updating the project baseline or commercial documents.',
+              customerAnswerContext.recommendedAction
+            )}
+            onContinueLifecycle={() => executeAction()}
+            onStartRevisionReview={(customerAnswerContext: CustomerAnswerWorkflowContext) => handleCreateCustomerAnswerDocument(
+              'revision',
+              customerAnswerContext,
+              'Customer rejected or did not accept the current artifact. Start revision review before changing scope/quotation.',
+              customerAnswerContext.recommendedAction
+            )}
+          />
 
-      <ProjectWorkflowStepper
-        workflowState={workflowState}
-        clientId={clientId}
-        projectPath={projectPath}
-        onCreateDocument={onCreateDocument}
-        onStartBriefIntake={onStartBriefIntake}
-      />
+          <ProjectWorkflowStepper
+            workflowState={workflowState}
+            clientId={clientId}
+            projectPath={projectPath}
+            onCreateDocument={onCreateDocument}
+            onStartBriefIntake={onStartBriefIntake}
+          />
 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <ProjectRisksPanel
+              hasNoScope={hasNoScope}
+              hasNoQuote={hasNoQuote}
+              openCRs={openCRs}
+              pendingApprovals={pendingApprovals}
+            />
+            <ProjectWorkflowStats
+              draftDocs={draftDocs}
+              approvedDocs={approvedDocs}
+              openCRs={openCRs}
+              openSUPs={openSUPs}
+            />
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <ProjectRisksPanel
-          hasNoScope={hasNoScope}
-          hasNoQuote={hasNoQuote}
-          openCRs={openCRs}
-          pendingApprovals={pendingApprovals}
-        />
-        <ProjectWorkflowStats
-          draftDocs={draftDocs}
-          approvedDocs={approvedDocs}
-          openCRs={openCRs}
-          openSUPs={openSUPs}
-        />
-      </div>
+          <ScopeReadinessGrid
+            briefDocs={briefDocs}
+            scopeDocs={scopeDocs}
+            quotationDocs={quotationDocs}
+            invoiceDocs={invoiceDocs}
+            approvedDocs={approvedDocs}
+            contentFlags={contentFlags}
+          />
+        </div>
+      </details>
 
-      <ScopeReadinessGrid
-        briefDocs={briefDocs}
-        scopeDocs={scopeDocs}
-        quotationDocs={quotationDocs}
-        invoiceDocs={invoiceDocs}
-        approvedDocs={approvedDocs}
-        contentFlags={contentFlags}
-      />
-
-      <details className="mt-8 mb-4 border border-border rounded-xl bg-surface-2 group">
+      <details className="mt-4 mb-4 border border-border rounded-xl bg-surface-2 group">
         <summary className="p-4 font-semibold text-text cursor-pointer select-none outline-none group-focus-within:ring-2 group-focus-within:ring-primary rounded-xl">
-          📂 ไฟล์เอกสารทั้งหมด (Detail / File Explorer)
+          เอกสารทั้งหมด / Detail View
         </summary>
         <div className="p-4 pt-0 border-t border-border mt-2">
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_168px_168px] gap-3 mb-4 mt-4">
@@ -540,7 +553,7 @@ export default function ProjectOverview({
               <Search className="form-input-leading-icon group-focus-within:text-primary" />
               <input
                 type="text"
-                placeholder="ค้นหาจากชื่อเอกสาร, ประเภท, สถานะ..."
+                placeholder="ค้นหา Brief, Scope, Quote, Approval, Change Request..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="form-input form-input-has-leading-icon"
@@ -587,47 +600,16 @@ export default function ProjectOverview({
       />
 
       {guidedConflict && (
-        <div className="modal-overlay">
-          <div className="modal-container !max-w-3xl">
-            <div className="modal-header">
-              <div className="modal-header-content">
-                <h2 className="modal-title flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-warning" /> พบไฟล์ Scope เดิมอยู่แล้ว
-                </h2>
-                <p className="modal-subtitle">เลือกวิธีไปต่อโดยไม่ต้องลบไฟล์เองหรือเจอ error technical</p>
-              </div>
-              <button type="button" onClick={() => setGuidedConflict(null)} className="modal-close">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="modal-body space-y-4">
-              <div className="rounded-2xl border border-border bg-surface-2 p-4">
-                <div className="text-xs font-bold uppercase tracking-widest text-text-muted mb-2">Existing file</div>
-                <div className="font-mono text-xs text-text break-all">{guidedConflict.existingPath}</div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <button type="button" disabled={guidedBusy} onClick={() => runConflictAction('open')} className="btn btn-outline justify-start min-h-[64px]">
-                  <FileText className="w-4 h-4" /> เปิดไฟล์เดิม
-                </button>
-                <button type="button" disabled={guidedBusy} onClick={() => runConflictAction('ai-merge')} className="btn btn-primary justify-start min-h-[64px]">
-                  <Wand2 className="w-4 h-4" /> {aiEnabled ? 'AI ช่วย merge/update' : 'Merge แบบ fallback'}
-                </button>
-                <button type="button" disabled={guidedBusy} onClick={() => runConflictAction('update')} className="btn btn-outline justify-start min-h-[64px]">
-                  <RefreshCw className="w-4 h-4" /> อัปเดตทับไฟล์เดิม
-                </button>
-                <button type="button" disabled={guidedBusy} onClick={() => runConflictAction('version')} className="btn btn-outline justify-start min-h-[64px]">
-                  <Copy className="w-4 h-4" /> สร้างเวอร์ชันใหม่
-                </button>
-                <button type="button" disabled={guidedBusy} onClick={() => runConflictAction('replace')} className="btn btn-danger justify-start min-h-[64px] md:col-span-2">
-                  <Trash2 className="w-4 h-4" /> ลบไฟล์เดิมแล้วสร้างใหม่แบบยืนยัน
-                </button>
-              </div>
-              <p className="text-xs text-text-muted leading-relaxed">
-                แนะนำ: ใช้ AI merge/update เมื่อมีข้อมูลเก่าอยู่แล้ว ระบบจะพยายามเก็บ decision, approval, locked และ evidence เดิมไว้ก่อนเสมอ หาก AI ใช้ไม่ได้จะ fallback เป็น deterministic merge
-              </p>
-            </div>
-          </div>
-        </div>
+        <FriendlyDocumentConflictModal
+          title="พบ Scope เดิมอยู่แล้ว"
+          description="เลือกวิธีไปต่อโดยไม่ต้องจัดการเอกสารเองหรือเจอข้อความผิดพลาดที่อ่านยาก"
+          documentLabel="Scope"
+          existingPath={guidedConflict.existingPath}
+          aiEnabled={aiEnabled}
+          busy={guidedBusy}
+          onAction={runConflictAction}
+          onClose={() => setGuidedConflict(null)}
+        />
       )}
 
       {/* Editor Detail Panel / Overlay */}
