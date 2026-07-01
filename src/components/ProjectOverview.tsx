@@ -14,6 +14,7 @@ import CustomerAnswerIntakePanel from './project/CustomerAnswerIntakePanel';
 import DocumentCreationPreviewModal from './project/DocumentCreationPreviewModal';
 import GuidedOperatingModePanel from './project/GuidedOperatingModePanel';
 import BriefScopeQualityPanel from './project/BriefScopeQualityPanel';
+import FollowUpAnswerIntakePanel from './project/FollowUpAnswerIntakePanel';
 import FriendlyDocumentConflictModal, { type FriendlyConflictAction } from './project/FriendlyDocumentConflictModal';
 import { useLifecycleActionDispatcher } from '../hooks/useLifecycleActionDispatcher';
 import type { CustomerAnswerWorkflowContext } from '../lib/ai/customer-answer/customerAnswerWorkflowContext';
@@ -24,6 +25,8 @@ import { generateScopeMarkdown } from '../lib/scope-builder';
 import { mergeDocumentDeterministically, mergeDocumentWithAi } from '../lib/ai/documentMergeAssistant';
 import { getAiProviders } from '../lib/ai/providers/providerSettings';
 import { analyzeBriefScopeQuality, buildScopeQualityImprovementDraft, type BriefScopeQualityAnalysis } from '../lib/ai/brief-scope-quality/briefScopeQualityAnalyzer';
+import { buildFollowUpAnswerUpdateDraft, decideFollowUpAnswer, type FollowUpAnswerDecision } from '../lib/ai/follow-up/followUpAnswerDecision';
+import { generateCRDocument, generateFollowUpDocument } from '../lib/templates';
 import { t } from '../lib/i18n/copy';
 import MarkdownEditor from './MarkdownEditor';
 
@@ -76,6 +79,34 @@ function getFileName(path: string) {
   return path.replace(/\\/g, '/').split('/').pop() || '';
 }
 
+function getDocumentFileName(doc: any) {
+  return doc.file_name || doc.filename || getFileName(doc.file_path || doc.path || '');
+}
+
+function getNextNumberFromDocuments(documents: any[], prefix: string) {
+  let maxNumber = 0;
+  const pattern = new RegExp(`^${prefix}-(\\d+)-?`);
+  documents.forEach(doc => {
+    const match = getDocumentFileName(doc).match(pattern);
+    if (!match?.[1]) return;
+    const num = Number(match[1]);
+    if (!Number.isNaN(num) && num > maxNumber) maxNumber = num;
+  });
+  return String(maxNumber + 1).padStart(3, '0');
+}
+
+async function getNextVersionPathFromExisting(path: string) {
+  const normalized = path.replace(/\\/g, '/');
+  const dot = normalized.lastIndexOf('.');
+  const base = dot > -1 ? normalized.slice(0, dot) : normalized;
+  const ext = dot > -1 ? normalized.slice(dot) : '.md';
+  for (let version = 2; version <= 20; version += 1) {
+    const candidate = `${base}-v${version}${ext}`;
+    if (!(await pathExists(candidate))) return candidate;
+  }
+  return `${base}-${Date.now()}${ext}`;
+}
+
 function buildScopeFromBriefMarkdown(briefMarkdown: string, filename: string) {
   const prefillData = parseBriefToScope(briefMarkdown);
   return generateScopeMarkdown({
@@ -117,6 +148,75 @@ function buildCustomerAnswerDocumentContext(
     recommendationWhy,
     customerAnswerContext,
   };
+}
+
+function referenceLine(label: string, doc?: any) {
+  if (!doc) return `- ${label}: ยังไม่มี`;
+  return `- ${label}: ${doc.title || getDocumentFileName(doc)}\n  - path: ${doc.file_path}`;
+}
+
+function buildQualityFollowUpMarkdown(args: {
+  baseMarkdown: string;
+  question: string;
+  projectName: string;
+  brief?: any;
+  scope?: any;
+}) {
+  return `${args.baseMarkdown}
+
+## ที่มา
+
+- มาจาก: Brief/Scope quality analyzer
+- โครงการ: ${args.projectName}
+
+## คำถามที่ต้องถามลูกค้า
+
+- [ ] ${args.question}
+
+## Reference กลับไปยัง Brief/Scope
+
+${referenceLine('Brief', args.brief)}
+${referenceLine('Scope', args.scope)}
+
+## วิธีนำคำตอบกลับมาใช้
+
+เมื่อลูกค้าตอบกลับ ให้นำคำตอบมาวางในส่วน “ข้อมูลที่ลูกค้าตอบกลับ” ใน Project Command Center เพื่อให้ ScopeFlow วิเคราะห์ว่าควรอัปเดต Brief, Scope, เปิด Change Request, ถามต่อ หรือไม่ต้องทำอะไร
+`;
+}
+
+function buildChangeRequestFromFollowUp(args: {
+  baseMarkdown: string;
+  decision: FollowUpAnswerDecision;
+  brief?: any;
+  scope?: any;
+}) {
+  const changed = args.decision.changed_items.length > 0
+    ? args.decision.changed_items.map(item => `- ${item}`).join('\n')
+    : '- ดูรายละเอียดจากคำตอบลูกค้า';
+  return `${args.baseMarkdown}
+
+## ที่มา
+
+- มาจาก: คำตอบลูกค้าจาก Follow-up
+- เหตุผลที่แนะนำ: ${args.decision.guardrails.reason}
+
+## Reference กลับไปยัง Brief/Scope
+
+${referenceLine('Brief', args.brief)}
+${referenceLine('Scope', args.scope)}
+
+## คำตอบนี้กระทบ Brief/Scope อย่างไร
+
+${args.decision.impact_summary}
+
+## สิ่งที่เปลี่ยนหรือได้คำตอบเพิ่ม
+
+${changed}
+
+## ข้อเสนอสำหรับ Change Request
+
+${args.decision.suggested_update || args.decision.summary}
+`;
 }
 
 export default function ProjectOverview({
@@ -169,6 +269,8 @@ export default function ProjectOverview({
   const [qualityAnalysis, setQualityAnalysis] = useState<BriefScopeQualityAnalysis | null>(null);
   const [qualityLoading, setQualityLoading] = useState(false);
   const [qualityRefreshKey, setQualityRefreshKey] = useState(0);
+  const [followUpDecision, setFollowUpDecision] = useState<FollowUpAnswerDecision | null>(null);
+  const [followUpLoading, setFollowUpLoading] = useState(false);
 
   const scanFiles = documents.map(doc => ({
     path: doc.file_path,
@@ -315,15 +417,124 @@ export default function ProjectOverview({
     }
   };
 
-  const handleCreateQualityFollowUp = (question: string) => {
-    onCreateDocument(clientId, projectId, projectPath, 'followup', {
-      source: 'recommended_next_action',
-      initialType: 'followup',
-      reason: `ข้อมูลที่ยังต้องถามลูกค้า: ${question}`,
-      projectPath,
-      recommendationWhy: question,
-      prefillTitle: question.slice(0, 90),
-    });
+  const createQualityFollowUpDocument = async (question: string) => {
+    const number = getNextNumberFromDocuments(documents, 'FW');
+    const filename = `FW-${number}-quality-question.md`;
+    const path = joinPath(projectPath, 'support-requests', filename);
+    const baseMarkdown = generateFollowUpDocument({ project: projectId, client: clientId, author: '', followUpNumber: `FW-${number}`, title: question.slice(0, 90) });
+    const content = buildQualityFollowUpMarkdown({ baseMarkdown, question, projectName, brief: qualityBrief, scope: qualityScope });
+    if (await pathExists(path)) {
+      const versionPath = await getNextVersionPathFromExisting(path);
+      await createDocument(versionPath, content);
+      await openAndRefresh(versionPath);
+      return;
+    }
+    await createDocument(path, content);
+    await openAndRefresh(path);
+  };
+
+  const handleCreateQualityFollowUp = async (question: string) => {
+    try {
+      setGuidedBusy(true);
+      setGuidedNotice('');
+      await createQualityFollowUpDocument(question);
+    } catch (err) {
+      setGuidedNotice(`สร้าง Follow-up จากคำถามนี้ไม่สำเร็จ: ${err}`);
+    } finally {
+      setGuidedBusy(false);
+    }
+  };
+
+  const handleAnalyzeFollowUpAnswer = async (answer: string) => {
+    try {
+      setFollowUpLoading(true);
+      const decision = await decideFollowUpAnswer(workspacePath, {
+        answer,
+        briefMarkdown: qualityBrief?.markdown || '',
+        scopeMarkdown: qualityScope?.markdown || '',
+        scopeStatus: qualityScope?.status,
+        scopeLocked: qualityScope?.locked,
+      });
+      setFollowUpDecision(decision);
+    } catch (err) {
+      setGuidedNotice(`วิเคราะห์คำตอบลูกค้าไม่สำเร็จ: ${err}`);
+    } finally {
+      setFollowUpLoading(false);
+    }
+  };
+
+  const handleUpdateBriefFromFollowUp = async (decision: FollowUpAnswerDecision) => {
+    if (!qualityBrief) {
+      handleStartDiscovery?.();
+      return;
+    }
+    try {
+      const existing = qualityBrief.markdown || await readFileContent(qualityBrief.file_path);
+      const protectedUpdate = Boolean(qualityBrief.locked || ['approved', 'locked', 'signed_off'].includes((qualityBrief.status || '').toLowerCase()));
+      setGuidedConflict({
+        existingPath: qualityBrief.file_path,
+        newVersionPath: await getNextVersionPathFromExisting(qualityBrief.file_path),
+        newContent: `${existing}${buildFollowUpAnswerUpdateDraft(decision, 'Brief')}`,
+        documentKind: 'Brief follow-up update',
+        protectedUpdate,
+      });
+      if (protectedUpdate) setGuidedNotice('Brief นี้ approved/locked แล้ว ระบบจะเสนอเป็นเวอร์ชันใหม่ ไม่เขียนทับเดิมเงียบ ๆ');
+    } catch (err) {
+      setGuidedNotice(`เตรียมอัปเดต Brief ไม่สำเร็จ: ${err}`);
+    }
+  };
+
+  const handleCreateChangeRequestFromFollowUp = async (decision: FollowUpAnswerDecision) => {
+    try {
+      setGuidedBusy(true);
+      const number = getNextNumberFromDocuments(documents, 'CR');
+      const filename = `CR-${number}-follow-up-answer.md`;
+      const path = joinPath(projectPath, 'change-requests', filename);
+      const baseMarkdown = generateCRDocument({ project: projectId, client: clientId, author: '', crNumber: `CR-${number}`, title: decision.summary.slice(0, 90) });
+      const content = buildChangeRequestFromFollowUp({ baseMarkdown, decision, brief: qualityBrief, scope: qualityScope });
+      await createDocument(path, content);
+      await openAndRefresh(path);
+    } catch (err) {
+      setGuidedNotice(`สร้าง Change Request ไม่สำเร็จ: ${err}`);
+    } finally {
+      setGuidedBusy(false);
+    }
+  };
+
+  const handleUpdateScopeFromFollowUp = async (decision: FollowUpAnswerDecision) => {
+    if (decision.guardrails.should_create_change_request) {
+      await handleCreateChangeRequestFromFollowUp(decision);
+      return;
+    }
+    if (!qualityScope) {
+      onCreateDocument(clientId, projectId, projectPath, 'scope', {
+        source: 'recommended_next_action',
+        initialType: 'scope',
+        reason: 'ยังไม่มี Scope ที่ใช้ควบคุมงาน',
+        projectPath,
+        recommendationWhy: decision.suggested_update || decision.summary,
+      });
+      return;
+    }
+    try {
+      const existing = qualityScope.markdown || await readFileContent(qualityScope.file_path);
+      const protectedUpdate = Boolean(qualityScope.locked || ['approved', 'locked', 'signed_off'].includes((qualityScope.status || '').toLowerCase()));
+      setGuidedConflict({
+        existingPath: qualityScope.file_path,
+        newVersionPath: await getNextVersionPathFromExisting(qualityScope.file_path),
+        newContent: `${existing}${buildFollowUpAnswerUpdateDraft(decision, 'Scope')}`,
+        documentKind: protectedUpdate ? 'Scope proposed follow-up update' : 'Scope follow-up update',
+        protectedUpdate,
+      });
+      if (protectedUpdate) setGuidedNotice('Scope นี้ approved/locked แล้ว ระบบจะเสนอเป็นเวอร์ชันใหม่หรือ Change Request ไม่เขียนทับ Scope เดิมเงียบ ๆ');
+    } catch (err) {
+      setGuidedNotice(`เตรียมอัปเดต Scope ไม่สำเร็จ: ${err}`);
+    }
+  };
+
+  const handleAskMoreFromFollowUp = async (decision: FollowUpAnswerDecision) => {
+    const question = decision.follow_up_questions[0] || decision.summary;
+    await handleCreateQualityFollowUp(question);
   };
 
   const handleUpdateScopeFromQuality = async (improvement: string) => {
@@ -414,7 +625,7 @@ export default function ProjectOverview({
     }
 
     if (guidedConflict.protectedUpdate && mode !== 'version') {
-      setGuidedNotice('Scope นี้ approved/locked แล้ว จึงไม่สามารถเขียนทับเดิมได้ กรุณาเลือก “สร้างเวอร์ชันใหม่” หรือเปิดเดิมเพื่อสร้าง Change Request');
+      setGuidedNotice('เอกสารนี้ approved/locked แล้ว จึงไม่สามารถเขียนทับเดิมได้ กรุณาเลือก “สร้างเวอร์ชันใหม่” หรือสร้าง Change Request แทน');
       return;
     }
 
@@ -453,12 +664,12 @@ export default function ProjectOverview({
           existingMarkdown,
           newDraftMarkdown: guidedConflict.newContent,
           documentKind: guidedConflict.documentKind,
-          instruction: 'Update the existing Scope while preserving approved or locked decisions. Do not invent approval, evidence, or customer confirmation. Summarize in Thai.',
+          instruction: `Update the existing ${guidedConflict.documentKind} while preserving approved or locked decisions. Do not invent approval, evidence, or customer confirmation. Summarize in Thai.`,
         });
         mergedMarkdown = merged.markdown;
         mergeSummary = `AI ช่วยอัปเดตสำเร็จด้วย ${merged.provider || 'provider'} ${merged.model || ''}`.trim();
       } catch (error) {
-        mergedMarkdown = mergeDocumentDeterministically(existingMarkdown, guidedConflict.newContent, 'Scope quality update');
+        mergedMarkdown = mergeDocumentDeterministically(existingMarkdown, guidedConflict.newContent, `${guidedConflict.documentKind} update`);
         mergeSummary = `AI ใช้ไม่ได้ จึงรวมข้อมูลแบบปลอดภัยแทน: ${error}`;
       }
 
@@ -536,6 +747,16 @@ export default function ProjectOverview({
         onRefresh={() => setQualityRefreshKey(key => key + 1)}
         onCreateFollowUp={handleCreateQualityFollowUp}
         onUpdateScope={handleUpdateScopeFromQuality}
+      />
+
+      <FollowUpAnswerIntakePanel
+        decision={followUpDecision}
+        loading={followUpLoading}
+        onAnalyze={handleAnalyzeFollowUpAnswer}
+        onUpdateBrief={handleUpdateBriefFromFollowUp}
+        onUpdateScope={handleUpdateScopeFromFollowUp}
+        onCreateChangeRequest={handleCreateChangeRequestFromFollowUp}
+        onAskMoreQuestions={handleAskMoreFromFollowUp}
       />
 
       {isEmptyProject && (
@@ -649,7 +870,7 @@ export default function ProjectOverview({
                 type="text"
                 placeholder="ค้นหา Brief, Scope, ใบเสนอราคา, Approval, Change Request..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={event => setSearchQuery(event.target.value)}
                 className="form-input form-input-has-leading-icon"
               />
             </div>
@@ -695,9 +916,9 @@ export default function ProjectOverview({
 
       {guidedConflict && (
         <FriendlyDocumentConflictModal
-          title="พบ Scope เดิมอยู่แล้ว"
-          description={guidedConflict.protectedUpdate ? 'Scope นี้ approved/locked แล้ว ระบบจะเสนอเป็นเวอร์ชันใหม่หรือ Change Request ไม่เขียนทับ Scope เดิมเงียบ ๆ' : t('conflict.existingDescription')}
-          documentLabel="Scope"
+          title="พบเอกสารเดิมอยู่แล้ว"
+          description={guidedConflict.protectedUpdate ? 'เอกสารนี้ approved/locked แล้ว ระบบจะเสนอเป็นเวอร์ชันใหม่หรือ Change Request ไม่เขียนทับเดิมเงียบ ๆ' : t('conflict.existingDescription')}
+          documentLabel={guidedConflict.documentKind}
           existingPath={guidedConflict.existingPath}
           aiEnabled={aiEnabled}
           busy={guidedBusy}
