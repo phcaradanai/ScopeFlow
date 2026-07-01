@@ -98,16 +98,21 @@ describe('DiscoveryStartModal', () => {
     });
   });
 
-  it('writes scope and quotation drafts when project context exists', async () => {
-    render(<DiscoveryStartModal clientId="client-a" projectId="project-a" projectPath="/workspace/clients/client-a/projects/project-a" onClose={vi.fn()} onScopeCreated={vi.fn()} onQuotationCreated={vi.fn()} />);
+  it('writes a discovery scope draft when project context exists', async () => {
+    render(<DiscoveryStartModal clientId="client-a" projectId="project-a" projectPath="/workspace/clients/client-a/projects/project-a" onClose={vi.fn()} onScopeCreated={vi.fn()} />);
 
     startDiscovery();
     fireEvent.click(screen.getByRole('button', { name: 'Generate Scope' }));
-    await waitFor(() => expect(mockedCreateDiscoveryScopeFile).toHaveBeenCalledWith(expect.objectContaining({ projectId: 'project-a' })));
 
+    await waitFor(() => expect(mockedCreateDiscoveryScopeFile).toHaveBeenCalledWith(expect.objectContaining({ projectId: 'project-a', projectPath: '/workspace/clients/client-a/projects/project-a' })));
+  });
+
+  it('writes a discovery quotation draft when project context exists', async () => {
     render(<DiscoveryStartModal clientId="client-a" projectId="project-a" projectPath="/workspace/clients/client-a/projects/project-a" onClose={vi.fn()} onQuotationCreated={vi.fn()} />);
+
     startDiscovery();
     fireEvent.click(screen.getByRole('button', { name: 'Generate Quotation' }));
-    await waitFor(() => expect(mockedCreateDiscoveryQuotationFile).toHaveBeenCalledWith(expect.objectContaining({ clientId: 'client-a', projectId: 'project-a' })));
+
+    await waitFor(() => expect(mockedCreateDiscoveryQuotationFile).toHaveBeenCalledWith(expect.objectContaining({ clientId: 'client-a', projectId: 'project-a', projectPath: '/workspace/clients/client-a/projects/project-a' })));
   });
 });
