@@ -7,10 +7,10 @@ import { createDiscoveryQuotationFile } from '../../lib/ai/brief-assistant/disco
 import type { DiscoverySession } from '../../lib/ai/brief-assistant/discoverySession';
 import { createProject } from '../../lib/tauri-commands';
 import { generateProjectYaml } from '../../lib/templates';
+import { useWorkspace } from '../../lib/workspace-context';
 
 interface DiscoveryStartModalProps {
   clientId: string;
-  workspacePath?: string;
   projectId?: string;
   projectPath?: string;
   onClose: () => void;
@@ -33,7 +33,8 @@ function createGeneratedProjectName(session: DiscoverySession) {
   return `Discovery Brief (${session.projectType || 'Requirement'})`;
 }
 
-export default function DiscoveryStartModal({ clientId, workspacePath, projectId, projectPath, onClose, onBriefCreated, onScopeCreated, onQuotationCreated, onCreateBriefDraft }: DiscoveryStartModalProps) {
+export default function DiscoveryStartModal({ clientId, projectId, projectPath, onClose, onBriefCreated, onScopeCreated, onQuotationCreated, onCreateBriefDraft }: DiscoveryStartModalProps) {
+  const { workspacePath } = useWorkspace();
   const [rawRequest, setRawRequest] = useState('');
   const [started, setStarted] = useState(false);
   const [notice, setNotice] = useState('');
