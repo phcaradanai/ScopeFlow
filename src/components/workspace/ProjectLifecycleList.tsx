@@ -303,7 +303,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
       return rows.filter(row => matchesReopenFilter(row, activeFilter));
     }
     return rows.filter(row => row.priority.category === activeFilter);
-  }, [activeFilter, rows, deliveryStatuses, getFinalStatusKindForRow]);
+  }, [activeFilter, rows, getFinalStatusKindForRow]);
 
   const filterCounts = useMemo(() => {
     const counts = new Map<LifecycleFilter, number>([['all', rows.length]]);
@@ -326,7 +326,7 @@ export default function ProjectLifecycleList({ rows, actionLogs, autofocusFilter
       }
     }
     return counts;
-  }, [rows, deliveryStatuses, getFinalStatusKindForRow]);
+  }, [rows, getFinalStatusKindForRow]);
 
   const projectNameByPath = useMemo(() => new Map(rows.map(row => [row.projectPath, row.projectName])), [rows]);
   const totalNeedsAttention = (filterCounts.get('blocked') || 0) + (filterCounts.get('missing_docs') || 0) + (filterCounts.get('can_close') || 0) + (filterCounts.get('closeout_ready') || 0);

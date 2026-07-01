@@ -13,6 +13,7 @@ import ProjectLifecycleCommandCenter from './project/ProjectLifecycleCommandCent
 import CustomerAnswerIntakePanel from './project/CustomerAnswerIntakePanel';
 import DocumentCreationPreviewModal from './project/DocumentCreationPreviewModal';
 import GuidedOperatingModePanel from './project/GuidedOperatingModePanel';
+import ProjectReadinessGatePanel from './project/ProjectReadinessGatePanel';
 import BriefScopeQualityPanel from './project/BriefScopeQualityPanel';
 import FollowUpAnswerIntakePanel from './project/FollowUpAnswerIntakePanel';
 import FriendlyDocumentConflictModal, { type FriendlyConflictAction } from './project/FriendlyDocumentConflictModal';
@@ -20,6 +21,7 @@ import { useLifecycleActionDispatcher } from '../hooks/useLifecycleActionDispatc
 import type { CustomerAnswerWorkflowContext } from '../lib/ai/customer-answer/customerAnswerWorkflowContext';
 import type { GuidedPrimaryAction } from '../lib/guided-operating-mode';
 import { buildGuidedOperatingModeState } from '../lib/guided-operating-mode';
+import { buildProjectReadinessGate } from '../lib/project-readiness-gate';
 import { parseBriefToScope } from '../lib/brief-builder';
 import { generateScopeMarkdown } from '../lib/scope-builder';
 import { mergeDocumentDeterministically, mergeDocumentWithAi } from '../lib/ai/documentMergeAssistant';
@@ -279,6 +281,15 @@ export default function ProjectOverview({
 
   const { clientId, projectId } = getProjectPathIds(projectPath);
   const guidedState = useMemo(() => buildGuidedOperatingModeState(documents), [documents]);
+  const readinessGate = useMemo(() => buildProjectReadinessGate(documents), [documents]);
+  const gateGuidedState = useMemo(() => ({
+    ...guidedState,
+    primaryAction: readinessGate.primaryAction,
+    readinessScore: readinessGate.score,
+    headline: readinessGate.headline,
+    summary: readinessGate.summary,
+    blockers: readinessGate.blockers.map(blocker => blocker.reason),
+  }), [guidedState, readinessGate]);
   const isEmptyProject = documents.length === 0;
   const qualityBrief = useMemo(() => documents.find(doc => doc.type === 'brief' && (doc.status === 'approved' || doc.locked)) || documents.find(doc => doc.type === 'brief'), [documents]);
   const qualityScope = useMemo(() => documents.find(doc => doc.type === 'scope' && (doc.status === 'approved' || doc.locked)) || documents.find(doc => doc.type === 'scope'), [documents]);
@@ -733,10 +744,16 @@ export default function ProjectOverview({
   return (
     <PageShell header={Header}>
       <GuidedOperatingModePanel
-        state={guidedState}
+        state={gateGuidedState}
         aiEnabled={aiEnabled}
-        onPrimaryAction={() => executeGuidedAction(guidedState.primaryAction)}
+        onPrimaryAction={() => executeGuidedAction(readinessGate.primaryAction)}
         onSecondaryAction={executeGuidedAction}
+        onOpenDocument={onOpenDocument}
+      />
+
+      <ProjectReadinessGatePanel
+        gate={readinessGate}
+        onPrimaryAction={() => executeGuidedAction(readinessGate.primaryAction)}
         onOpenDocument={onOpenDocument}
       />
 
