@@ -1,6 +1,7 @@
-import { FileEntry } from '../lib/tauri-commands';
+import { useEffect, useMemo, useState } from 'react';
+import { FileEntry, createDocument, pathExists, readFileContent, replaceFileContent, updateFileContent } from '../lib/tauri-commands';
 import { useProjectDocuments } from '../hooks/useProjectDocuments';
-import { RefreshCw, Briefcase, Plus, Search } from 'lucide-react';
+import { RefreshCw, Briefcase, Plus, Search, Sparkles, X, FileText, Wand2, Copy, Trash2 } from 'lucide-react';
 import SelectField from './ui/SelectField';
 import PageShell from './ui/PageShell';
 import ProjectWorkflowStepper from './project/ProjectWorkflowStepper';
@@ -11,9 +12,15 @@ import DocumentList from './project/DocumentList';
 import ProjectLifecycleCommandCenter from './project/ProjectLifecycleCommandCenter';
 import CustomerAnswerIntakePanel from './project/CustomerAnswerIntakePanel';
 import DocumentCreationPreviewModal from './project/DocumentCreationPreviewModal';
-import MvpGuidedPath from './project/MvpGuidedPath';
+import GuidedOperatingModePanel from './project/GuidedOperatingModePanel';
 import { useLifecycleActionDispatcher } from '../hooks/useLifecycleActionDispatcher';
 import type { CustomerAnswerWorkflowContext } from '../lib/ai/customer-answer/customerAnswerWorkflowContext';
+import type { GuidedPrimaryAction } from '../lib/guided-operating-mode';
+import { buildGuidedOperatingModeState } from '../lib/guided-operating-mode';
+import { parseBriefToScope } from '../lib/brief-builder';
+import { generateScopeMarkdown } from '../lib/scope-builder';
+import { mergeDocumentDeterministically, mergeDocumentWithAi } from '../lib/ai/documentMergeAssistant';
+import { getAiProviders } from '../lib/ai/providers/providerSettings';
 import MarkdownEditor from './MarkdownEditor';
 
 interface ProjectOverviewProps {
@@ -32,6 +39,13 @@ interface ProjectOverviewProps {
   onCloseDocument?: () => void;
 }
 
+interface GuidedConflictState {
+  existingPath: string;
+  newVersionPath: string;
+  newContent: string;
+  documentKind: string;
+}
+
 function getProjectPathIds(projectPath: string): { clientId: string; projectId: string } {
   const normalized = projectPath.split('\\').join('/');
   const parts = normalized.split('/').filter(Boolean);
@@ -40,6 +54,47 @@ function getProjectPathIds(projectPath: string): { clientId: string; projectId: 
   const clientId = clientsIndex >= 0 && parts[clientsIndex + 1] ? parts[clientsIndex + 1] : '';
   const projectId = projectsIndex >= 0 && parts[projectsIndex + 1] ? parts[projectsIndex + 1] : parts[parts.length - 1] || '';
   return { clientId, projectId };
+}
+
+function joinPath(...parts: string[]) {
+  return parts
+    .map((part, index) => {
+      const normalized = part.replace(/\\/g, '/');
+      if (index === 0) return normalized.replace(/\/+$/g, '');
+      return normalized.replace(/^\/+|\/+$/g, '');
+    })
+    .filter(Boolean)
+    .join('/');
+}
+
+function getFileName(path: string) {
+  return path.replace(/\\/g, '/').split('/').pop() || '';
+}
+
+function buildScopeFromBriefMarkdown(briefMarkdown: string, filename: string) {
+  const prefillData = parseBriefToScope(briefMarkdown);
+  return generateScopeMarkdown({
+    title: 'ขอบเขตงาน (Scope of Work)',
+    ...prefillData,
+    acceptance_criteria: '',
+    deliverables: prefillData.deliverables || '',
+  }, filename);
+}
+
+function getNextScopeVersionFilename(paths: string[]) {
+  let maxMajor = 1;
+  let maxMinor = 0;
+  paths.forEach(path => {
+    const match = getFileName(path).match(/^scope-v(\d+)\.(\d+)\.md$/);
+    if (!match) return;
+    const major = Number(match[1]);
+    const minor = Number(match[2]);
+    if (major > maxMajor || (major === maxMajor && minor > maxMinor)) {
+      maxMajor = major;
+      maxMinor = minor;
+    }
+  });
+  return `scope-v${maxMajor}.${maxMinor + 1}.md`;
 }
 
 function buildCustomerAnswerDocumentContext(
@@ -102,12 +157,37 @@ export default function ProjectOverview({
     uniqueStatuses,
   } = useProjectDocuments(projectPath, workspaceTree);
 
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [guidedConflict, setGuidedConflict] = useState<GuidedConflictState | null>(null);
+  const [guidedBusy, setGuidedBusy] = useState(false);
+  const [guidedNotice, setGuidedNotice] = useState('');
+
   const scanFiles = documents.map(doc => ({
     path: doc.file_path,
     markdown: doc.markdown || '',
   }));
 
   const { clientId, projectId } = getProjectPathIds(projectPath);
+  const guidedState = useMemo(() => buildGuidedOperatingModeState(documents), [documents]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadAiProviderState() {
+      if (!workspacePath) {
+        setAiEnabled(false);
+        return;
+      }
+      try {
+        const providers = await getAiProviders(workspacePath);
+        const usableProvider = providers.providers.some(provider => provider.enabled !== false && provider.baseUrl?.trim() && provider.model?.trim());
+        if (mounted) setAiEnabled(Boolean(providers.enabled && usableProvider));
+      } catch {
+        if (mounted) setAiEnabled(false);
+      }
+    }
+    loadAiProviderState();
+    return () => { mounted = false; };
+  }, [workspacePath]);
 
   const {
     showPreviewModal,
@@ -147,7 +227,6 @@ export default function ProjectOverview({
     if (workflowState.targetDocumentType === 'brief' && briefDocs === 0 && handleStartDiscovery) {
       handleStartDiscovery();
     } else if (workflowState.targetDocumentType === 'export') {
-      // Export action - handled by sidebar usually, but can dispatch an event or alert
       alert('พร้อมส่งออกเอกสาร กรุณาใช้ปุ่ม Export ที่เมนูด้านซ้าย');
     } else {
       onCreateDocument(clientId, projectId, projectPath, workflowState.targetDocumentType, {
@@ -157,6 +236,153 @@ export default function ProjectOverview({
         projectPath,
         recommendationWhy: workflowState.nextActionDescription
       });
+    }
+  };
+
+  const openAndRefresh = async (path: string) => {
+    await loadDocuments();
+    onDocumentChanged?.();
+    onOpenDocument(path);
+  };
+
+  const handleCreateScopeFromBrief = async () => {
+    const brief = documents.find(doc => doc.type === 'brief' && (doc.status === 'approved' || doc.locked)) || documents.find(doc => doc.type === 'brief');
+    if (!brief) {
+      handleStartDiscovery?.();
+      return;
+    }
+
+    try {
+      setGuidedBusy(true);
+      setGuidedNotice('');
+      const briefMarkdown = brief.markdown || await readFileContent(brief.file_path);
+      const scopeFilename = 'scope-v1.0.md';
+      const scopePath = joinPath(projectPath, 'baseline', scopeFilename);
+      const scopeContent = buildScopeFromBriefMarkdown(briefMarkdown, scopeFilename);
+      const exists = await pathExists(scopePath);
+
+      if (!exists) {
+        await createDocument(scopePath, scopeContent);
+        await openAndRefresh(scopePath);
+        return;
+      }
+
+      const scopePaths = documents.filter(doc => doc.type === 'scope').map(doc => doc.file_path);
+      const newVersionName = getNextScopeVersionFilename(scopePaths);
+      setGuidedConflict({
+        existingPath: scopePath,
+        newVersionPath: joinPath(projectPath, 'baseline', newVersionName),
+        newContent: buildScopeFromBriefMarkdown(briefMarkdown, newVersionName),
+        documentKind: 'scope',
+      });
+    } catch (err) {
+      setGuidedNotice(`สร้าง Scope จาก Brief ไม่สำเร็จ: ${err}`);
+    } finally {
+      setGuidedBusy(false);
+    }
+  };
+
+  const executeGuidedAction = (action: GuidedPrimaryAction) => {
+    if (action.kind === 'start_discovery') {
+      handleStartDiscovery?.();
+      return;
+    }
+    if (action.kind === 'create_scope_from_brief') {
+      handleCreateScopeFromBrief();
+      return;
+    }
+    if (action.kind === 'open_document' && action.documentPath) {
+      onOpenDocument(action.documentPath);
+      return;
+    }
+    if (action.kind === 'create_change_request') {
+      if (action.documentPath) onOpenDocument(action.documentPath);
+      else onCreateDocument(clientId, projectId, projectPath, 'cr', {
+        source: 'recommended_next_action',
+        initialType: 'cr',
+        reason: action.label,
+        projectPath,
+        recommendationWhy: action.description,
+      });
+      return;
+    }
+    if (action.kind === 'create_document' && action.documentType) {
+      onCreateDocument(clientId, projectId, projectPath, action.documentType, {
+        source: 'recommended_next_action',
+        initialType: action.documentType,
+        reason: action.label,
+        projectPath,
+        recommendationWhy: action.description,
+      });
+      return;
+    }
+    if (action.kind === 'export_project') {
+      alert('พร้อมส่งออกเอกสาร กรุณาใช้ปุ่ม Export ที่เมนูด้านซ้าย');
+      return;
+    }
+    handlePrimaryAction();
+  };
+
+  const runConflictAction = async (mode: 'ai-merge' | 'update' | 'replace' | 'version' | 'open') => {
+    if (!guidedConflict) return;
+    if (mode === 'open') {
+      onOpenDocument(guidedConflict.existingPath);
+      setGuidedConflict(null);
+      return;
+    }
+
+    try {
+      setGuidedBusy(true);
+      setGuidedNotice('');
+
+      if (mode === 'version') {
+        await createDocument(guidedConflict.newVersionPath, guidedConflict.newContent);
+        setGuidedConflict(null);
+        await openAndRefresh(guidedConflict.newVersionPath);
+        return;
+      }
+
+      if (mode === 'replace') {
+        if (!window.confirm('ยืนยันลบไฟล์เดิมแล้วสร้างใหม่? การทำงานนี้ควรใช้เมื่อมั่นใจว่าไฟล์เดิมไม่ต้องเก็บแล้ว')) return;
+        await replaceFileContent(guidedConflict.existingPath, guidedConflict.newContent);
+        setGuidedConflict(null);
+        await openAndRefresh(guidedConflict.existingPath);
+        return;
+      }
+
+      if (mode === 'update') {
+        await updateFileContent(guidedConflict.existingPath, guidedConflict.newContent);
+        setGuidedConflict(null);
+        await openAndRefresh(guidedConflict.existingPath);
+        return;
+      }
+
+      const existingMarkdown = await readFileContent(guidedConflict.existingPath);
+      let mergedMarkdown = '';
+      let mergeSummary = '';
+      try {
+        if (!workspacePath) throw new Error('workspacePath is required for AI merge');
+        const merged = await mergeDocumentWithAi(workspacePath, {
+          existingMarkdown,
+          newDraftMarkdown: guidedConflict.newContent,
+          documentKind: guidedConflict.documentKind,
+          instruction: 'Update the existing Scope from the latest Brief while preserving existing approved or locked decisions. Summarize in Thai.',
+        });
+        mergedMarkdown = merged.markdown;
+        mergeSummary = `AI merge สำเร็จด้วย ${merged.provider || 'provider'} ${merged.model || ''}`.trim();
+      } catch (error) {
+        mergedMarkdown = mergeDocumentDeterministically(existingMarkdown, guidedConflict.newContent, 'Scope update from latest Brief');
+        mergeSummary = `AI ใช้ไม่ได้ จึง fallback เป็น deterministic append: ${error}`;
+      }
+
+      await updateFileContent(guidedConflict.existingPath, mergedMarkdown);
+      setGuidedNotice(mergeSummary);
+      setGuidedConflict(null);
+      await openAndRefresh(guidedConflict.existingPath);
+    } catch (err) {
+      setGuidedNotice(`จัดการไฟล์เดิมไม่สำเร็จ: ${err}`);
+    } finally {
+      setGuidedBusy(false);
     }
   };
 
@@ -187,7 +413,7 @@ export default function ProjectOverview({
           <Briefcase className="w-7 h-7 text-primary shrink-0" />
           <span className="page-title-text">{projectName}</span>
         </h1>
-        <p className="page-subtitle">ภาพรวมโครงการและดัชนีเอกสาร</p>
+        <p className="page-subtitle">Project Command Center: ทำขั้นตอนถัดไปโดยไม่ต้องจำโฟลเดอร์หรือไฟล์เอง</p>
       </div>
       <div className="page-actions">
         {handleStartDiscovery && (
@@ -218,12 +444,20 @@ export default function ProjectOverview({
 
   return (
     <PageShell header={Header}>
-      <MvpGuidedPath
-        hasBrief={briefDocs > 0}
-        hasScope={scopeDocs > 0}
-        hasQuotation={quotationDocs > 0}
-        onStartDiscovery={handleStartDiscovery}
+      <GuidedOperatingModePanel
+        state={guidedState}
+        aiEnabled={aiEnabled}
+        onPrimaryAction={() => executeGuidedAction(guidedState.primaryAction)}
+        onSecondaryAction={executeGuidedAction}
+        onOpenDocument={onOpenDocument}
       />
+
+      {guidedNotice && (
+        <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm text-primary-light flex items-start gap-3">
+          <Sparkles className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>{guidedNotice}</span>
+        </div>
+      )}
 
       <ProjectLifecycleCommandCenter
         projectName={projectName}
@@ -298,7 +532,7 @@ export default function ProjectOverview({
 
       <details className="mt-8 mb-4 border border-border rounded-xl bg-surface-2 group">
         <summary className="p-4 font-semibold text-text cursor-pointer select-none outline-none group-focus-within:ring-2 group-focus-within:ring-primary rounded-xl">
-          📂 ไฟล์เอกสารทั้งหมด (File Explorer)
+          📂 ไฟล์เอกสารทั้งหมด (Detail / File Explorer)
         </summary>
         <div className="p-4 pt-0 border-t border-border mt-2">
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_168px_168px] gap-3 mb-4 mt-4">
@@ -351,6 +585,50 @@ export default function ProjectOverview({
         lifecycleStage={priority.label}
         recommendationWhy={displayNextAction}
       />
+
+      {guidedConflict && (
+        <div className="modal-overlay">
+          <div className="modal-container !max-w-3xl">
+            <div className="modal-header">
+              <div className="modal-header-content">
+                <h2 className="modal-title flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-warning" /> พบไฟล์ Scope เดิมอยู่แล้ว
+                </h2>
+                <p className="modal-subtitle">เลือกวิธีไปต่อโดยไม่ต้องลบไฟล์เองหรือเจอ error technical</p>
+              </div>
+              <button type="button" onClick={() => setGuidedConflict(null)} className="modal-close">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="modal-body space-y-4">
+              <div className="rounded-2xl border border-border bg-surface-2 p-4">
+                <div className="text-xs font-bold uppercase tracking-widest text-text-muted mb-2">Existing file</div>
+                <div className="font-mono text-xs text-text break-all">{guidedConflict.existingPath}</div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button type="button" disabled={guidedBusy} onClick={() => runConflictAction('open')} className="btn btn-outline justify-start min-h-[64px]">
+                  <FileText className="w-4 h-4" /> เปิดไฟล์เดิม
+                </button>
+                <button type="button" disabled={guidedBusy} onClick={() => runConflictAction('ai-merge')} className="btn btn-primary justify-start min-h-[64px]">
+                  <Wand2 className="w-4 h-4" /> {aiEnabled ? 'AI ช่วย merge/update' : 'Merge แบบ fallback'}
+                </button>
+                <button type="button" disabled={guidedBusy} onClick={() => runConflictAction('update')} className="btn btn-outline justify-start min-h-[64px]">
+                  <RefreshCw className="w-4 h-4" /> อัปเดตทับไฟล์เดิม
+                </button>
+                <button type="button" disabled={guidedBusy} onClick={() => runConflictAction('version')} className="btn btn-outline justify-start min-h-[64px]">
+                  <Copy className="w-4 h-4" /> สร้างเวอร์ชันใหม่
+                </button>
+                <button type="button" disabled={guidedBusy} onClick={() => runConflictAction('replace')} className="btn btn-danger justify-start min-h-[64px] md:col-span-2">
+                  <Trash2 className="w-4 h-4" /> ลบไฟล์เดิมแล้วสร้างใหม่แบบยืนยัน
+                </button>
+              </div>
+              <p className="text-xs text-text-muted leading-relaxed">
+                แนะนำ: ใช้ AI merge/update เมื่อมีข้อมูลเก่าอยู่แล้ว ระบบจะพยายามเก็บ decision, approval, locked และ evidence เดิมไว้ก่อนเสมอ หาก AI ใช้ไม่ได้จะ fallback เป็น deterministic merge
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Editor Detail Panel / Overlay */}
       {activeDocumentPath && workspacePath && allFiles && onDocumentChanged && onCloseDocument && (
