@@ -5,19 +5,35 @@ import { createDiscoveryBriefFile } from '../../lib/ai/brief-assistant/discovery
 import { createDiscoveryScopeFile } from '../../lib/ai/brief-assistant/discoveryScopeFile';
 import { createDiscoveryQuotationFile } from '../../lib/ai/brief-assistant/discoveryQuotationFile';
 import type { DiscoverySession } from '../../lib/ai/brief-assistant/discoverySession';
+import { createProject } from '../../lib/tauri-commands';
+import { generateProjectYaml } from '../../lib/templates';
 
 interface DiscoveryStartModalProps {
   clientId: string;
+  workspacePath?: string;
   projectId?: string;
   projectPath?: string;
   onClose: () => void;
-  onBriefCreated?: (path: string) => void;
-  onScopeCreated?: (path: string) => void;
-  onQuotationCreated?: (path: string) => void;
-  onCreateBriefDraft?: (session: DiscoverySession) => void;
+  onBriefCreated?: (path: string) => void | Promise<void>;
+  onScopeCreated?: (path: string) => void | Promise<void>;
+  onQuotationCreated?: (path: string) => void | Promise<void>;
+  onCreateBriefDraft?: (session: DiscoverySession) => void | Promise<void>;
 }
 
-export default function DiscoveryStartModal({ clientId, projectId, projectPath, onClose, onBriefCreated, onScopeCreated, onQuotationCreated, onCreateBriefDraft }: DiscoveryStartModalProps) {
+interface ProjectTarget {
+  projectId: string;
+  projectPath: string;
+}
+
+function createGeneratedProjectId() {
+  return `discovery-${Date.now()}`;
+}
+
+function createGeneratedProjectName(session: DiscoverySession) {
+  return `Discovery Brief (${session.projectType || 'Requirement'})`;
+}
+
+export default function DiscoveryStartModal({ clientId, workspacePath, projectId, projectPath, onClose, onBriefCreated, onScopeCreated, onQuotationCreated, onCreateBriefDraft }: DiscoveryStartModalProps) {
   const [rawRequest, setRawRequest] = useState('');
   const [started, setStarted] = useState(false);
   const [notice, setNotice] = useState('');
@@ -27,27 +43,49 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
 
   const canStart = rawRequest.trim().length > 0;
 
-  const handleGenerateBrief = async (session: DiscoverySession) => {
-    if (onCreateBriefDraft) {
-      onCreateBriefDraft(session);
-      return;
+  const resolveProjectTarget = async (session: DiscoverySession): Promise<ProjectTarget | null> => {
+    if (projectId && projectPath) return { projectId, projectPath };
+
+    if (!workspacePath) {
+      setNotice('Brief ready. Create or open a project first, then run Start Discovery from that project to write Brief.md.');
+      return null;
     }
 
-    if (!projectId || !projectPath) {
-      setNotice('Brief ready. Create or open a project first, then run Start Discovery from that project to write Brief.md.');
+    const nextProjectId = createGeneratedProjectId();
+    const nextProjectPath = `${workspacePath}/clients/${clientId}/projects/${nextProjectId}`;
+    const projectYaml = generateProjectYaml({
+      id: nextProjectId,
+      name: createGeneratedProjectName(session),
+      client: clientId,
+      type: 'new-project',
+      notes: 'Created from Start Discovery after customer request was ready for a brief.',
+    });
+
+    await createProject(workspacePath, clientId, nextProjectId, projectYaml, 'new-project');
+    return { projectId: nextProjectId, projectPath: nextProjectPath };
+  };
+
+  const handleGenerateBrief = async (session: DiscoverySession) => {
+    if (onCreateBriefDraft) {
+      await onCreateBriefDraft(session);
+      onClose();
       return;
     }
 
     try {
       setSavingBrief(true);
+      setNotice('');
+      const target = await resolveProjectTarget(session);
+      if (!target) return;
       const result = await createDiscoveryBriefFile({
         session,
         clientId,
-        projectId,
-        projectPath,
+        projectId: target.projectId,
+        projectPath: target.projectPath,
       });
       setNotice(`สร้าง Brief Draft แล้ว: ${result.path}`);
-      onBriefCreated?.(result.path);
+      await onBriefCreated?.(result.path);
+      onClose();
     } catch (error) {
       setNotice(`สร้าง Brief Draft ไม่สำเร็จ: ${error}`);
     } finally {
@@ -63,13 +101,15 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
 
     try {
       setSavingScope(true);
+      setNotice('');
       const result = await createDiscoveryScopeFile({
         session,
         projectId,
         projectPath,
       });
       setNotice(`สร้าง Scope Draft แล้ว: ${result.path}`);
-      onScopeCreated?.(result.path);
+      await onScopeCreated?.(result.path);
+      onClose();
     } catch (error) {
       setNotice(`สร้าง Scope Draft ไม่สำเร็จ: ${error}`);
     } finally {
@@ -85,6 +125,7 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
 
     try {
       setSavingQuotation(true);
+      setNotice('');
       const result = await createDiscoveryQuotationFile({
         session,
         clientId,
@@ -92,7 +133,8 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
         projectPath,
       });
       setNotice(`สร้าง Quotation Draft แล้ว: ${result.path}`);
-      onQuotationCreated?.(result.path);
+      await onQuotationCreated?.(result.path);
+      onClose();
     } catch (error) {
       setNotice(`สร้าง Quotation Draft ไม่สำเร็จ: ${error}`);
     } finally {
@@ -166,7 +208,7 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
           )}
 
           {notice && (
-            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-primary">
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-primary break-all">
               {notice}
             </div>
           )}
