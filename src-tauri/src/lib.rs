@@ -1,6 +1,8 @@
 mod commands;
+mod file_commands;
 
 use commands::*;
+use file_commands::*;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -12,6 +14,8 @@ pub fn run() {
             open_workspace,
             read_file_content,
             write_file_content,
+            update_file_content,
+            delete_file,
             path_exists,
             create_client,
             list_clients,

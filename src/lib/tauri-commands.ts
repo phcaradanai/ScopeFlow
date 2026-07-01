@@ -60,6 +60,25 @@ export async function writeFileContent(
   return invoke('write_file_content', { path, content });
 }
 
+export async function updateFileContent(
+  path: string,
+  content: string
+): Promise<void> {
+  return invoke('update_file_content', { path, content });
+}
+
+export async function deleteFile(path: string): Promise<void> {
+  return invoke('delete_file', { path });
+}
+
+export async function replaceFileContent(
+  path: string,
+  content: string
+): Promise<void> {
+  await deleteFile(path);
+  await writeFileContent(path, content);
+}
+
 export async function pathExists(path: string): Promise<boolean> {
   return invoke('path_exists', { path });
 }
