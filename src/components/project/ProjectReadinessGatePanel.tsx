@@ -22,15 +22,6 @@ function scoreTone(score: number) {
   return 'text-error bg-error/10 border-error/20';
 }
 
-function stageLabel(stage: ProjectReadinessStage) {
-  if (stage === 'ready_for_brief') return t('quality.readyForBrief');
-  if (stage === 'ready_for_scope') return t('quality.readyForScope');
-  if (stage === 'ready_for_quote') return t('quality.readyForQuote');
-  if (stage === 'ready_for_approval') return t('quality.readyForApproval');
-  if (stage === 'ready_for_delivery_acceptance') return t('quality.readyForDelivery');
-  return t('quality.blockedByWork');
-}
-
 function blockerTone(severity: string) {
   if (severity === 'blocking') return 'border-error/20 bg-error/10 text-error';
   if (severity === 'warning') return 'border-warning/20 bg-warning/10 text-warning';

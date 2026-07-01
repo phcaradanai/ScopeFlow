@@ -66,7 +66,7 @@ function sectionHasRealContent(markdown: string | undefined, labels: RegExp[]) {
     const section = (match[1] || '')
       .replace(/<!--[^>]*-->/g, '')
       .replace(/\|\s*[-:]+\s*/g, '')
-      .replace(/[|#>*_`~\-]/g, ' ')
+      .replace(/[|#>*_`~-]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
     return section.length >= 12;
@@ -179,12 +179,12 @@ export function buildProjectReadinessGate(documents: ProjectDocument[]): Project
     blockers.push({ kind: 'missing_approval_evidence', label: 'ยังไม่มีหลักฐานตรวจรับ', reason: 'ห้ามบอกว่าพร้อมปิดงานถ้ายังไม่มีหลักฐานตรวจรับหรือ customer confirmation', severity: 'warning', documentPath: acceptance.file_path });
   }
 
-  let stage: ProjectReadinessStage = 'blocked';
-  let headline = 'ยังติดบางอย่างก่อนเดินต่อ';
+  let stage: ProjectReadinessStage;
+  let headline: string;
   let summary = 'ตรวจพบรายการที่ควรจัดการก่อนขยับไปขั้นถัดไป';
-  let readyLabel = 'ยังไม่พร้อม';
+  let readyLabel: string;
   let primaryAction = makeAction('start_discovery', 'เริ่มจากคำขอลูกค้า', 'สร้าง Brief จากคำขอลูกค้าก่อน', 'brief');
-  let baseScore = 0;
+  let baseScore: number;
 
   const firstBlocker = blockers.find(blocker => blocker.severity === 'blocking') || blockers[0];
 
