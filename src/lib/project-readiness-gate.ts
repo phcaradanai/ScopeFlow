@@ -148,8 +148,8 @@ export function buildProjectReadinessGate(documents: ProjectDocument[]): Project
 
   const briefReady = hasBriefQuality(brief);
   const scopeReadyForQuote = hasScopeQuality(scope);
-  const quoteHasEvidence = hasApprovalEvidenceFor(documents, 'quotation', quote) || isApproved(quote);
-  const acceptanceHasEvidence = hasApprovalEvidenceFor(documents, 'acceptance', acceptance) || isApproved(acceptance);
+  const quoteHasEvidence = hasApprovalEvidenceFor(documents, 'quotation', quote);
+  const acceptanceHasEvidence = hasApprovalEvidenceFor(documents, 'acceptance', acceptance);
 
   if (!brief) {
     blockers.push({ kind: 'missing_brief', label: 'ยังไม่มี Brief', reason: 'ควรเริ่มจากคำขอลูกค้าแล้วสรุปเป็น Brief ก่อนสร้าง Scope หรือเสนอราคา', severity: 'blocking' });
