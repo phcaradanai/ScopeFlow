@@ -1,0 +1,286 @@
+export type Locale = 'th' | 'en';
+export type CopyCategory = 'guided' | 'documentCreation' | 'conflict' | 'quality' | 'common' | 'advanced';
+
+type CopyLeaf = string;
+type CopyTree = { [key: string]: CopyLeaf | CopyTree };
+type LocaleCopy = Record<CopyCategory, CopyTree>;
+
+export const DEFAULT_LOCALE: Locale = 'th';
+export const FALLBACK_LOCALE: Locale = 'en';
+
+export const copy: Record<Locale, LocaleCopy> = {
+  th: {
+    common: {
+      cancel: 'ยกเลิก',
+      continue: 'ไปต่อ',
+      refresh: 'รีเฟรช',
+      createDocument: 'สร้างเอกสาร',
+      startFromCustomerRequest: 'เริ่มจากคำขอลูกค้า',
+      openResultAfterDone: 'ระบบจะเปิดผลลัพธ์ให้ตรวจทันทีหลังทำงานเสร็จ',
+      projectCommandCenter: 'ศูนย์คุมโครงการ',
+      readiness: 'ความพร้อม',
+      advancedDetails: 'รายละเอียดขั้นสูง',
+      allDocumentsDetailView: 'เอกสารทั้งหมด / Detail View',
+    },
+    guided: {
+      badge: 'Guided Operating Mode',
+      heroBadge: 'ศูนย์คุมโครงการ',
+      aiReady: 'AI พร้อมช่วย',
+      templateReady: 'ใช้แบบฟอร์มพื้นฐานได้',
+      title: 'ไม่ต้องจำขั้นตอนเอง — ทำ action ถัดไปจากตรงนี้',
+      description: 'ScopeFlow จะพาโครงการเดินจากคำขอลูกค้า → Brief → Scope → ใบเสนอราคา → อนุมัติ → เปลี่ยนงาน → ส่งมอบ/ตรวจรับ โดยซ่อนรายละเอียดที่ไม่จำเป็นไว้ให้',
+      onePrimaryAction: 'ขั้นตอนสำคัญถัดไป',
+      primaryButton: 'ทำขั้นตอนนี้ต่อ',
+      stageStatus: {
+        approved: 'อนุมัติแล้ว',
+        done: 'เสร็จแล้ว',
+        ready: 'พร้อมไปต่อ',
+        attention: 'ต้องจัดการ',
+        draft: 'ฉบับร่าง',
+        missing: 'ยังไม่มี',
+      },
+      primaryBadge: {
+        startDiscovery: 'เริ่มจากลูกค้า',
+        scopeFromBrief: 'Brief → Scope',
+        createDocument: 'สร้างเอกสารถัดไป',
+        openDocument: 'เปิดเพื่อตรวจ',
+        changeRequest: 'คุมเปลี่ยนงาน',
+        exportProject: 'พร้อมส่งมอบ',
+        nextAction: 'ขั้นตอนถัดไป',
+      },
+    },
+    documentCreation: {
+      modalTitle: 'ตอนนี้ต้องการทำอะไรต่อกับลูกค้า/โครงการ?',
+      modalSubtitle: 'เลือกจากสถานการณ์จริง แล้ว ScopeFlow จะเตรียมเอกสารที่เหมาะสมให้ตรวจทันที',
+      recommendedFromNextAction: 'ระบบแนะนำจาก action ถัดไป',
+      whyRecommended: 'ทำไมระบบแนะนำ',
+      outcome: 'ทำแล้วได้อะไร',
+      nextStep: 'ขั้นต่อไป',
+      chooseDifferentGoal: 'เปลี่ยนเป้าหมายได้ ถ้าสถานการณ์ไม่ตรง',
+      shortcutsNotRequired: 'ตัวเลือกด้านล่างเป็นทางลัด ไม่ใช่ขั้นตอนบังคับ',
+      documentToCreate: 'เอกสารที่จะสร้าง',
+      manualHint: 'ใช้ค่าเริ่มต้นนี้ได้เลย หรือเปิด manual เฉพาะกรณีต้องการเอกสารเฉพาะทาง',
+      showManual: 'เลือกประเภทเอกสารเอง',
+      hideManual: 'ซ่อนการเลือกเอง',
+      selected: 'เลือกอยู่',
+      resultPrefix: 'ผลลัพธ์',
+      topicRequired: 'ต้องเติมข้อมูลก่อนสร้าง',
+      memorableTitle: 'หัวข้อที่ลูกค้าหรือทีมจะจำได้',
+      englishTrackingCode: 'รหัสสั้นภาษาอังกฤษสำหรับตามงาน',
+      trackingCodeHint: 'ใช้เปิดดูและตามงานนี้ต่อ',
+      confirmCreateTitle: 'ยืนยันการสร้างเอกสาร',
+      confirmCreateSubtitle: 'ระบบแนะนำให้สร้างเอกสารนี้เพื่อเดินหน้าโครงการต่อ',
+      targetProject: 'โครงการเป้าหมาย',
+      documentType: 'ประเภทเอกสาร',
+      lifecycleStage: 'สถานะ / ความสำคัญ',
+      whyThisRecommended: 'ทำไมระบบแนะนำ?',
+      detail: 'รายละเอียด',
+      continueToCreate: 'ไปสร้างเอกสาร',
+      createAndOpen: 'กด “{cta}” แล้ว ScopeFlow จะสร้างและเปิดเอกสารผลลัพธ์ให้ตรวจทันที',
+    },
+    conflict: {
+      existingTitle: 'มี {documentLabel} อยู่แล้ว',
+      existingDescription: 'เลือกวิธีไปต่อโดยระบบจะเปิดผลลัพธ์ให้ตรวจทันทีหลังทำงานเสร็จ',
+      existingLocation: 'ตำแหน่งเอกสารเดิม',
+      busy: 'กำลังจัดการเอกสารและจะเปิดผลลัพธ์ให้ตรวจทันที...',
+      recommendation: 'แนะนำ: ใช้ “รวมข้อมูลอย่างปลอดภัย” เมื่อเอกสารเดิมอาจมี decision, approval, locked scope, evidence หรือข้อตกลงกับลูกค้าอยู่แล้ว',
+      actions: {
+        openTitle: 'เปิดเอกสารเดิม',
+        openDescription: 'เปิดของเดิมทันที เพื่อดู decision, approval หรือข้อมูลลูกค้าที่มีอยู่แล้ว',
+        aiMergeTitle: 'ให้ AI ช่วยรวมข้อมูลอย่างปลอดภัย',
+        safeMergeTitle: 'รวมข้อมูลอย่างปลอดภัย',
+        aiMergeDescription: 'ใช้ AI ที่ตั้งค่าไว้ช่วยรวมข้อมูลใหม่ โดยเก็บ approval, locked decision และ evidence เดิมไว้',
+        safeMergeDescription: 'ระบบจะรวมข้อมูลใหม่ต่อท้ายแบบปลอดภัย เพื่อไม่ทับข้อมูลสำคัญ',
+        updateTitle: 'อัปเดตเอกสารเดิม',
+        updateDescription: 'ใช้เนื้อหาที่สร้างล่าสุดเป็นฉบับปัจจุบัน แล้วเปิดผลลัพธ์ให้ตรวจทันที',
+        versionTitle: 'สร้างเวอร์ชันใหม่',
+        versionDescription: 'เก็บเอกสารเดิมไว้ แล้วสร้างฉบับใหม่แยกออกมาเพื่อเทียบหรือตรวจต่อ',
+        replaceTitle: 'แทนที่หลังยืนยัน',
+        replaceDescription: 'แทนที่เอกสารเดิมด้วยฉบับใหม่หลังยืนยัน เหมาะเมื่อมั่นใจว่าไม่ต้องเก็บข้อมูลเดิม',
+      },
+    },
+    quality: {
+      badge: 'ช่วยตรวจคุณภาพ Brief/Scope',
+      aiReady: 'ใช้ AI ที่ตั้งค่าไว้ ถ้าไม่ได้จะใช้ตัวตรวจพื้นฐาน',
+      basicReady: 'ตัวตรวจพื้นฐานพร้อมใช้งาน',
+      title: 'คุณภาพ Brief / Scope',
+      description: 'ตรวจว่าคำขอลูกค้าและ Scope พร้อมพอสำหรับเสนอราคา/ส่งต่อทีมแล้วหรือยัง โดยไม่สร้าง approval, evidence หรือ confirmation เอง',
+      checking: 'กำลังตรวจ',
+      checkAgain: 'ตรวจอีกครั้ง',
+      summaryTitle: 'สรุปความพร้อม',
+      sourceAi: 'วิเคราะห์จาก AI ที่ตั้งค่าไว้',
+      sourceBasicAfterAiFail: 'วิเคราะห์จากตัวตรวจพื้นฐาน หลัง AI ใช้ไม่ได้',
+      sourceBasic: 'วิเคราะห์จากตัวตรวจพื้นฐาน',
+      customerQuestions: 'ข้อมูลที่ยังต้องถามลูกค้า',
+      noImportantQuestions: 'ยังไม่พบคำถามสำคัญที่ต้องถามเพิ่ม',
+      createFollowUp: 'สร้าง Follow-up จากคำถามนี้',
+      scopeRisks: 'จุดที่อาจทำให้งานบาน',
+      noScopeRisks: 'ยังไม่พบจุดเสี่ยงสำคัญ',
+      scopeImprovements: 'สิ่งที่ควรเขียนให้ชัดก่อนเสนอราคา',
+      scopeClearEnough: 'Scope ชัดพอสำหรับขั้นถัดไปแล้ว',
+      updateScope: 'อัปเดต Scope ด้วยคำแนะนำนี้',
+      guardrail: 'ข้อควรระวัง',
+      score: {
+        ready: 'พร้อมใช้ต่อ',
+        askMore: 'ควรถามเพิ่มก่อนเสนอราคา',
+        unclear: 'ยังคลุมเครือ',
+      },
+    },
+    advanced: {
+      manual: 'Advanced / Manual',
+      manualDescription: 'สำหรับ Invoice, DCR, MA หรือกรณีที่รู้ชัดว่าต้องใช้เอกสารชนิดไหน',
+      technicalTermsNote: 'คำ technical ใช้เฉพาะส่วนนี้เพื่อช่วยคนที่ต้องเลือกเอกสารเอง',
+      slugHelp: 'slug คือรหัสสั้นภาษาอังกฤษสำหรับเปิดดูและตามงานนี้ต่อ',
+      pathHelp: 'path คือที่อยู่เอกสารใน Workspace ใช้สำหรับตรวจสอบขั้นสูงเท่านั้น',
+      markdownHelp: 'markdown คือรูปแบบเนื้อหาเอกสารที่ระบบใช้จัดเก็บและแก้ไข',
+    },
+  },
+  en: {
+    common: {
+      cancel: 'Cancel',
+      continue: 'Continue',
+      refresh: 'Refresh',
+      createDocument: 'Create document',
+      startFromCustomerRequest: 'Start from customer request',
+      openResultAfterDone: 'The result will open for review when finished',
+      projectCommandCenter: 'Project Command Center',
+      readiness: 'Readiness',
+      advancedDetails: 'Advanced details',
+      allDocumentsDetailView: 'All documents / Detail View',
+    },
+    guided: {
+      badge: 'Guided Operating Mode',
+      heroBadge: 'Project Command Center',
+      aiReady: 'AI assist ready',
+      templateReady: 'Template ready',
+      title: 'Run the next project action from here',
+      description: 'ScopeFlow guides the project from request to Brief, Scope, Quote, Approval, Change Request, and Acceptance.',
+      onePrimaryAction: 'One primary next action',
+      primaryButton: 'Continue this step',
+      stageStatus: {
+        approved: 'approved',
+        done: 'done',
+        ready: 'ready',
+        attention: 'needs action',
+        draft: 'draft',
+        missing: 'missing',
+      },
+      primaryBadge: {
+        startDiscovery: 'Start from customer',
+        scopeFromBrief: 'Brief → Scope',
+        createDocument: 'Create next document',
+        openDocument: 'Open for review',
+        changeRequest: 'Change control',
+        exportProject: 'Ready to handoff',
+        nextAction: 'Next action',
+      },
+    },
+    documentCreation: {
+      modalTitle: 'What do you need to do next?',
+      modalSubtitle: 'Choose the real work situation and ScopeFlow will prepare the right document.',
+      recommendedFromNextAction: 'Recommended from next action',
+      whyRecommended: 'Why recommended',
+      outcome: 'Outcome',
+      nextStep: 'Next step',
+      chooseDifferentGoal: 'Change the goal if needed',
+      shortcutsNotRequired: 'These are shortcuts, not required steps',
+      documentToCreate: 'Document to create',
+      manualHint: 'Use the default or open manual selection for special cases.',
+      showManual: 'Choose document type manually',
+      hideManual: 'Hide manual selection',
+      selected: 'Selected',
+      resultPrefix: 'Result',
+      topicRequired: 'More information is needed',
+      memorableTitle: 'Clear topic for customer/team',
+      englishTrackingCode: 'English tracking code',
+      trackingCodeHint: 'Used to open and track this item',
+      confirmCreateTitle: 'Confirm document creation',
+      confirmCreateSubtitle: 'ScopeFlow recommends this document to move the project forward.',
+      targetProject: 'Target project',
+      documentType: 'Document type',
+      lifecycleStage: 'Stage / priority',
+      whyThisRecommended: 'Why is this recommended?',
+      detail: 'Detail',
+      continueToCreate: 'Continue to create',
+      createAndOpen: 'Click “{cta}” and ScopeFlow will create and open the result for review.',
+    },
+    conflict: {
+      existingTitle: '{documentLabel} already exists',
+      existingDescription: 'Choose how to continue. The result will open after completion.',
+      existingLocation: 'Existing document location',
+      busy: 'Working on the document and opening the result for review...',
+      recommendation: 'Recommendation: use safe combine when the existing document may contain decisions, approvals, locked scope, evidence, or customer agreements.',
+      actions: {
+        openTitle: 'Open existing document',
+        openDescription: 'Open the existing version to review decisions, approvals, or customer information.',
+        aiMergeTitle: 'Use AI to safely combine',
+        safeMergeTitle: 'Safely combine information',
+        aiMergeDescription: 'Use configured AI to combine new information while preserving approvals, locked decisions, and evidence.',
+        safeMergeDescription: 'Append new information safely without overwriting important content.',
+        updateTitle: 'Update existing document',
+        updateDescription: 'Use the latest generated content as the current version.',
+        versionTitle: 'Create new version',
+        versionDescription: 'Keep the existing document and create a separate version for review.',
+        replaceTitle: 'Replace after confirmation',
+        replaceDescription: 'Replace the existing document after confirmation.',
+      },
+    },
+    quality: {
+      badge: 'Brief/Scope quality assist',
+      aiReady: 'Uses configured AI, with basic check if unavailable',
+      basicReady: 'Basic quality check ready',
+      title: 'Brief / Scope Quality',
+      description: 'Checks whether the customer request and Scope are ready for quotation or handoff without inventing approval, evidence, or confirmation.',
+      checking: 'Checking',
+      checkAgain: 'Check again',
+      summaryTitle: 'Readiness summary',
+      sourceAi: 'Analyzed by configured AI',
+      sourceBasicAfterAiFail: 'Analyzed by basic checker after AI was unavailable',
+      sourceBasic: 'Analyzed by basic checker',
+      customerQuestions: 'Information to ask the customer',
+      noImportantQuestions: 'No important follow-up questions found',
+      createFollowUp: 'Create Follow-up from this question',
+      scopeRisks: 'Scope growth risks',
+      noScopeRisks: 'No major scope risks found',
+      scopeImprovements: 'What to clarify before quotation',
+      scopeClearEnough: 'Scope is clear enough for the next step',
+      updateScope: 'Update Scope with this suggestion',
+      guardrail: 'Guard rail',
+      score: {
+        ready: 'Ready',
+        askMore: 'Ask more before quotation',
+        unclear: 'Unclear',
+      },
+    },
+    advanced: {
+      manual: 'Advanced / Manual',
+      manualDescription: 'For Invoice, DCR, MA, or known special document types.',
+      technicalTermsNote: 'Technical terms are limited to this manual area.',
+      slugHelp: 'A slug is a short English tracking code.',
+      pathHelp: 'A path is the document location in the workspace.',
+      markdownHelp: 'Markdown is the document content format used by the system.',
+    },
+  },
+};
+
+function getByPath(tree: CopyTree, path: string[]): string | undefined {
+  let current: string | CopyTree | undefined = tree;
+  for (const part of path) {
+    if (!current || typeof current === 'string') return undefined;
+    current = current[part];
+  }
+  return typeof current === 'string' ? current : undefined;
+}
+
+export function t(key: `${CopyCategory}.${string}`, locale: Locale = DEFAULT_LOCALE, params?: Record<string, string | number>): string {
+  const [category, ...path] = key.split('.') as [CopyCategory, ...string[]];
+  const localized = getByPath(copy[locale]?.[category], path);
+  const fallback = getByPath(copy[FALLBACK_LOCALE][category], path);
+  const template = localized || fallback || key;
+  if (!params) return template;
+  return Object.entries(params).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), template);
+}
+
+export function getCurrentLocale(): Locale {
+  return DEFAULT_LOCALE;
+}
