@@ -6,6 +6,9 @@ import {
   getDocumentCreationIntentForType,
   getDocumentCreationRecommendationReason,
   getDocumentCreationResult,
+  getDocumentCreationTitleMissingMessage,
+  getDocumentCreationTitlePrompt,
+  requiresDocumentCreationTitle,
 } from '../document-creation-guidance';
 
 describe('document creation guidance', () => {
@@ -30,6 +33,23 @@ describe('document creation guidance', () => {
     expect(getDocumentCreationResult('scope')).toContain('ได้ Scope');
     expect(getDocumentCreationRecommendationReason('quotation')).toContain('เสนอราคา');
     expect(getDocumentCreationRecommendationReason('scope', 'Brief approved แล้ว')).toBe('Brief approved แล้ว');
+  });
+
+  it('uses compact outcomes for the intent cards', () => {
+    expect(getDocumentCreationIntent('define_scope')?.compactResult).toContain('คุมขอบเขต');
+    expect(getDocumentCreationIntent('control_change')?.compactResult).toContain('คุมงานเพิ่ม');
+    expect(getDocumentCreationIntent('prepare_acceptance')?.compactResult).toContain('ส่งมอบ');
+  });
+
+  it('adds friendly guard rails for documents that need a topic', () => {
+    expect(requiresDocumentCreationTitle('cr')).toBe(true);
+    expect(requiresDocumentCreationTitle('dcr')).toBe(true);
+    expect(requiresDocumentCreationTitle('sup')).toBe(true);
+    expect(requiresDocumentCreationTitle('followup')).toBe(true);
+    expect(requiresDocumentCreationTitle('scope')).toBe(false);
+
+    expect(getDocumentCreationTitlePrompt('cr')).toContain('ลูกค้าขอเปลี่ยน');
+    expect(getDocumentCreationTitleMissingMessage('followup')).toContain('Follow-up');
   });
 
   it('covers the main guided flow without exposing manual-only choices as primary intents', () => {
