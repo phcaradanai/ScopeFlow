@@ -55,6 +55,7 @@ notes: "ตัวอย่างครบ: Raw request → Brief → Scope → Q
     briefApproval: `${projectPath}/approvals/APR-BRIEF-${suffix}.md`,
     scopeApproval: `${projectPath}/approvals/APR-SCOPE-${suffix}.md`,
     quotationApproval: `${projectPath}/approvals/APR-QUOTE-${suffix}.md`,
+    invoiceApproval: `${projectPath}/approvals/APR-INVOICE-${suffix}.md`,
     acceptanceApproval: `${projectPath}/approvals/APR-ACCEPT-${suffix}.md`,
     export: `${projectPath}/exports/scopeflow-complete-demo-${suffix}.html`,
   };
@@ -169,6 +170,7 @@ version: "1.0"
 status: paid
 locked: true
 document_number: INV-${suffix}
+approval_ref: APR-INVOICE-${suffix}
 created: "2026-06-08"
 updated: "2026-06-09"
 grand_total: 54570
@@ -201,6 +203,7 @@ updated: "2026-06-30"
     ['APR-BRIEF', 'brief-v1.0.md', 'brief', artifactPaths.briefApproval],
     ['APR-SCOPE', 'scope-v1.0.md', 'scope', artifactPaths.scopeApproval],
     ['APR-QUOTE', 'quotation-v1.0.md', 'quotation', artifactPaths.quotationApproval],
+    ['APR-INVOICE', 'invoice-v1.0.md', 'invoice', artifactPaths.invoiceApproval],
     ['APR-ACCEPT', 'acceptance-v1.0.md', 'acceptance', artifactPaths.acceptanceApproval],
   ];
 
