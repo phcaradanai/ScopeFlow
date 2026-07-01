@@ -24,6 +24,7 @@ import { generateScopeMarkdown } from '../lib/scope-builder';
 import { mergeDocumentDeterministically, mergeDocumentWithAi } from '../lib/ai/documentMergeAssistant';
 import { getAiProviders } from '../lib/ai/providers/providerSettings';
 import { analyzeBriefScopeQuality, buildScopeQualityImprovementDraft, type BriefScopeQualityAnalysis } from '../lib/ai/brief-scope-quality/briefScopeQualityAnalyzer';
+import { t } from '../lib/i18n/copy';
 import MarkdownEditor from './MarkdownEditor';
 
 interface ProjectOverviewProps {
@@ -499,20 +500,20 @@ export default function ProjectOverview({
           <Briefcase className="w-7 h-7 text-primary shrink-0" />
           <span className="page-title-text">{projectName}</span>
         </h1>
-        <p className="page-subtitle">ศูนย์คุม Brief, Scope, Quote, Approval และ Change Request</p>
+        <p className="page-subtitle">{t('guided.description')}</p>
       </div>
       <div className="page-actions">
         {handleStartDiscovery && (
           <button onClick={handleStartDiscovery} className="btn btn-primary">
-            <Search className="w-4 h-4" /> เริ่มจากคำขอลูกค้า
+            <Search className="w-4 h-4" /> {t('common.startFromCustomerRequest')}
           </button>
         )}
         <button onClick={() => onCreateDocument(clientId, projectId, projectPath)} className="btn btn-outline">
-          <Plus className="w-4 h-4" /> สร้างเอกสาร
+          <Plus className="w-4 h-4" /> {t('common.createDocument')}
         </button>
         <button onClick={loadDocuments} disabled={loading} className="btn btn-ghost">
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          รีเฟรช
+          {t('common.refresh')}
         </button>
       </div>
     </div>
@@ -548,7 +549,7 @@ export default function ProjectOverview({
           </p>
           {handleStartDiscovery && (
             <button type="button" onClick={handleStartDiscovery} className="btn btn-primary mt-5">
-              เริ่มจากคำขอลูกค้า
+              {t('common.startFromCustomerRequest')}
             </button>
           )}
         </section>
@@ -563,7 +564,7 @@ export default function ProjectOverview({
 
       <details className="mt-6 rounded-2xl border border-border bg-surface-2 group">
         <summary className="p-4 font-semibold text-text cursor-pointer select-none outline-none group-focus-within:ring-2 group-focus-within:ring-primary rounded-2xl">
-          รายละเอียดขั้นสูง / ตรวจสุขภาพเอกสาร
+          {t('common.advancedDetails')} / ตรวจสุขภาพเอกสาร
         </summary>
         <div className="p-4 pt-0 border-t border-border mt-2 space-y-5">
           <ProjectLifecycleCommandCenter
@@ -638,7 +639,7 @@ export default function ProjectOverview({
 
       <details className="mt-4 mb-4 border border-border rounded-xl bg-surface-2 group">
         <summary className="p-4 font-semibold text-text cursor-pointer select-none outline-none group-focus-within:ring-2 group-focus-within:ring-primary rounded-xl">
-          เอกสารทั้งหมด / Detail View
+          {t('common.allDocumentsDetailView')}
         </summary>
         <div className="p-4 pt-0 border-t border-border mt-2">
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_168px_168px] gap-3 mb-4 mt-4">
@@ -646,7 +647,7 @@ export default function ProjectOverview({
               <Search className="form-input-leading-icon group-focus-within:text-primary" />
               <input
                 type="text"
-                placeholder="ค้นหา Brief, Scope, Quote, Approval, Change Request..."
+                placeholder="ค้นหา Brief, Scope, ใบเสนอราคา, Approval, Change Request..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="form-input form-input-has-leading-icon"
@@ -657,7 +658,7 @@ export default function ProjectOverview({
               onChange={setFilterType}
               options={[
                 { value: 'all', label: 'ทุกประเภท' },
-                ...uniqueTypes.map(t => ({ value: t, label: t }))
+                ...uniqueTypes.map(type => ({ value: type, label: type }))
               ]}
             />
             <SelectField
@@ -665,7 +666,7 @@ export default function ProjectOverview({
               onChange={setFilterStatus}
               options={[
                 { value: 'all', label: 'ทุกสถานะ' },
-                ...uniqueStatuses.map(s => ({ value: s, label: s }))
+                ...uniqueStatuses.map(status => ({ value: status, label: status }))
               ]}
             />
           </div>
@@ -695,7 +696,7 @@ export default function ProjectOverview({
       {guidedConflict && (
         <FriendlyDocumentConflictModal
           title="พบ Scope เดิมอยู่แล้ว"
-          description={guidedConflict.protectedUpdate ? 'Scope นี้ approved/locked แล้ว ระบบจะเสนอเป็นเวอร์ชันใหม่หรือ Change Request ไม่เขียนทับ Scope เดิมเงียบ ๆ' : 'เลือกวิธีไปต่อโดยไม่ต้องจัดการเอกสารเองหรือเจอข้อความผิดพลาดที่อ่านยาก'}
+          description={guidedConflict.protectedUpdate ? 'Scope นี้ approved/locked แล้ว ระบบจะเสนอเป็นเวอร์ชันใหม่หรือ Change Request ไม่เขียนทับ Scope เดิมเงียบ ๆ' : t('conflict.existingDescription')}
           documentLabel="Scope"
           existingPath={guidedConflict.existingPath}
           aiEnabled={aiEnabled}
