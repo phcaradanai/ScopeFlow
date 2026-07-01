@@ -14,6 +14,7 @@ import DocumentCreationPreviewModal from './project/DocumentCreationPreviewModal
 import MvpGuidedPath from './project/MvpGuidedPath';
 import { useLifecycleActionDispatcher } from '../hooks/useLifecycleActionDispatcher';
 import type { CustomerAnswerWorkflowContext } from '../lib/ai/customer-answer/customerAnswerWorkflowContext';
+import MarkdownEditor from './MarkdownEditor';
 
 interface ProjectOverviewProps {
   projectPath: string;
@@ -24,6 +25,11 @@ interface ProjectOverviewProps {
   onStartBriefIntake?: (clientId: string, projectId: string, projectPath: string) => void;
   lifecycleFeedback?: any;
   onClearLifecycleFeedback?: () => void;
+  activeDocumentPath?: string;
+  allFiles?: { name: string, path: string, is_dir: boolean }[];
+  workspacePath?: string;
+  onDocumentChanged?: () => void;
+  onCloseDocument?: () => void;
 }
 
 function getProjectPathIds(projectPath: string): { clientId: string; projectId: string } {
@@ -62,6 +68,11 @@ export default function ProjectOverview({
   onStartBriefIntake,
   lifecycleFeedback,
   onClearLifecycleFeedback,
+  activeDocumentPath,
+  allFiles,
+  workspacePath,
+  onDocumentChanged,
+  onCloseDocument,
 }: ProjectOverviewProps) {
   const {
     documents,
@@ -104,7 +115,6 @@ export default function ProjectOverview({
     priority,
     displayNextAction,
     commandAction,
-    explanation,
     executeAction,
     confirmCreateDocument,
   } = useLifecycleActionDispatcher({
@@ -132,6 +142,43 @@ export default function ProjectOverview({
   };
 
   const handleStartDiscovery = onStartBriefIntake ? () => onStartBriefIntake(clientId, projectId, projectPath) : undefined;
+
+  const handlePrimaryAction = () => {
+    if (workflowState.targetDocumentType === 'brief' && briefDocs === 0 && handleStartDiscovery) {
+      handleStartDiscovery();
+    } else if (workflowState.targetDocumentType === 'export') {
+      // Export action - handled by sidebar usually, but can dispatch an event or alert
+      alert('พร้อมส่งออกเอกสาร กรุณาใช้ปุ่ม Export ที่เมนูด้านซ้าย');
+    } else {
+      onCreateDocument(clientId, projectId, projectPath, workflowState.targetDocumentType, {
+        source: 'recommended_next_action',
+        initialType: workflowState.targetDocumentType,
+        reason: workflowState.nextActionLabel,
+        projectPath,
+        recommendationWhy: workflowState.nextActionDescription
+      });
+    }
+  };
+
+  const commandCenterPriority = {
+    label: workflowState.missingRequiredItems.length > 0 ? 'Action Required' : 'Ready',
+    category: workflowState.missingRequiredItems.length > 0 ? 'blocked' : 'can_close'
+  };
+
+  const commandCenterAction = {
+    label: workflowState.nextActionLabel,
+    guidance: workflowState.nextActionLabel,
+    initial_type: workflowState.targetDocumentType,
+    kind: 'create_document'
+  };
+
+  const commandCenterExplanation = {
+    blockedItem: workflowState.missingRequiredItems.length > 0 ? {
+      label: workflowState.missingRequiredItems[0],
+      recommended_next_action: workflowState.nextActionDescription
+    } : null,
+    insights: []
+  };
 
   const Header = (
     <div className="page-header-inner page-container-wide">
@@ -181,11 +228,11 @@ export default function ProjectOverview({
       <ProjectLifecycleCommandCenter
         projectName={projectName}
         projectPath={projectPath}
-        priority={priority}
-        displayNextAction={displayNextAction}
-        commandAction={commandAction}
-        explanation={explanation}
-        onExecuteAction={executeAction}
+        priority={commandCenterPriority}
+        displayNextAction={workflowState.nextActionDescription}
+        commandAction={commandCenterAction}
+        explanation={commandCenterExplanation}
+        onExecuteAction={handlePrimaryAction}
         lifecycleFeedback={lifecycleFeedback}
         onClearLifecycleFeedback={onClearLifecycleFeedback}
       />
@@ -224,6 +271,7 @@ export default function ProjectOverview({
         onStartBriefIntake={onStartBriefIntake}
       />
 
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <ProjectRisksPanel
           hasNoScope={hasNoScope}
@@ -248,43 +296,50 @@ export default function ProjectOverview({
         contentFlags={contentFlags}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_168px_168px] gap-3">
-        <div className="form-input-with-icon group">
-          <Search className="form-input-leading-icon group-focus-within:text-primary" />
-          <input
-            type="text"
-            placeholder="ค้นหาจากชื่อเอกสาร, ประเภท, สถานะ..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="form-input form-input-has-leading-icon"
+      <details className="mt-8 mb-4 border border-border rounded-xl bg-surface-2 group">
+        <summary className="p-4 font-semibold text-text cursor-pointer select-none outline-none group-focus-within:ring-2 group-focus-within:ring-primary rounded-xl">
+          📂 ไฟล์เอกสารทั้งหมด (File Explorer)
+        </summary>
+        <div className="p-4 pt-0 border-t border-border mt-2">
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_168px_168px] gap-3 mb-4 mt-4">
+            <div className="form-input-with-icon group">
+              <Search className="form-input-leading-icon group-focus-within:text-primary" />
+              <input
+                type="text"
+                placeholder="ค้นหาจากชื่อเอกสาร, ประเภท, สถานะ..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="form-input form-input-has-leading-icon"
+              />
+            </div>
+            <SelectField
+              value={filterType}
+              onChange={setFilterType}
+              options={[
+                { value: 'all', label: 'ทุกประเภท' },
+                ...uniqueTypes.map(t => ({ value: t, label: t }))
+              ]}
+            />
+            <SelectField
+              value={filterStatus}
+              onChange={setFilterStatus}
+              options={[
+                { value: 'all', label: 'ทุกสถานะ' },
+                ...uniqueStatuses.map(s => ({ value: s, label: s }))
+              ]}
+            />
+          </div>
+
+          <DocumentList
+            filteredDocs={filteredDocs}
+            onOpenDocument={onOpenDocument}
+            clientId={clientId}
+            projectPath={projectPath}
+            onCreateDocument={onCreateDocument}
+            onStartBriefIntake={onStartBriefIntake}
           />
         </div>
-        <SelectField
-          value={filterType}
-          onChange={setFilterType}
-          options={[
-            { value: 'all', label: 'ทุกประเภท' },
-            ...uniqueTypes.map(t => ({ value: t, label: t }))
-          ]}
-        />
-        <SelectField
-          value={filterStatus}
-          onChange={setFilterStatus}
-          options={[
-            { value: 'all', label: 'ทุกสถานะ' },
-            ...uniqueStatuses.map(s => ({ value: s, label: s }))
-          ]}
-        />
-      </div>
-
-      <DocumentList
-        filteredDocs={filteredDocs}
-        onOpenDocument={onOpenDocument}
-        clientId={clientId}
-        projectPath={projectPath}
-        onCreateDocument={onCreateDocument}
-        onStartBriefIntake={onStartBriefIntake}
-      />
+      </details>
 
       <DocumentCreationPreviewModal
         isOpen={showPreviewModal}
@@ -296,6 +351,29 @@ export default function ProjectOverview({
         lifecycleStage={priority.label}
         recommendationWhy={displayNextAction}
       />
+
+      {/* Editor Detail Panel / Overlay */}
+      {activeDocumentPath && workspacePath && allFiles && onDocumentChanged && onCloseDocument && (
+        <div className="fixed inset-0 z-[100] flex animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCloseDocument} />
+          <div className="relative ml-auto w-full max-w-4xl h-full bg-surface shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="flex-1 overflow-hidden">
+              <MarkdownEditor
+                filePath={activeDocumentPath}
+                workspacePath={workspacePath}
+                onDocumentChanged={onDocumentChanged}
+                onOpenDocument={onOpenDocument}
+                allFiles={allFiles}
+              />
+            </div>
+            <div className="p-4 border-t border-border bg-surface-2 flex justify-end shrink-0">
+              <button onClick={onCloseDocument} className="btn btn-primary">
+                กลับสู่หน้าภาพรวมโครงการ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageShell>
   );
 }

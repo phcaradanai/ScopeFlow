@@ -117,7 +117,16 @@ function AppContent() {
   }
   if (tree) extractFiles(tree);
 
-  const selectedProject = selectedFile ? findWorkspaceProject(tree, selectedFile) : undefined;
+  const allProjects = getWorkspaceClients(tree).flatMap(c => c.projects);
+  const selectedProject = (() => {
+    if (!selectedFile || selectedFile === '__workspace_overview__' || selectedFile.startsWith('__client__:')) return undefined;
+    const directMatch = findWorkspaceProject(tree, selectedFile);
+    if (directMatch) return directMatch;
+    const normalizedSelected = selectedFile.replace(/\\/g, '/');
+    return allProjects.find(p => normalizedSelected.startsWith(p.path.replace(/\\/g, '/')));
+  })();
+  
+  const activeDocumentPath = selectedProject && selectedFile && selectedFile !== selectedProject.path && selectedFile !== '__workspace_overview__' && !selectedFile.startsWith('__client__:') ? selectedFile : undefined;
 
   const handleCreateDemoDirectly = async () => {
     try {
@@ -179,14 +188,21 @@ function AppContent() {
         projectPath={selectedProject.path}
         projectName={selectedProject.projectName}
         workspaceTree={tree as any}
+        activeDocumentPath={activeDocumentPath}
+        allFiles={allFiles}
+        workspacePath={activeWorkspacePath}
+        onDocumentChanged={refreshTree}
         onOpenDocument={(path) => setSelectedFile(path)}
         onCreateDocument={handleCreateDocument}
         onStartBriefIntake={handleStartBriefIntake}
         lifecycleFeedback={lifecycleFeedback}
         onClearLifecycleFeedback={() => setLifecycleFeedback(null)}
+        onCloseDocument={() => setSelectedFile(selectedProject.path)}
       />
     ) : (
-      <MarkdownEditor filePath={selectedFile} workspacePath={activeWorkspacePath} onDocumentChanged={refreshTree} onOpenDocument={(path) => setSelectedFile(path)} allFiles={allFiles} />
+      activeDocumentPath || (selectedFile && selectedFile !== '__workspace_overview__' && !selectedFile.startsWith('__client__:')) ? (
+        <MarkdownEditor filePath={selectedFile as string} workspacePath={activeWorkspacePath} onDocumentChanged={refreshTree} onOpenDocument={(path) => setSelectedFile(path)} allFiles={allFiles} />
+      ) : null
     );
   }
 

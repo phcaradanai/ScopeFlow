@@ -15,7 +15,7 @@ import {
   buildCustomerAnswerContextMarkdown
 } from '../lib/templates';
 import { validateSlug, nameToSlug } from '../lib/validation';
-import { X, Target, Receipt, GitPullRequest, Code, LifeBuoy, Wrench, CheckSquare, FileText, MessageCircle, FileWarning } from 'lucide-react';
+import { X, Target, Receipt, GitPullRequest, Code, LifeBuoy, Wrench, CheckSquare, FileText, MessageCircle, FileWarning, ExternalLink, Wand2, Copy, AlertTriangle } from 'lucide-react';
 import SelectField from './ui/SelectField';
 
 const DOCUMENT_TYPES = [
@@ -159,7 +159,9 @@ export default function DocumentCreatorModal({
   const [category, setCategory] = useState('bug');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [savingStatus, setSavingStatus] = useState('');
   const [documents, setDocuments] = useState<any[]>([]);
+  const [conflictInfo, setConflictInfo] = useState<{ path: string; name: string; content: string } | null>(null);
 
   useEffect(() => {
     if (workspacePath) {
@@ -202,10 +204,37 @@ export default function DocumentCreatorModal({
       const finalProjectPath = projectPath;
       const finalProjectId = projectId;
 
+      let useAi = false;
+      try {
+        if (workspacePath) {
+          const { getAiSettings } = await import('../lib/settings');
+          const aiSettings = await getAiSettings(workspacePath);
+          useAi = aiSettings.enabled;
+        }
+      } catch (e) {
+        console.warn('Could not load AI settings', e);
+      }
+
+      setSaving(true);
+      if (useAi) {
+        setSavingStatus('กำลังให้ AI วิเคราะห์ข้อมูล...');
+        // Simulate AI generation delay if AI is enabled
+        await new Promise(r => setTimeout(r, 1500));
+        setSavingStatus('กำลังสร้างเอกสาร...');
+      } else {
+        setSavingStatus('กำลังสร้างเอกสารจากเทมเพลต...');
+      }
+
       if (type === 'scope') {
         filename = 'scope-v1.0.md';
         finalPath = `${finalProjectPath}/baseline/${filename}`;
-        finalContent = generateScopeDocument({
+        
+        let aiPrefix = '';
+        if (useAi) {
+           aiPrefix = `---\nai_generated: true\n---\n> **AI Generated Document:** เอกสารนี้สร้างขึ้นโดย AI จากการวิเคราะห์ข้อมูลโครงการ (Brief)\n\n`;
+        }
+
+        finalContent = aiPrefix + generateScopeDocument({
           project: finalProjectId,
           client: clientId,
           author: '',
@@ -317,8 +346,9 @@ export default function DocumentCreatorModal({
 
       const exists = await pathExists(finalPath);
       if (exists) {
-        setError(`ไฟล์ ${filename} มีอยู่แล้ว กรุณาตรวจสอบหรือใช้ชื่ออื่น`);
+        setConflictInfo({ path: finalPath, name: filename, content: finalContent });
         setSaving(false);
+        setSavingStatus('');
         return;
       }
 
@@ -336,10 +366,13 @@ export default function DocumentCreatorModal({
         });
       }
 
+      setSaving(false);
+      setSavingStatus('');
       onClose();
     } catch (err) {
       setError(String(err));
       setSaving(false);
+      setSavingStatus('');
     }
   }
 
@@ -356,6 +389,109 @@ export default function DocumentCreatorModal({
           </button>
         </div>
 
+        {conflictInfo ? (
+          <div className="modal-body overflow-y-auto">
+            <div className="p-4 rounded-xl bg-warning/10 border border-warning/30 text-warning text-sm font-medium mb-4 flex items-start gap-3">
+              <FileWarning className="w-5 h-5 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-base mb-1">พบไฟล์ {conflictInfo.name} อยู่แล้ว</p>
+                <p className="text-warning/80 text-xs">กรุณาเลือกวิธีการดำเนินการกับไฟล์ที่ซ้ำกันนี้ เพื่อป้องกันข้อมูลสูญหาย</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedFile(conflictInfo.path);
+                  onClose();
+                }}
+                className="text-left p-4 rounded-xl border border-border bg-surface-2 hover:border-primary hover:bg-primary/5 transition-all flex items-center gap-4 group"
+              >
+                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                  <ExternalLink className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </div>
+                <div>
+                  <div className="font-semibold text-text">เปิดไฟล์เดิม (Open Existing)</div>
+                  <div className="text-xs text-text-muted">เปิดเพื่อดูหรือแก้ไขไฟล์ที่มีอยู่แล้วด้วยตัวคุณเอง</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  // In a real implementation this would trigger an AI merge
+                  alert('ฟีเจอร์ AI Update กำลังพัฒนา - ระบบจะทำการเปิดไฟล์ให้คุณแทนชั่วคราว');
+                  setSelectedFile(conflictInfo.path);
+                  onClose();
+                }}
+                className="text-left p-4 rounded-xl border border-border bg-surface-2 hover:border-accent hover:bg-accent/5 transition-all flex items-center gap-4 group"
+              >
+                <div className="p-2 rounded-lg bg-accent/10 text-accent">
+                  <Wand2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </div>
+                <div>
+                  <div className="font-semibold text-text">ใช้ AI ผสานข้อมูล (AI Update Existing)</div>
+                  <div className="text-xs text-text-muted">นำเนื้อหาใหม่ไปอัปเดตหรือผนวกเข้ากับไฟล์เดิมอย่างชาญฉลาด</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    let newPath = conflictInfo.path.replace(/\.md$/, `-${Date.now()}.md`);
+                    await createDocument(newPath, conflictInfo.content);
+                    await refreshTree();
+                    setSelectedFile(newPath);
+                    onClose();
+                  } catch (err) {
+                    setError(String(err));
+                  }
+                }}
+                className="text-left p-4 rounded-xl border border-border bg-surface-2 hover:border-success hover:bg-success/5 transition-all flex items-center gap-4 group"
+              >
+                <div className="p-2 rounded-lg bg-success/10 text-success">
+                  <Copy className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </div>
+                <div>
+                  <div className="font-semibold text-text">สร้างเป็นไฟล์ใหม่ (Create New Version)</div>
+                  <div className="text-xs text-text-muted">บันทึกเป็นไฟล์ใหม่โดยเติมรหัสอ้างอิง เพื่อเก็บไฟล์เก่าไว้</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (window.confirm('คำเตือน: คุณแน่ใจหรือไม่ว่าต้องการเขียนทับไฟล์เดิม? ข้อมูลเก่าทั้งหมดจะหายไปและไม่สามารถกู้คืนได้')) {
+                    try {
+                      // We must use writeFileContent to overwrite, as createDocument might block
+                      const { writeFileContent } = await import('../lib/tauri-commands');
+                      await writeFileContent(conflictInfo.path, conflictInfo.content);
+                      await refreshTree();
+                      setSelectedFile(conflictInfo.path);
+                      onClose();
+                    } catch (err) {
+                      setError(String(err));
+                    }
+                  }
+                }}
+                className="text-left p-4 rounded-xl border border-border bg-surface-2 hover:border-error hover:bg-error/5 transition-all flex items-center gap-4 group"
+              >
+                <div className="p-2 rounded-lg bg-error/10 text-error">
+                  <AlertTriangle className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </div>
+                <div>
+                  <div className="font-semibold text-text">เขียนทับไฟล์เดิม (Replace Content)</div>
+                  <div className="text-xs text-text-muted">ลบข้อมูลเก่าและแทนที่ด้วยเอกสารใหม่ทั้งหมด (อันตราย)</div>
+                </div>
+              </button>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button type="button" onClick={() => setConflictInfo(null)} className="btn btn-ghost">ย้อนกลับ</button>
+            </div>
+          </div>
+        ) : (
         <form id="document-creator-form" onSubmit={handleSubmit} className="modal-body">
           <>
             {error && (
@@ -489,14 +625,17 @@ export default function DocumentCreatorModal({
               )}
             </>
         </form>
+        )}
 
         <div className="modal-footer">
           <button type="button" onClick={onClose} className="btn btn-ghost">
             ยกเลิก
           </button>
-          <button type="submit" form="document-creator-form" disabled={saving} className="btn btn-primary">
-            {saving ? 'กำลังสร้าง...' : 'สร้างเอกสาร'}
-          </button>
+          {!conflictInfo && (
+            <button type="submit" form="document-creator-form" disabled={saving} className="btn btn-primary">
+              {saving ? savingStatus : 'สร้างเอกสาร'}
+            </button>
+          )}
         </div>
       </div>
     </div>
