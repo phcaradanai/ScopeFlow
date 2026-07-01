@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { CheckSquare, Code, FileText, FileWarning, GitPullRequest, LifeBuoy, MessageCircle, Receipt, Target, Wrench, X } from 'lucide-react';
 import { useWorkspace } from '../lib/workspace-context';
 import { createDocument, listProjectDocuments, pathExists, readFileContent, updateFileContent } from '../lib/tauri-commands';
@@ -61,7 +61,7 @@ export default function DocumentCreatorModal({ clientId, projectId, projectPath,
   const [aiEnabled, setAiEnabled] = useState(false);
   const requiresSlug = requiresDocSlug(type);
 
-  const refreshAiState = async () => {
+  const refreshAiState = useCallback(async () => {
     if (!workspacePath) { setAiEnabled(false); return false; }
     try {
       const settings = await getAiProviders(workspacePath);
@@ -73,10 +73,10 @@ export default function DocumentCreatorModal({ clientId, projectId, projectPath,
       setAiEnabled(false);
       return false;
     }
-  };
+  }, [workspacePath]);
 
   useEffect(() => { if (workspacePath) listProjectDocuments(workspacePath, clientId, projectId).then(setDocuments).catch(console.error); }, [workspacePath, clientId, projectId]);
-  useEffect(() => { refreshAiState(); }, [workspacePath]);
+  useEffect(() => { refreshAiState(); }, [refreshAiState]);
   useEffect(() => { if (title && requiresSlug) { const generated = nameToSlug(title); if (generated) setSlug(generated); } }, [title, requiresSlug]);
 
   const complete = async (path: string) => {
@@ -140,9 +140,9 @@ export default function DocumentCreatorModal({ clientId, projectId, projectPath,
 
   const buildDraft = async (useAi: boolean) => {
     const d = new Date().toISOString().split('T')[0].replace(/-/g, '');
-    let filename = '';
-    let path = '';
-    let content = '';
+    let filename: string;
+    let path: string;
+    let content: string;
     if (type === 'scope') { filename = 'scope-v1.0.md'; path = `${projectPath}/baseline/${filename}`; content = await buildScope(filename, useAi); }
     else if (type === 'quotation') { filename = 'quotation-v1.0.md'; path = `${projectPath}/baseline/${filename}`; content = generateQuotationDocument({ project: projectId, client: clientId, author: '' }); }
     else if (type === 'invoice') { filename = `invoice-${d}-${getNextDocumentNumber(documents, `invoice-${d}`)}.md`; path = `${projectPath}/invoices/${filename}`; content = generateInvoiceDocument({ project: projectId, client: clientId, author: '' }); }
