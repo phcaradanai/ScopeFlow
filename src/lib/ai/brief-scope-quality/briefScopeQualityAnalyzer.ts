@@ -37,11 +37,17 @@ function stripMarkdown(markdown = ''): string {
     .trim();
 }
 
+function hasListItem(markdown: string): boolean {
+  return /^\s*(?:[-*]|\d+[.)]|- \[[ xX]\])/m.test(markdown);
+}
+
 function hasMeaningfulSection(markdown: string, labels: RegExp[]): boolean {
   return labels.some(label => {
     const match = markdown.match(new RegExp(`##+\\s*.*(?:${label.source}).*\\n([\\s\\S]*?)(?=\\n##+\\s|$)`, 'i'));
     if (!match) return false;
-    return stripMarkdown(match[1] || '').length >= 20;
+    const section = match[1] || '';
+    const text = stripMarkdown(section);
+    return text.length >= 12 || (text.length > 0 && hasListItem(section));
   });
 }
 
