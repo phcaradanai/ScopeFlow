@@ -89,6 +89,7 @@ notes: "สัญญาดูแลรายปี"`;
     brief: `${proj1Path}/baseline/brief-v1.0.md`,
     scope: `${proj1Path}/baseline/scope-v1.0.md`,
     quotation: `${proj1Path}/baseline/quotation-v1.0.md`,
+    briefApproval: `${proj1Path}/approvals/APR-BRIEF-001-brief-v1.0-approved.md`,
     scopeApproval: `${proj1Path}/approvals/APR-001-scope-v1.0-approved.md`,
     acceptance: `${proj1Path}/acceptance/acceptance-checklist-v1.0.md`,
     export: `${proj1Path}/exports/scope-pack-20260605.html`,
@@ -225,6 +226,24 @@ created: "2026-06-21"
   });
 
   await invoke('create_document', {
+    path: artifactPaths.briefApproval,
+    content: `---
+type: approval-record
+title: "บันทึกการอนุมัติ Brief ปรับปรุงเว็บไซต์องค์กร"
+approval_number: "APR-BRIEF-001"
+status: "recorded"
+approved_document: "brief-v1.0.md"
+document_type: "brief"
+approved_by: "คุณ สมชาย ใจดี"
+approval_method: "email"
+evidence_files: ["brief-confirmation.txt"]
+created: "2026-06-01"
+---
+# บันทึกการอนุมัติ: APR-BRIEF-001
+ลูกค้ายืนยัน Brief ทางอีเมลเมื่อวันที่ 1 มิถุนายน 2026`
+  });
+
+  await invoke('create_document', {
     path: artifactPaths.scopeApproval,
     content: `---
 type: approval-record
@@ -240,6 +259,11 @@ created: "2026-06-05"
 ---
 # บันทึกการอนุมัติ: APR-001
 ลูกค้ายืนยันทางอีเมลเมื่อวันที่ 5 มิถุนายน 2026`
+  });
+
+  await invoke('write_file_content', {
+    path: `${proj1Path}/attachments/brief-confirmation.txt`,
+    content: `From: somchai@demo-client.com\nTo: contact@demo-company.com\nSubject: ยืนยัน Brief\n\nยืนยัน Brief ตามนี้ครับ สามารถนำไปแตก Scope ต่อได้`
   });
 
   await invoke('write_file_content', {
