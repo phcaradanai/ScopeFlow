@@ -148,13 +148,14 @@ export function buildProjectReadinessGate(documents: ProjectDocument[]): Project
 
   const briefReady = hasBriefQuality(brief);
   const scopeReadyForQuote = hasScopeQuality(scope);
+  const quoteReadyPrerequisites = Boolean(briefReady && scopeReadyForQuote && !followUps.length && !changes.length);
   const quoteHasEvidence = hasApprovalEvidenceFor(documents, 'quotation', quote);
   const acceptanceHasEvidence = hasApprovalEvidenceFor(documents, 'acceptance', acceptance);
 
   if (!brief) {
     blockers.push({ kind: 'missing_brief', label: 'ยังไม่มี Brief', reason: 'ควรเริ่มจากคำขอลูกค้าแล้วสรุปเป็น Brief ก่อนสร้าง Scope หรือเสนอราคา', severity: 'blocking' });
   } else if (!briefReady) {
-    blockers.push({ kind: 'weak_brief', label: 'Brief ยังข้อมูลไม่พอ', reason: 'Brief ยังไม่พอให้ทีมเข้าใจเป้าหมายหรือข้อมูลตั้งต้นของงาน', severity: 'warning', documentPath: brief.file_path });
+    blockers.push({ kind: 'weak_brief', label: 'Brief ยังข้อมูลไม่พอ', reason: 'Brief ยังไม่พอให้ทีมเข้าใจเป้าหมายหรือข้อมูลตั้งต้นของงาน', severity: 'blocking', documentPath: brief.file_path });
   }
 
   if (!scope) {
@@ -165,7 +166,7 @@ export function buildProjectReadinessGate(documents: ProjectDocument[]): Project
   }
 
   if (!quote) {
-    blockers.push({ kind: 'missing_quote', label: 'ยังไม่มีใบเสนอราคา', reason: 'เมื่อ Scope ชัดแล้ว ควรสร้างใบเสนอราคาให้ลูกค้าอนุมัติ', severity: scopeReadyForQuote ? 'blocking' : 'info' });
+    blockers.push({ kind: 'missing_quote', label: 'ยังไม่มีใบเสนอราคา', reason: 'เมื่อ Scope ชัดแล้ว ควรสร้างใบเสนอราคาให้ลูกค้าอนุมัติ', severity: quoteReadyPrerequisites ? 'info' : 'info' });
   } else if (!quoteHasEvidence) {
     blockers.push({ kind: 'quote_not_approved', label: 'ใบเสนอราคายังไม่มีหลักฐานอนุมัติ', reason: 'ห้ามถือว่าอนุมัติแล้วถ้ายังไม่มีหลักฐาน approval หรือ customer confirmation', severity: 'blocking', documentPath: quote.file_path });
   }
@@ -174,7 +175,7 @@ export function buildProjectReadinessGate(documents: ProjectDocument[]): Project
   changes.forEach(doc => blockers.push({ kind: 'open_change_request', label: 'มี Change Request ที่ยังไม่ปิด', reason: 'มี CR/DCR ที่ยังไม่ปิดและอาจกระทบ Scope/Quote จึงยังไม่ควรส่งมอบ', severity: 'blocking', documentPath: doc.file_path }));
 
   if (!acceptance) {
-    blockers.push({ kind: 'missing_acceptance', label: 'ยังไม่มีรายการส่งมอบ/ตรวจรับ', reason: 'ก่อนส่งมอบควรมี Acceptance Checklist เพื่อยืนยันสิ่งที่ส่งมอบและเงื่อนไขตรวจรับ', severity: quoteHasEvidence ? 'blocking' : 'info' });
+    blockers.push({ kind: 'missing_acceptance', label: 'ยังไม่มีรายการส่งมอบ/ตรวจรับ', reason: 'ก่อนส่งมอบควรมี Acceptance Checklist เพื่อยืนยันสิ่งที่ส่งมอบและเงื่อนไขตรวจรับ', severity: quoteHasEvidence ? 'info' : 'info' });
   } else if (!acceptanceHasEvidence) {
     blockers.push({ kind: 'missing_approval_evidence', label: 'ยังไม่มีหลักฐานตรวจรับ', reason: 'ห้ามบอกว่าพร้อมปิดงานถ้ายังไม่มีหลักฐานตรวจรับหรือ customer confirmation', severity: 'warning', documentPath: acceptance.file_path });
   }
@@ -204,10 +205,10 @@ export function buildProjectReadinessGate(documents: ProjectDocument[]): Project
       ? makeAction('create_scope_from_brief', 'สร้าง Scope จาก Brief', 'ใช้ Brief ล่าสุดสร้าง Scope ที่คุมขอบเขตได้', 'scope', brief.file_path)
       : makeAction('open_document', 'เติม Brief ให้ชัดก่อน', 'เปิด Brief เพื่อเติมข้อมูลที่ยังขาด', 'brief', brief.file_path);
     baseScore = 25;
-  } else if (scopeReadyForQuote && !followUps.length && !changes.length && !quote) {
+  } else if (quoteReadyPrerequisites && !quote) {
     stage = 'ready_for_quote';
     headline = 'พร้อมเสนอราคา';
-    summary = 'Scope มี deliverables และ acceptance criteria ชัดพอสำหรับสร้างใบเสนอราคาแล้ว';
+    summary = 'Brief และ Scope ชัดพอสำหรับสร้างใบเสนอราคาแล้ว';
     readyLabel = 'พร้อมเสนอราคา';
     primaryAction = makeAction('create_document', 'สร้างใบเสนอราคา', 'สร้างใบเสนอราคาจาก Scope ที่พร้อมแล้ว', 'quotation');
     baseScore = 60;
@@ -239,15 +240,15 @@ export function buildProjectReadinessGate(documents: ProjectDocument[]): Project
     readyLabel = blockers.some(blocker => blocker.kind === 'open_follow_up') ? 'ยังติดคำตอบลูกค้า' : blockers.some(blocker => blocker.kind === 'open_change_request') ? 'มี Change Request ที่ยังไม่ปิด' : 'ยังไม่พร้อม';
     if (firstBlocker?.documentPath) {
       primaryAction = makeAction('open_document', firstBlocker.label, firstBlocker.reason, undefined, firstBlocker.documentPath);
-    } else if (firstBlocker?.kind === 'missing_quote') {
+    } else if (firstBlocker?.kind === 'missing_quote' && quoteReadyPrerequisites) {
       primaryAction = makeAction('create_document', 'สร้างใบเสนอราคา', firstBlocker.reason, 'quotation');
     } else if (firstBlocker?.kind === 'missing_acceptance') {
       primaryAction = makeAction('create_document', 'เตรียมตรวจรับ/ส่งมอบ', firstBlocker.reason, 'acceptance');
     }
-    baseScore = quoteHasEvidence ? 82 : scopeReadyForQuote ? 58 : scope ? 40 : brief ? 25 : 5;
+    baseScore = quoteHasEvidence ? 82 : quoteReadyPrerequisites ? 58 : scope ? 40 : brief ? 25 : 5;
   }
 
-  const canQuote = Boolean(scopeReadyForQuote && !followUps.length && !changes.length);
+  const canQuote = Boolean(quoteReadyPrerequisites);
   const canDeliver = Boolean(quoteHasEvidence && acceptance && acceptanceHasEvidence && !followUps.length && !changes.length);
 
   return {
