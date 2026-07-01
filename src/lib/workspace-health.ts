@@ -1,11 +1,17 @@
-import { FileEntry, pathExists } from './tauri-commands';
+import { createDocument, FileEntry, pathExists, readFileContent, writeFileContent } from './tauri-commands';
 import { scanProjectDocuments, type ProjectDocument } from './document-scanner';
 
 export interface HealthIssue {
   type: 'error' | 'warning' | 'info';
   message: string;
-  fixAction?: 'create_project_folders' | 'create_scopeflow_yaml';
+  fixAction?: 'create_project_folders' | 'create_scopeflow_yaml' | 'repair_demo_audit_records';
   payload?: any;
+}
+
+export interface DemoAuditRepairResult {
+  repaired: number;
+  skipped: number;
+  messages: string[];
 }
 
 const REQUIRED_PROJECT_FOLDERS = [
@@ -32,10 +38,14 @@ function normalizeText(value?: string) {
   return String(value || '').trim();
 }
 
+function normalizePath(path: string) {
+  return path.replace(/\\/g, '/');
+}
+
 function dedupeDocumentsByPath(docs: ProjectDocument[]) {
   const byPath = new Map<string, ProjectDocument>();
   for (const doc of docs) {
-    byPath.set(doc.file_path.replace(/\\/g, '/'), doc);
+    byPath.set(normalizePath(doc.file_path), doc);
   }
   return Array.from(byPath.values());
 }
@@ -48,6 +58,148 @@ function approvalRecordMatches(approval: ProjectDocument, approvalRef: string) {
     normalizeText(approval.document_number) === ref ||
     normalizeText(approval.approval_number) === ref
   );
+}
+
+function isDemoProjectPath(projectPath: string) {
+  const normalized = normalizePath(projectPath);
+  return (
+    normalized.includes('/clients/demo-client-') ||
+    normalized.includes('/clients/demo-flow-client-') ||
+    normalized.includes('/projects/website-revamp-') ||
+    normalized.includes('/projects/complete-scope-flow-')
+  );
+}
+
+function requiresAuditRecord(doc: ProjectDocument) {
+  if (doc.type === 'export' || doc.type === 'approval-record') return false;
+  if (isReferenceOnlyDocument(doc.folder)) return false;
+  return doc.status === 'approved' || doc.locked;
+}
+
+function inferApprovalPrefix(doc: ProjectDocument) {
+  const type = normalizeText(doc.type).toLowerCase();
+  if (type === 'brief') return 'APR-BRIEF';
+  if (type === 'scope') return 'APR-SCOPE';
+  if (type === 'quotation') return 'APR-QUOTE';
+  if (type === 'invoice') return 'APR-INVOICE';
+  if (type === 'acceptance') return 'APR-ACCEPT';
+  return `APR-${type.toUpperCase() || 'DOC'}`;
+}
+
+function inferDemoApprovalRef(doc: ProjectDocument) {
+  if (doc.approval_ref) return normalizeText(doc.approval_ref);
+  const number = normalizeText(doc.document_number);
+  const suffix = number.includes('-') ? number.split('-').pop() : number;
+  return `${inferApprovalPrefix(doc)}-${suffix || Date.now()}`;
+}
+
+function insertApprovalRef(content: string, approvalRef: string) {
+  if (/^approval_ref:/m.test(content)) return content;
+  if (/^document_number:/m.test(content)) {
+    return content.replace(/^(document_number:\s*.*)$/m, `$1\napproval_ref: ${approvalRef}`);
+  }
+  if (/^updated:/m.test(content)) {
+    return content.replace(/^(updated:\s*.*)$/m, `$1\napproval_ref: ${approvalRef}`);
+  }
+  return content.replace(/^---\n/, `---\napproval_ref: ${approvalRef}\n`);
+}
+
+function approvalRecordMarkdown(doc: ProjectDocument, approvalRef: string) {
+  const evidenceFile = `${approvalRef}.txt`;
+  const title = doc.status === 'approved'
+    ? `บันทึกการอนุมัติ ${doc.file_name}`
+    : `บันทึก Audit ${doc.file_name}`;
+
+  return `---
+type: approval-record
+title: "${title}"
+approval_number: "${approvalRef}"
+status: recorded
+approved_document: "${doc.file_name}"
+document_type: "${doc.type}"
+approved_by: "Demo Repair"
+approval_method: "demo-audit-repair"
+evidence_files: ["${evidenceFile}"]
+created: "${new Date().toISOString().split('T')[0]}"
+---
+# ${title}
+
+ระบบสร้างบันทึกนี้เพื่อซ่อม demo workspace รุ่นเก่าที่เอกสารถูกล็อกหรืออ้างรหัสอนุมัติไว้แล้ว แต่ยังไม่มี approval/audit record ที่ Health Check ต้องใช้ตรวจสอบ.
+`;
+}
+
+async function createMissingAuditRecord(projectPath: string, doc: ProjectDocument, approvalRef: string) {
+  const safeDocBase = doc.file_name.replace(/\.md$/i, '').replace(/[^a-zA-Z0-9._-]/g, '-');
+  const recordPath = `${projectPath}/approvals/${approvalRef}-${safeDocBase}-approved.md`;
+  if (!(await pathExists(recordPath))) {
+    await createDocument(recordPath, approvalRecordMarkdown(doc, approvalRef));
+  }
+
+  const evidencePath = `${projectPath}/attachments/${approvalRef}.txt`;
+  if (!(await pathExists(evidencePath))) {
+    await writeFileContent(
+      evidencePath,
+      `Demo audit repair evidence\nDocument: ${doc.file_name}\nApproval ref: ${approvalRef}\nGenerated: ${new Date().toISOString()}\n`
+    );
+  }
+}
+
+async function repairDemoDocumentAudit(projectPath: string, doc: ProjectDocument, approvals: ProjectDocument[]): Promise<boolean> {
+  if (!isDemoProjectPath(projectPath)) return false;
+  if (!requiresAuditRecord(doc)) return false;
+
+  const approvalRef = inferDemoApprovalRef(doc);
+  const hasApprovalRecord = approvals.some(a => approvalRecordMatches(a, approvalRef));
+  let repaired = false;
+
+  if (!doc.approval_ref) {
+    const content = await readFileContent(doc.file_path);
+    await writeFileContent(doc.file_path, insertApprovalRef(content, approvalRef));
+    repaired = true;
+  }
+
+  if (!hasApprovalRecord) {
+    await createMissingAuditRecord(projectPath, doc, approvalRef);
+    repaired = true;
+  }
+
+  return repaired;
+}
+
+export async function repairDemoAuditRecords(_workspacePath: string, tree: FileEntry): Promise<DemoAuditRepairResult> {
+  const result: DemoAuditRepairResult = { repaired: 0, skipped: 0, messages: [] };
+  const clientsFolder = tree.children?.find(c => c.name === 'clients' && c.is_dir);
+  const clients = clientsFolder ? (clientsFolder.children || []) : (tree.children || []);
+
+  for (const client of clients) {
+    if (!client.is_dir) continue;
+    const projectsFolder = client.children?.find(c => c.name === 'projects' && c.is_dir);
+    const projects = projectsFolder ? (projectsFolder.children || []) : (client.children || []);
+
+    for (const project of projects) {
+      if (!project.is_dir) continue;
+      if (!isDemoProjectPath(project.path)) continue;
+
+      const docs = dedupeDocumentsByPath(await scanProjectDocuments(project.path, tree));
+      const approvals = docs.filter(d => d.type === 'approval-record');
+
+      for (const doc of docs) {
+        if (doc.type === 'approval-record' || isReferenceOnlyDocument(doc.folder)) continue;
+        try {
+          const repaired = await repairDemoDocumentAudit(project.path, doc, approvals);
+          if (repaired) {
+            result.repaired += 1;
+            result.messages.push(`ซ่อม audit record สำหรับ ${doc.file_name}`);
+          }
+        } catch (error) {
+          result.skipped += 1;
+          result.messages.push(`ข้าม ${doc.file_name}: ${error}`);
+        }
+      }
+    }
+  }
+
+  return result;
 }
 
 export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEntry): Promise<HealthIssue[]> {
@@ -94,6 +246,8 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
       if (!project.is_dir) continue;
 
       const projectPath = project.path;
+      const isDemoProject = isDemoProjectPath(projectPath);
+      const demoRepairPayload = isDemoProject ? { projectPath } : undefined;
       const hasProjectYaml = await fileExistsFromTreeOrDisk(projectPath, project.children, '_project.yaml', false);
       if (!hasProjectYaml) {
         pushIssue({ type: 'warning', message: `โครงการ "${project.name}" ไม่มีไฟล์ _project.yaml` });
@@ -126,19 +280,36 @@ export async function checkWorkspaceHealth(_workspacePath: string, tree: FileEnt
           continue;
         }
 
+        const needsDemoRepair = isDemoProject && requiresAuditRecord(doc);
+
         if (doc.locked && !doc.approval_ref && doc.type !== 'export' && doc.type !== 'approval-record') {
-          pushIssue({ type: 'warning', message: `เอกสาร "${doc.file_name}" ถูกล็อกแต่ไม่พบรหัสอนุมัติ (approval_ref)` });
+          pushIssue({
+            type: 'warning',
+            message: `เอกสาร "${doc.file_name}" ถูกล็อกแต่ไม่พบรหัสอนุมัติ (approval_ref)`,
+            fixAction: needsDemoRepair ? 'repair_demo_audit_records' : undefined,
+            payload: demoRepairPayload,
+          });
         }
 
-        if (doc.status === 'approved' && doc.type !== 'export' && doc.type !== 'approval-record') {
-          if (!doc.approval_ref) {
-             pushIssue({ type: 'warning', message: `เอกสาร "${doc.file_name}" สถานะ approved แต่ไม่พบรหัสอนุมัติ` });
-          } else {
-             const record = approvals.find(a => approvalRecordMatches(a, doc.approval_ref!));
-             if (!record) {
-                pushIssue({ type: 'error', message: `เอกสาร "${doc.file_name}" อ้างถึงการอนุมัติ "${doc.approval_ref}" แต่ไม่พบบันทึก` });
-             }
+        if (doc.approval_ref && requiresAuditRecord(doc)) {
+          const record = approvals.find(a => approvalRecordMatches(a, doc.approval_ref!));
+          if (!record) {
+            pushIssue({
+              type: doc.status === 'approved' ? 'error' : 'warning',
+              message: `เอกสาร "${doc.file_name}" อ้างถึงการอนุมัติ "${doc.approval_ref}" แต่ไม่พบบันทึก`,
+              fixAction: needsDemoRepair ? 'repair_demo_audit_records' : undefined,
+              payload: demoRepairPayload,
+            });
           }
+        }
+
+        if (doc.status === 'approved' && doc.type !== 'export' && doc.type !== 'approval-record' && !doc.approval_ref) {
+          pushIssue({
+            type: 'warning',
+            message: `เอกสาร "${doc.file_name}" สถานะ approved แต่ไม่พบรหัสอนุมัติ`,
+            fixAction: needsDemoRepair ? 'repair_demo_audit_records' : undefined,
+            payload: demoRepairPayload,
+          });
         }
 
         if (doc.type === 'approval-record' && doc.approved_document) {
