@@ -30,17 +30,17 @@ export default function DiscoveryWorkspace({
   const turns = session.conversation.turns;
 
   return (
-    <div className="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-border bg-surface-2/60 flex items-start justify-between gap-3">
-        <div>
+    <div className="h-full min-h-0 rounded-2xl border border-border bg-surface shadow-sm overflow-hidden flex flex-col">
+      <div className="p-4 border-b border-border bg-surface-2/60 flex items-start justify-between gap-3 shrink-0 min-w-0">
+        <div className="min-w-0">
           <h3 className="text-sm font-bold text-text">Discovery Workspace</h3>
           <p className="text-xs text-text-muted leading-relaxed mt-1">ถาม-ตอบจน requirement พร้อมก่อนสร้าง Brief, Scope และ Quotation</p>
         </div>
-        <span className="badge badge-muted text-[10px]">{statusLabel(session.status)}</span>
+        <span className="badge badge-muted text-[10px] shrink-0">{statusLabel(session.status)}</span>
       </div>
 
-      <div className="p-4 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4">
-        <div className="space-y-4 min-w-0">
+      <div className="p-4 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4 min-h-0 flex-1 overflow-y-auto xl:overflow-hidden">
+        <div className="space-y-4 min-w-0 xl:min-h-0 xl:overflow-y-auto xl:pr-1 custom-scrollbar">
           <div className="rounded-xl border border-border bg-surface-2/60 p-3">
             <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Customer Request</p>
             <p className="text-sm text-text leading-relaxed whitespace-pre-wrap">{session.rawRequest}</p>
@@ -88,7 +88,7 @@ export default function DiscoveryWorkspace({
           )}
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0 xl:min-h-0 xl:overflow-y-auto xl:pr-1 custom-scrollbar">
           <BriefReadinessPanel readiness={session.conversation.readiness} />
 
           <div className="rounded-xl border border-border bg-surface-2/60 p-3 space-y-2">

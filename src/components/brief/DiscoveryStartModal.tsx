@@ -102,7 +102,7 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
 
   return (
     <div className="modal-overlay">
-      <div className="modal-container !max-w-6xl">
+      <div className="modal-container !max-w-6xl h-[calc(100dvh-48px)]">
         <div className="modal-header">
           <div className="modal-header-content">
             <h2 className="modal-title">Start Discovery</h2>
@@ -113,7 +113,7 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
           </button>
         </div>
 
-        <div className="modal-body space-y-5">
+        <div className="modal-body space-y-5 min-h-0">
           {!started ? (
             <div className="rounded-2xl border border-border bg-surface-2/60 p-4 space-y-4">
               <div>
@@ -135,14 +135,16 @@ export default function DiscoveryStartModal({ clientId, projectId, projectPath, 
               </div>
             </div>
           ) : (
-            <DiscoveryWorkspaceContainer
-              clientId={clientId}
-              projectId={projectId}
-              rawRequest={rawRequest}
-              onGenerateBrief={handleGenerateBrief}
-              onGenerateScope={handleGenerateScope}
-              onGenerateQuotation={handleGenerateQuotation}
-            />
+            <div className="min-h-[640px] lg:min-h-0 lg:flex-1">
+              <DiscoveryWorkspaceContainer
+                clientId={clientId}
+                projectId={projectId}
+                rawRequest={rawRequest}
+                onGenerateBrief={handleGenerateBrief}
+                onGenerateScope={handleGenerateScope}
+                onGenerateQuotation={handleGenerateQuotation}
+              />
+            </div>
           )}
 
           {savingBrief && (
