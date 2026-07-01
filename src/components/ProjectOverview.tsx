@@ -13,6 +13,7 @@ import ProjectLifecycleCommandCenter from './project/ProjectLifecycleCommandCent
 import CustomerAnswerIntakePanel from './project/CustomerAnswerIntakePanel';
 import DocumentCreationPreviewModal from './project/DocumentCreationPreviewModal';
 import GuidedOperatingModePanel from './project/GuidedOperatingModePanel';
+import BriefScopeQualityPanel from './project/BriefScopeQualityPanel';
 import FriendlyDocumentConflictModal, { type FriendlyConflictAction } from './project/FriendlyDocumentConflictModal';
 import { useLifecycleActionDispatcher } from '../hooks/useLifecycleActionDispatcher';
 import type { CustomerAnswerWorkflowContext } from '../lib/ai/customer-answer/customerAnswerWorkflowContext';
@@ -22,6 +23,7 @@ import { parseBriefToScope } from '../lib/brief-builder';
 import { generateScopeMarkdown } from '../lib/scope-builder';
 import { mergeDocumentDeterministically, mergeDocumentWithAi } from '../lib/ai/documentMergeAssistant';
 import { getAiProviders } from '../lib/ai/providers/providerSettings';
+import { analyzeBriefScopeQuality, buildScopeQualityImprovementDraft, type BriefScopeQualityAnalysis } from '../lib/ai/brief-scope-quality/briefScopeQualityAnalyzer';
 import MarkdownEditor from './MarkdownEditor';
 
 interface ProjectOverviewProps {
@@ -45,6 +47,7 @@ interface GuidedConflictState {
   newVersionPath: string;
   newContent: string;
   documentKind: string;
+  protectedUpdate?: boolean;
 }
 
 function getProjectPathIds(projectPath: string): { clientId: string; projectId: string } {
@@ -162,6 +165,9 @@ export default function ProjectOverview({
   const [guidedConflict, setGuidedConflict] = useState<GuidedConflictState | null>(null);
   const [guidedBusy, setGuidedBusy] = useState(false);
   const [guidedNotice, setGuidedNotice] = useState('');
+  const [qualityAnalysis, setQualityAnalysis] = useState<BriefScopeQualityAnalysis | null>(null);
+  const [qualityLoading, setQualityLoading] = useState(false);
+  const [qualityRefreshKey, setQualityRefreshKey] = useState(0);
 
   const scanFiles = documents.map(doc => ({
     path: doc.file_path,
@@ -171,6 +177,8 @@ export default function ProjectOverview({
   const { clientId, projectId } = getProjectPathIds(projectPath);
   const guidedState = useMemo(() => buildGuidedOperatingModeState(documents), [documents]);
   const isEmptyProject = documents.length === 0;
+  const qualityBrief = useMemo(() => documents.find(doc => doc.type === 'brief' && (doc.status === 'approved' || doc.locked)) || documents.find(doc => doc.type === 'brief'), [documents]);
+  const qualityScope = useMemo(() => documents.find(doc => doc.type === 'scope' && (doc.status === 'approved' || doc.locked)) || documents.find(doc => doc.type === 'scope'), [documents]);
 
   useEffect(() => {
     let mounted = true;
@@ -190,6 +198,28 @@ export default function ProjectOverview({
     loadAiProviderState();
     return () => { mounted = false; };
   }, [workspacePath]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function runQualityAnalysis() {
+      setQualityLoading(true);
+      const analysis = await analyzeBriefScopeQuality(workspacePath, {
+        briefMarkdown: qualityBrief?.markdown || '',
+        scopeMarkdown: qualityScope?.markdown || '',
+        scopeStatus: qualityScope?.status,
+        scopeLocked: qualityScope?.locked,
+      });
+      if (mounted) {
+        setQualityAnalysis(analysis);
+        setQualityLoading(false);
+      }
+    }
+    runQualityAnalysis().catch(err => {
+      console.warn('Brief/Scope quality analysis failed', err);
+      if (mounted) setQualityLoading(false);
+    });
+    return () => { mounted = false; };
+  }, [workspacePath, qualityBrief?.file_path, qualityBrief?.markdown, qualityScope?.file_path, qualityScope?.markdown, qualityScope?.status, qualityScope?.locked, qualityRefreshKey]);
 
   const {
     showPreviewModal,
@@ -284,6 +314,55 @@ export default function ProjectOverview({
     }
   };
 
+  const handleCreateQualityFollowUp = (question: string) => {
+    onCreateDocument(clientId, projectId, projectPath, 'followup', {
+      source: 'recommended_next_action',
+      initialType: 'followup',
+      reason: `ข้อมูลที่ยังต้องถามลูกค้า: ${question}`,
+      projectPath,
+      recommendationWhy: question,
+      prefillTitle: question.slice(0, 90),
+    });
+  };
+
+  const handleUpdateScopeFromQuality = async (improvement: string) => {
+    if (!qualityAnalysis) return;
+    if (!qualityScope) {
+      onCreateDocument(clientId, projectId, projectPath, 'scope', {
+        source: 'recommended_next_action',
+        initialType: 'scope',
+        reason: 'ยังไม่มี Scope ที่ใช้ควบคุมงาน',
+        projectPath,
+        recommendationWhy: improvement,
+      });
+      return;
+    }
+
+    try {
+      setGuidedNotice('');
+      const scopeMarkdown = qualityScope.markdown || await readFileContent(qualityScope.file_path);
+      const scopePaths = documents.filter(doc => doc.type === 'scope').map(doc => doc.file_path);
+      const newVersionName = getNextScopeVersionFilename(scopePaths);
+      const focusedAnalysis: BriefScopeQualityAnalysis = {
+        ...qualityAnalysis,
+        suggested_scope_improvements: [improvement],
+      };
+      const protectedUpdate = qualityAnalysis.guardrails.scope_update_mode === 'proposed_update_or_change_request';
+      setGuidedConflict({
+        existingPath: qualityScope.file_path,
+        newVersionPath: joinPath(projectPath, 'baseline', newVersionName),
+        newContent: `${scopeMarkdown}${buildScopeQualityImprovementDraft(focusedAnalysis)}`,
+        documentKind: protectedUpdate ? 'Scope proposed quality update' : 'Scope quality update',
+        protectedUpdate,
+      });
+      if (protectedUpdate) {
+        setGuidedNotice('Scope นี้ approved/locked แล้ว ระบบจะเสนอเป็น proposed update หรือ Change Request เท่านั้น ไม่เขียนทับ Scope เดิมเงียบ ๆ');
+      }
+    } catch (err) {
+      setGuidedNotice(`เตรียมคำแนะนำสำหรับ Scope ไม่สำเร็จ: ${err}`);
+    }
+  };
+
   const executeGuidedAction = (action: GuidedPrimaryAction) => {
     if (action.kind === 'start_discovery') {
       handleStartDiscovery?.();
@@ -333,6 +412,11 @@ export default function ProjectOverview({
       return;
     }
 
+    if (guidedConflict.protectedUpdate && mode !== 'version') {
+      setGuidedNotice('Scope นี้ approved/locked แล้ว จึงไม่สามารถเขียนทับเดิมได้ กรุณาเลือก “สร้างเวอร์ชันใหม่” หรือเปิดเดิมเพื่อสร้าง Change Request');
+      return;
+    }
+
     try {
       setGuidedBusy(true);
       setGuidedNotice('');
@@ -368,12 +452,12 @@ export default function ProjectOverview({
           existingMarkdown,
           newDraftMarkdown: guidedConflict.newContent,
           documentKind: guidedConflict.documentKind,
-          instruction: 'Update the existing Scope from the latest Brief while preserving existing approved or locked decisions. Summarize in Thai.',
+          instruction: 'Update the existing Scope while preserving approved or locked decisions. Do not invent approval, evidence, or customer confirmation. Summarize in Thai.',
         });
         mergedMarkdown = merged.markdown;
         mergeSummary = `AI ช่วยอัปเดตสำเร็จด้วย ${merged.provider || 'provider'} ${merged.model || ''}`.trim();
       } catch (error) {
-        mergedMarkdown = mergeDocumentDeterministically(existingMarkdown, guidedConflict.newContent, 'Scope update from latest Brief');
+        mergedMarkdown = mergeDocumentDeterministically(existingMarkdown, guidedConflict.newContent, 'Scope quality update');
         mergeSummary = `AI ใช้ไม่ได้ จึงรวมข้อมูลแบบปลอดภัยแทน: ${error}`;
       }
 
@@ -442,6 +526,15 @@ export default function ProjectOverview({
         onPrimaryAction={() => executeGuidedAction(guidedState.primaryAction)}
         onSecondaryAction={executeGuidedAction}
         onOpenDocument={onOpenDocument}
+      />
+
+      <BriefScopeQualityPanel
+        analysis={qualityAnalysis}
+        loading={qualityLoading}
+        aiEnabled={aiEnabled}
+        onRefresh={() => setQualityRefreshKey(key => key + 1)}
+        onCreateFollowUp={handleCreateQualityFollowUp}
+        onUpdateScope={handleUpdateScopeFromQuality}
       />
 
       {isEmptyProject && (
@@ -602,7 +695,7 @@ export default function ProjectOverview({
       {guidedConflict && (
         <FriendlyDocumentConflictModal
           title="พบ Scope เดิมอยู่แล้ว"
-          description="เลือกวิธีไปต่อโดยไม่ต้องจัดการเอกสารเองหรือเจอข้อความผิดพลาดที่อ่านยาก"
+          description={guidedConflict.protectedUpdate ? 'Scope นี้ approved/locked แล้ว ระบบจะเสนอเป็นเวอร์ชันใหม่หรือ Change Request ไม่เขียนทับ Scope เดิมเงียบ ๆ' : 'เลือกวิธีไปต่อโดยไม่ต้องจัดการเอกสารเองหรือเจอข้อความผิดพลาดที่อ่านยาก'}
           documentLabel="Scope"
           existingPath={guidedConflict.existingPath}
           aiEnabled={aiEnabled}
