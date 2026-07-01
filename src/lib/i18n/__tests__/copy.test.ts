@@ -14,9 +14,17 @@ describe('Thai-first i18n copy foundation', () => {
     expect(t('conflict.actions.versionTitle')).toBe('สร้างเวอร์ชันใหม่');
   });
 
+  it('contains follow-up loop copy in Thai by default', () => {
+    expect(t('quality.answerIntakeTitle')).toBe('ข้อมูลที่ลูกค้าตอบกลับ');
+    expect(t('quality.answerImpactTitle')).toBe('คำตอบนี้กระทบ Brief/Scope อย่างไร');
+    expect(t('quality.safeUpdate')).toBe('อัปเดตเอกสารอย่างปลอดภัย');
+    expect(t('quality.createChangeRequestInstead')).toBe('สร้าง Change Request แทนการแก้ Scope เดิม');
+  });
+
   it('falls back to English when a locale does not provide a key', () => {
     expect(t('guided.title', 'en')).toBe('Run the next project action from here');
     expect(t('quality.scopeRisks', 'en')).toBe('Scope growth risks');
+    expect(t('quality.answerIntakeTitle', 'en')).toBe('Customer answer returned');
   });
 
   it('interpolates lightweight parameters', () => {
