@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { readFileContent, writeFileContent, copyEvidenceFiles, createDocument } from '../lib/tauri-commands';
+import { readFileContent, writeFileContent, copyEvidenceFiles, createDocument, pathExists } from '../lib/tauri-commands';
 import { updateDocumentApprovalStatus, generateApprovalRecord, lockDocument } from '../lib/templates';
 import { getNextDocumentNumber } from '../lib/document-utils';
 import { getNextRevisionFilename, generateRevisionDocument } from '../lib/revisions';
@@ -25,6 +25,51 @@ interface MarkdownEditorProps {
   workspacePath: string;
 }
 
+function normalizePath(path: string): string {
+  return path.replace(/\\/g, '/');
+}
+
+function getBasename(path: string): string {
+  const normalized = normalizePath(path);
+  return normalized.split('/').pop() || 'document';
+}
+
+function getDirname(path: string): string {
+  const normalized = normalizePath(path);
+  const parts = normalized.split('/');
+  parts.pop();
+  return parts.join('/');
+}
+
+function joinPath(...parts: string[]): string {
+  return parts
+    .map((part, index) => {
+      const normalized = normalizePath(part);
+      if (index === 0) return normalized.replace(/\/+$/g, '');
+      return normalized.replace(/^\/+|\/+$/g, '');
+    })
+    .filter(Boolean)
+    .join('/');
+}
+
+function deriveProjectPath(filePath: string): string {
+  const normalized = normalizePath(filePath);
+  const marker = '/projects/';
+  const markerIndex = normalized.indexOf(marker);
+  if (markerIndex === -1) return '';
+
+  const projectBase = normalized.slice(0, markerIndex + marker.length);
+  const afterProjects = normalized.slice(markerIndex + marker.length);
+  const projectId = afterProjects.split('/')[0];
+  if (!projectId) return '';
+
+  return `${projectBase}${projectId}`;
+}
+
+function pathEquals(a: string, b: string): boolean {
+  return normalizePath(a).toLowerCase() === normalizePath(b).toLowerCase();
+}
+
 export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocument, allFiles, workspacePath }: MarkdownEditorProps) {
   const [content, setContent] = useState('');
   const [originalContent, setOriginalContent] = useState('');
@@ -34,10 +79,11 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
   const [error, setError] = useState('');
   const [showApprovalModal, setShowApprovalModal] = useState(false);
 
+  const normalizedFilePath = normalizePath(filePath);
   const hasChanges = content !== originalContent;
-  const filename = filePath.split('/').pop() || 'document';
-  const folderPath = filePath.split('/').slice(0, -1).join('/');
-  const projectPath = filePath.split('/projects/')[0] + '/projects/' + filePath.split('/projects/')[1]?.split('/')[0];
+  const filename = getBasename(filePath);
+  const folderPath = getDirname(filePath);
+  const projectPath = deriveProjectPath(filePath);
 
   useEffect(() => {
     async function loadFile() {
@@ -109,8 +155,13 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
   })();
 
   const handleApprove = async (data: { approvedBy: string; approvalMethod: string; evidenceFiles: string[] }) => {
+    if (!projectPath) {
+      setError('ไม่สามารถระบุโฟลเดอร์โครงการจาก path ของไฟล์นี้ได้');
+      return;
+    }
+
     try {
-      const attachmentsDir = projectPath + '/attachments';
+      const attachmentsDir = joinPath(projectPath, 'attachments');
       const copiedFiles = await copyEvidenceFiles(data.evidenceFiles, attachmentsDir);
       const docsForNumbering = allFiles.map(f => ({
         filename: f.name,
@@ -131,7 +182,7 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
         evidenceFiles: copiedFiles
       });
 
-      const aprPath = projectPath + '/approvals/' + aprNumber + '-' + filename.replace('.md', '') + '-approved.md';
+      const aprPath = joinPath(projectPath, 'approvals', `${aprNumber}-${filename.replace('.md', '')}-approved.md`);
       await createDocument(aprPath, approvalContent);
 
       let updatedContent = updateDocumentApprovalStatus(
@@ -160,7 +211,7 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
     try {
       const isMajor = window.confirm('นี่เป็นการแก้ไขครั้งใหญ่ (Major Revision) ใช่หรือไม่?\n- กด OK สำหรับ Major (เช่น v1.0 -> v2.0)\n- กด Cancel สำหรับ Minor (เช่น v1.0 -> v1.1)');
       const newFilename = getNextRevisionFilename(filename, isMajor);
-      const newPath = folderPath + '/' + newFilename;
+      const newPath = joinPath(folderPath, newFilename);
 
       const revisedContent = generateRevisionDocument(
         originalContent,
@@ -182,7 +233,11 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
   const [newScopePath, setNewScopePath] = useState<string>('');
 
   const getNextScopeVersionFilename = (files: { name: string; path: string }[]) => {
-    const baselineFiles = files.filter(f => f.path.includes('/baseline/') && f.name.match(/^scope-v\d+\.\d+\.md$/));
+    const baselineDir = projectPath ? joinPath(projectPath, 'baseline') : '';
+    const baselineFiles = files.filter(f => {
+      const normalized = normalizePath(f.path);
+      return normalized.includes('/baseline/') && (!baselineDir || normalized.startsWith(`${baselineDir}/`)) && f.name.match(/^scope-v\d+\.\d+\.md$/);
+    });
     let maxMajor = 0;
     let maxMinor = 0;
     baselineFiles.forEach(f => {
@@ -203,8 +258,20 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
 
   const handleCreateScopeFromBrief = async () => {
     try {
+      if (!projectPath) {
+        setError(`ไม่สามารถสร้าง Scope ได้ เพราะไม่พบ path โครงการจากไฟล์นี้: ${filePath}`);
+        return;
+      }
+
+      const baselinePath = joinPath(projectPath, 'baseline');
+      const baselineEntryIsFile = allFiles.some(f => !f.is_dir && pathEquals(f.path, baselinePath));
+      if (baselineEntryIsFile) {
+        setError(`ไม่สามารถสร้าง Scope ได้ เพราะมีไฟล์ชื่อ baseline อยู่ที่ ${baselinePath} กรุณาเปลี่ยนชื่อไฟล์นั้นก่อน`);
+        return;
+      }
+
       const scopeFilename = 'scope-v1.0.md';
-      const scopePath = `${projectPath}/baseline/${scopeFilename}`;
+      const scopePath = joinPath(baselinePath, scopeFilename);
       const prefillData = parseBriefToScope(content);
       const baseContent = generateScopeMarkdown({
         title: 'ขอบเขตงาน (Scope of Work)',
@@ -213,7 +280,7 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
         deliverables: prefillData.deliverables || '',
       }, scopeFilename);
 
-      const exists = await readFileContent(scopePath).then(() => true).catch(() => false);
+      const exists = await pathExists(scopePath);
       if (!exists) {
         // No existing scope, create directly
         await createDocument(scopePath, baseContent);
@@ -226,7 +293,7 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
       setExistingScopePath(scopePath);
       // Determine next version filename
       const nextVersionName = getNextScopeVersionFilename(allFiles);
-      const nextPath = `${projectPath}/baseline/${nextVersionName}`;
+      const nextPath = joinPath(baselinePath, nextVersionName);
       setNewScopePath(nextPath);
       setScopeOption('choose'); // trigger modal
     } catch (err) {
@@ -466,7 +533,7 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
       </div>
 
       <div className="flex items-center justify-between px-6 py-2.5 border-t border-border bg-surface-2 text-xs text-text-dim">
-        <span>{filePath}</span>
+        <span>{normalizedFilePath}</span>
         <div className="flex items-center gap-4">
           {isApproved && <span className="text-success flex items-center gap-1.5 font-semibold"><CheckCircle className="w-3.5 h-3.5"/> อนุมัติแล้ว</span>}
           <span className="font-medium">{content.split('\n').length} บรรทัด</span>
@@ -493,12 +560,12 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
                 className="btn btn-primary"
                 onClick={async () => {
                   const prefill = parseBriefToScope(content);
-                  const newContent = `---\nstatus: draft\nlocked: false\nprevious_version: "${existingScopePath.replace(projectPath + '/', '')}"\n---\n` + generateScopeMarkdown({
+                  const newContent = `---\nstatus: draft\nlocked: false\nprevious_version: "${existingScopePath.replace(`${projectPath}/`, '')}"\n---\n` + generateScopeMarkdown({
                     title: 'ขอบเขตงาน (Scope of Work)',
                     ...prefill,
                     acceptance_criteria: '',
                     deliverables: prefill.deliverables || '',
-                  }, newScopePath.split('/').pop() || '');
+                  }, getBasename(newScopePath));
                   await createDocument(newScopePath, newContent);
                   onDocumentChanged();
                   onOpenDocument(newScopePath);
@@ -530,4 +597,3 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
     </div>
   );
 }
-
