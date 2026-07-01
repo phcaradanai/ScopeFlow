@@ -29,6 +29,7 @@ describe('demo generators', () => {
     expect(result.projectIds).toEqual(['website-revamp-20260626083045', 'system-maintenance-20260626083045']);
     expect(result.primaryProjectPath).toBe('/workspace/clients/demo-client-20260626083045/projects/website-revamp-20260626083045');
     expect(result.artifactPaths.brief).toBe(`${result.primaryProjectPath}/baseline/brief-v1.0.md`);
+    expect(result.artifactPaths.briefApproval).toBe(`${result.primaryProjectPath}/approvals/APR-BRIEF-001-brief-v1.0-approved.md`);
     expect(result.artifactPaths.scopeApproval).toBe(`${result.primaryProjectPath}/approvals/APR-001-scope-v1.0-approved.md`);
   });
 
@@ -41,6 +42,21 @@ describe('demo generators', () => {
     expect(firstDocumentPayload.path).toContain('/baseline/brief-v1.0.md');
     expect(firstDocumentPayload.content).toContain('type: brief');
     expect(firstDocumentPayload.content).toContain('Brief ปรับปรุงเว็บไซต์องค์กร');
+  });
+
+  it('standard demo writes the approval record referenced by the approved brief', async () => {
+    await generateDemoWorkspace('/workspace', 'ScopeFlow Demo');
+
+    const createDocumentCalls = mockedInvoke.mock.calls.filter(([command]) => command === 'create_document');
+    const briefApprovalCall = createDocumentCalls.find(([, payload]) => {
+      const args = payload as { path?: string };
+      return args.path?.endsWith('/approvals/APR-BRIEF-001-brief-v1.0-approved.md');
+    });
+    const briefApprovalPayload = briefApprovalCall?.[1] as { content?: string } | undefined;
+
+    expect(briefApprovalPayload?.content).toContain('approval_number: "APR-BRIEF-001"');
+    expect(briefApprovalPayload?.content).toContain('approved_document: "brief-v1.0.md"');
+    expect(briefApprovalPayload?.content).toContain('evidence_files: ["brief-confirmation.txt"]');
   });
 
   it('standard demo writes maintenance current-system reference files without requiring YAML frontmatter', async () => {
@@ -71,11 +87,12 @@ describe('demo generators', () => {
       invoice: `${result.projectPath}/baseline/invoice-v1.0.md`,
       acceptance: `${result.projectPath}/acceptance/acceptance-v1.0.md`,
       scopeApproval: `${result.projectPath}/approvals/APR-SCOPE-98765432.md`,
+      invoiceApproval: `${result.projectPath}/approvals/APR-INVOICE-98765432.md`,
       export: `${result.projectPath}/exports/scopeflow-complete-demo-98765432.html`,
     });
   });
 
-  it('complete demo creates approval evidence for all approved artifacts', async () => {
+  it('complete demo creates approval evidence for all locked audited artifacts', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(12345678);
 
     await generateCompletedDemoFlow('/workspace');
@@ -85,11 +102,12 @@ describe('demo generators', () => {
       return command === 'write_file_content' && args.path?.includes('/attachments/APR-');
     });
 
-    expect(writeEvidenceCalls).toHaveLength(4);
+    expect(writeEvidenceCalls).toHaveLength(5);
     expect(writeEvidenceCalls.map(([, payload]) => (payload as { path: string }).path)).toEqual([
       '/workspace/clients/demo-flow-client-12345678/projects/complete-scope-flow-12345678/attachments/APR-BRIEF-12345678.txt',
       '/workspace/clients/demo-flow-client-12345678/projects/complete-scope-flow-12345678/attachments/APR-SCOPE-12345678.txt',
       '/workspace/clients/demo-flow-client-12345678/projects/complete-scope-flow-12345678/attachments/APR-QUOTE-12345678.txt',
+      '/workspace/clients/demo-flow-client-12345678/projects/complete-scope-flow-12345678/attachments/APR-INVOICE-12345678.txt',
       '/workspace/clients/demo-flow-client-12345678/projects/complete-scope-flow-12345678/attachments/APR-ACCEPT-12345678.txt',
     ]);
   });
