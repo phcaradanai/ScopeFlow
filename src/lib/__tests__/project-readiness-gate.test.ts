@@ -74,6 +74,21 @@ describe('buildProjectReadinessGate', () => {
     expect(gate.summary).toContain('ยังไม่ควรเสนอราคา');
   });
 
+  it('does not allow Quote readiness when Brief is too weak even if Scope looks complete', () => {
+    const weakBrief = doc({
+      type: 'brief',
+      file_name: 'brief.md',
+      markdown: '# Brief\n\nลูกค้าอยากทำระบบใหม่',
+    });
+    const gate = buildProjectReadinessGate([weakBrief, goodScope]);
+
+    expect(gate.canQuote).toBe(false);
+    expect(gate.stage).toBe('blocked');
+    expect(gate.primaryAction.kind).toBe('open_document');
+    expect(gate.primaryAction.documentPath).toBe(weakBrief.file_path);
+    expect(gate.blockers.some(blocker => blocker.kind === 'weak_brief')).toBe(true);
+  });
+
   it('is ready for Quote when Brief and Scope are good and there are no blockers', () => {
     const gate = buildProjectReadinessGate([goodBrief, goodScope]);
 
