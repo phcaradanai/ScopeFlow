@@ -80,7 +80,6 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
   const [error, setError] = useState('');
   const [showApprovalModal, setShowApprovalModal] = useState(false);
 
-  const normalizedFilePath = normalizePath(filePath);
   const hasChanges = content !== originalContent;
   const filename = getBasename(filePath);
   const folderPath = getDirname(filePath);
@@ -144,6 +143,9 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
   
   const projMatch = content.match(/project:\s*"?([^"\n]+)"?/);
   const projId = projMatch ? projMatch[1] : '';
+
+  const isStructured = ['scope', 'quotation', 'invoice', 'brief', 'approval-record'].includes(docType);
+  const maxWidthClass = isStructured ? 'max-w-7xl' : 'max-w-[850px]';
 
   const bodyForPreview = (() => {
     if (content.startsWith('---')) {
@@ -307,17 +309,29 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
       <div className="flex flex-wrap items-center justify-between px-6 py-4 border-b border-border bg-surface-2 gap-3 shadow-sm">
         {/* Left: filename + status */}
         <div className="flex items-center gap-3">
-          <FileText className="w-5 h-5 text-primary-light" />
-          <span className="text-base font-semibold text-text">{filename}</span>
-          {isLocked && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-warning/10 border border-warning/20 text-warning text-xs font-semibold">
-              <Lock className="w-3.5 h-3.5" />
-              ถูกล็อก
+          <FileText className="w-5 h-5 text-primary-light shrink-0" />
+          <span className="text-base font-semibold text-text truncate max-w-[200px] sm:max-w-md">{filename}</span>
+          
+          <div className="flex items-center gap-2 shrink-0">
+            {isLocked && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-warning/10 border border-warning/20 text-warning text-xs font-semibold">
+                <Lock className="w-3.5 h-3.5" />
+                ถูกล็อก
+              </span>
+            )}
+            {hasChanges && !isLocked && (
+              <span className="w-2.5 h-2.5 rounded-full bg-warning" title="มีการเปลี่ยนแปลง" />
+            )}
+            {isApproved && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success/10 border border-success/20 text-success text-xs font-semibold">
+                <CheckCircle className="w-3.5 h-3.5" />
+                อนุมัติแล้ว
+              </span>
+            )}
+            <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-surface-3 text-text-muted text-xs font-medium">
+              {content.split('\n').length} บรรทัด
             </span>
-          )}
-          {hasChanges && !isLocked && (
-            <span className="w-2.5 h-2.5 rounded-full bg-warning" title="มีการเปลี่ยนแปลง" />
-          )}
+          </div>
         </div>
 
         {/* Right: actions grouped */}
@@ -524,8 +538,8 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
             }}
           />
         ) : mode === 'edit' ? (
-          <div className="h-full overflow-y-auto w-full flex justify-center bg-surface-2/30 py-8 px-4 custom-scrollbar">
-            <div className="w-full max-w-[850px] min-h-full bg-surface shadow-2xl border border-white/5 rounded-xl p-10 md:p-16 flex flex-col transition-all duration-300">
+          <div className="h-full overflow-y-auto w-full flex justify-center bg-surface-2/30 py-8 px-4 md:px-8 custom-scrollbar">
+            <div className={`w-full ${maxWidthClass} min-h-full bg-surface shadow-2xl border border-white/5 rounded-xl p-8 md:p-12 lg:p-16 flex flex-col transition-all duration-300`}>
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -536,24 +550,14 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
             </div>
           </div>
         ) : (
-          <div className="h-full overflow-y-auto w-full flex justify-center bg-surface-2/30 py-8 px-4 custom-scrollbar">
-            <div className="w-full max-w-[850px] min-h-full bg-surface shadow-2xl border border-white/5 rounded-xl p-10 md:p-16 transition-all duration-300">
+          <div className="h-full overflow-y-auto w-full flex justify-center bg-surface-2/30 py-8 px-4 md:px-8 custom-scrollbar">
+            <div className={`w-full ${maxWidthClass} min-h-full bg-surface shadow-2xl border border-white/5 rounded-xl p-8 md:p-12 lg:p-16 transition-all duration-300`}>
               <div className="markdown-preview">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{bodyForPreview}</ReactMarkdown>
               </div>
             </div>
           </div>
         )}
-      </div>
-
-      <div className="flex items-center justify-between px-6 py-2 border-t border-border bg-surface-2 text-xs text-text-dim shrink-0 min-w-0">
-        <span className="truncate max-w-[200px] sm:max-w-md min-w-0" title={normalizedFilePath}>
-          {getBasename(normalizedFilePath)}
-        </span>
-        <div className="flex items-center gap-4 shrink-0">
-          {isApproved && <span className="text-success flex items-center gap-1.5 font-semibold"><CheckCircle className="w-3.5 h-3.5"/> อนุมัติแล้ว</span>}
-          <span className="font-medium">{content.split('\n').length} บรรทัด</span>
-        </div>
       </div>
 
       {/* Scope creation options modal */}

@@ -86,7 +86,7 @@ export default function BriefHelperForm({ initialData, onGenerate }: BriefHelper
               className="btn btn-primary px-8"
               style={{ minHeight: '48px' }}
             >
-              สร้าง Markdown
+              สร้างเอกสาร
             </button>
           </div>
 

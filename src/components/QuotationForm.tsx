@@ -368,7 +368,7 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
           onClick={() => onGenerate(formData)}
           className="btn btn-primary px-8 py-3 w-full sm:w-auto"
         >
-          สร้าง Markdown จากฟอร์ม
+          สร้างเอกสารจากฟอร์ม
         </button>
       </div>
     </div>

@@ -75,7 +75,7 @@
 /* MARKDOWN PREVIEW     */
 /* ==================== */
 .markdown-preview {
-  max-width: 920px;
+  width: 100%;
   margin: 0 auto;
   line-height: 1.7;
   color: var(--color-text-muted);

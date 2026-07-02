@@ -200,7 +200,7 @@ export default function ScopeHelperForm({ initialData, onGenerate }: ScopeHelper
               onClick={() => onGenerate(formData)}
               className="btn btn-primary px-8"
             >
-              สร้าง Markdown
+              สร้างเอกสาร
             </button>
           </div>
         </div>
