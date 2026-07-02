@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = resolve(__dirname, '../../..');
+const testDir = dirname(fileURLToPath(import.meta.url));
+const root = resolve(testDir, '../../..');
 const readText = (path: string) => readFileSync(resolve(root, path), 'utf8');
 const readJson = <T = any>(path: string): T => JSON.parse(readText(path));
 
