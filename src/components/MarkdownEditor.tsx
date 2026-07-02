@@ -14,7 +14,7 @@ import { generateBriefDocument, parseBriefToScope } from '../lib/brief-builder';
 import { getCompanyProfile } from '../lib/settings';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Save, Eye, Edit3, FileText, CheckCircle, Lock, Copy, ArrowRight } from 'lucide-react';
+import { Save, Eye, Edit3, FileText, CheckCircle, Lock, Copy, ArrowRight, X } from 'lucide-react';
 import ApprovalModal from './ApprovalModal';
 
 interface MarkdownEditorProps {
@@ -23,6 +23,7 @@ interface MarkdownEditorProps {
   onOpenDocument: (path: string) => void;
   allFiles: { name: string, path: string, is_dir: boolean }[];
   workspacePath: string;
+  onCloseDocument?: () => void;
 }
 
 function normalizePath(path: string): string {
@@ -70,7 +71,7 @@ function pathEquals(a: string, b: string): boolean {
   return normalizePath(a).toLowerCase() === normalizePath(b).toLowerCase();
 }
 
-export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocument, allFiles, workspacePath }: MarkdownEditorProps) {
+export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocument, allFiles, workspacePath, onCloseDocument }: MarkdownEditorProps) {
   const [content, setContent] = useState('');
   const [originalContent, setOriginalContent] = useState('');
   const [mode, setMode] = useState<'edit' | 'preview' | 'form'>('preview');
@@ -400,6 +401,19 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
             <Save className="w-4 h-4" />
             {saving ? 'กำลังบันทึก...' : saved ? 'บันทึกแล้ว ✓' : 'บันทึก'}
           </button>
+
+          {onCloseDocument && (
+            <>
+              <div className="w-px h-5 bg-border mx-1"></div>
+              <button
+                onClick={onCloseDocument}
+                className="btn btn-icon text-text-dim hover:text-text hover:bg-surface-3"
+                title="ปิด"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -532,9 +546,11 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
         )}
       </div>
 
-      <div className="flex items-center justify-between px-6 py-2.5 border-t border-border bg-surface-2 text-xs text-text-dim">
-        <span>{normalizedFilePath}</span>
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between px-6 py-2 border-t border-border bg-surface-2 text-xs text-text-dim shrink-0">
+        <span className="truncate max-w-[200px] sm:max-w-md" title={normalizedFilePath}>
+          {getBasename(normalizedFilePath)}
+        </span>
+        <div className="flex items-center gap-4 shrink-0">
           {isApproved && <span className="text-success flex items-center gap-1.5 font-semibold"><CheckCircle className="w-3.5 h-3.5"/> อนุมัติแล้ว</span>}
           <span className="font-medium">{content.split('\n').length} บรรทัด</span>
         </div>

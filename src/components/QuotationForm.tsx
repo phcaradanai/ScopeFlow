@@ -75,7 +75,7 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-[#121214] to-[#09090b] overflow-hidden">
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-8 py-10 space-y-10">
+        <div className="max-w-[1200px] mx-auto px-6 md:px-8 py-10 space-y-10">
           
           {/* Header Section */}
           <div className="card space-y-8">
@@ -138,29 +138,29 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
 
             <div className="space-y-4">
               {/* Table Header for Large Screens */}
-              <div className="hidden lg:grid grid-cols-12 gap-5 px-6 py-3 text-xs font-bold uppercase tracking-wider text-text-dim">
-                <div className="col-span-1 text-center">#</div>
-                <div className="col-span-4">รายละเอียดงาน</div>
-                <div className="col-span-1 text-right">จำนวน</div>
-                <div className="col-span-1 text-center">หน่วย</div>
-                <div className="col-span-2 text-right">ราคา/หน่วย</div>
-                <div className="col-span-2 text-right">รวม (บาท)</div>
-                <div className="col-span-1"></div>
+              <div className="hidden lg:grid lg:grid-cols-[40px_minmax(220px,1fr)_100px_100px_140px_140px_40px] gap-4 px-6 py-3 text-xs font-bold uppercase tracking-wider text-text-dim">
+                <div className="text-center">#</div>
+                <div>รายละเอียดงาน</div>
+                <div className="text-right">จำนวน</div>
+                <div className="text-center">หน่วย</div>
+                <div className="text-right">ราคา/หน่วย</div>
+                <div className="text-right">รวม (บาท)</div>
+                <div></div>
               </div>
 
               {formData.line_items.map((item, index) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-12 gap-4 lg:gap-5 items-center bg-white/[0.01] hover:bg-white/[0.03] p-4 lg:p-6 rounded-2xl border border-white/5 hover:border-white/10 shadow-sm transition-all duration-300 group"
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[40px_minmax(220px,1fr)_100px_100px_140px_140px_40px] gap-4 items-center bg-white/[0.01] hover:bg-white/[0.03] p-4 lg:p-6 rounded-2xl border border-white/5 hover:border-white/10 shadow-sm transition-all duration-300 group"
                 >
                   {/* Index */}
-                  <div className="col-span-12 lg:col-span-1 text-left lg:text-center text-sm font-bold text-text-muted">
+                  <div className="sm:col-span-2 lg:col-span-1 text-left lg:text-center text-sm font-bold text-text-muted">
                     <span className="lg:hidden text-text-dim text-xs font-bold mr-2 uppercase">รายการที่</span>
                     {index + 1}
                   </div>
 
                   {/* Description */}
-                  <div className="col-span-12 lg:col-span-4">
+                  <div className="sm:col-span-2 lg:col-span-1">
                     <label className="block lg:hidden text-xs text-text-dim font-bold mb-1.5 uppercase">รายละเอียดงาน</label>
                     <input
                       type="text"
@@ -172,7 +172,7 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
                   </div>
 
                   {/* Quantity */}
-                  <div className="col-span-4 lg:col-span-1">
+                  <div>
                     <label className="block lg:hidden text-xs text-text-dim font-bold mb-1.5 uppercase">จำนวน</label>
                     <input
                       type="number"
@@ -185,7 +185,7 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
                   </div>
 
                   {/* Unit */}
-                  <div className="col-span-4 lg:col-span-1">
+                  <div>
                     <label className="block lg:hidden text-xs text-text-dim font-bold mb-1.5 uppercase">หน่วย</label>
                     <input
                       type="text"
@@ -197,7 +197,7 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
                   </div>
 
                   {/* Unit Price */}
-                  <div className="col-span-4 lg:col-span-2">
+                  <div>
                     <label className="block lg:hidden text-xs text-text-dim font-bold mb-1.5 uppercase">ราคา/หน่วย</label>
                     <input
                       type="number"
@@ -210,7 +210,7 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
                   </div>
 
                   {/* Line Total */}
-                  <div className="col-span-8 lg:col-span-2 text-right">
+                  <div className="text-right">
                     <label className="block lg:hidden text-xs text-text-dim font-bold mb-1.5 uppercase">รวม (บาท)</label>
                     <span className="text-base font-bold text-text font-mono py-2.5 block">
                       {(item.quantity * item.unit_price).toLocaleString('th-TH')}
@@ -218,7 +218,7 @@ export default function QuotationForm({ workspacePath, initialData, onGenerate }
                   </div>
 
                   {/* Action button */}
-                  <div className="col-span-4 lg:col-span-1 flex justify-end">
+                  <div className="flex justify-end">
                     <button
                       onClick={() => removeLineItem(item.id)}
                       disabled={formData.line_items.length === 1}

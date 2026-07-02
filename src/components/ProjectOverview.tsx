@@ -618,9 +618,9 @@ export default function ProjectOverview({
 
       {/* Editor Detail Panel / Overlay */}
       {activeDocumentPath && workspacePath && allFiles && onDocumentChanged && onCloseDocument && (
-        <div className="fixed inset-0 z-[100] flex animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 lg:p-8 animate-in fade-in duration-200">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCloseDocument} />
-          <div className="relative ml-auto w-full max-w-4xl h-full bg-surface shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+          <div className="relative w-full max-w-[1440px] h-[95vh] bg-surface shadow-2xl rounded-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-white/10">
             <div className="flex-1 overflow-hidden">
               <MarkdownEditor
                 filePath={activeDocumentPath}
@@ -628,12 +628,8 @@ export default function ProjectOverview({
                 onDocumentChanged={onDocumentChanged}
                 onOpenDocument={onOpenDocument}
                 allFiles={allFiles}
+                onCloseDocument={onCloseDocument}
               />
-            </div>
-            <div className="p-4 border-t border-border bg-surface-2 flex justify-end shrink-0">
-              <button onClick={onCloseDocument} className="btn btn-primary">
-                กลับสู่หน้าภาพรวมโครงการ
-              </button>
             </div>
           </div>
         </div>
