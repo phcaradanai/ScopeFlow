@@ -10,25 +10,19 @@ import ProjectRisksPanel from './project/ProjectRisksPanel';
 import ProjectWorkflowStats from './project/ProjectWorkflowStats';
 import DocumentList from './project/DocumentList';
 import ProjectLifecycleCommandCenter from './project/ProjectLifecycleCommandCenter';
-import CustomerAnswerIntakePanel from './project/CustomerAnswerIntakePanel';
 import DocumentCreationPreviewModal from './project/DocumentCreationPreviewModal';
 import GuidedOperatingModePanel from './project/GuidedOperatingModePanel';
 import ProjectReadinessGatePanel from './project/ProjectReadinessGatePanel';
-import BriefScopeQualityPanel from './project/BriefScopeQualityPanel';
-import CustomerChangeIntakePanel from './project/CustomerChangeIntakePanel';
 import FriendlyDocumentConflictModal, { type FriendlyConflictAction } from './project/FriendlyDocumentConflictModal';
 import { useLifecycleActionDispatcher } from '../hooks/useLifecycleActionDispatcher';
-import type { CustomerAnswerWorkflowContext } from '../lib/ai/customer-answer/customerAnswerWorkflowContext';
 import type { GuidedPrimaryAction } from '../lib/guided-operating-mode';
 import { buildGuidedOperatingModeState } from '../lib/guided-operating-mode';
 import { buildProjectReadinessGate } from '../lib/project-readiness-gate';
 import { parseBriefToScope } from '../lib/brief-builder';
 import { generateScopeMarkdown } from '../lib/scope-builder';
-import { analyzeBriefScopeDelta, type BriefScopeDeltaAnalysis } from '../lib/ai/customer-change/briefScopeDeltaAnalyzer';
-import { mergeDocumentDeterministically, mergeDocumentWithAi } from '../lib/ai/documentMergeAssistant';
 import { getAiProviders } from '../lib/ai/providers/providerSettings';
-import { analyzeBriefScopeQuality, buildScopeQualityImprovementDraft, type BriefScopeQualityAnalysis } from '../lib/ai/brief-scope-quality/briefScopeQualityAnalyzer';
-import { generateCRDocument, generateFollowUpDocument } from '../lib/templates';
+import { mergeDocumentDeterministically, mergeDocumentWithAi } from '../lib/ai/documentMergeAssistant';
+
 import { t } from '../lib/i18n/copy';
 import MarkdownEditor from './MarkdownEditor';
 
@@ -81,33 +75,8 @@ function getFileName(path: string) {
   return path.replace(/\\/g, '/').split('/').pop() || '';
 }
 
-function getDocumentFileName(doc: any) {
-  return doc.file_name || doc.filename || getFileName(doc.file_path || doc.path || '');
-}
 
-function getNextNumberFromDocuments(documents: any[], prefix: string) {
-  let maxNumber = 0;
-  const pattern = new RegExp(`^${prefix}-(\\d+)-?`);
-  documents.forEach(doc => {
-    const match = getDocumentFileName(doc).match(pattern);
-    if (!match?.[1]) return;
-    const num = Number(match[1]);
-    if (!Number.isNaN(num) && num > maxNumber) maxNumber = num;
-  });
-  return String(maxNumber + 1).padStart(3, '0');
-}
 
-async function getNextVersionPathFromExisting(path: string) {
-  const normalized = path.replace(/\\/g, '/');
-  const dot = normalized.lastIndexOf('.');
-  const base = dot > -1 ? normalized.slice(0, dot) : normalized;
-  const ext = dot > -1 ? normalized.slice(dot) : '.md';
-  for (let version = 2; version <= 20; version += 1) {
-    const candidate = `${base}-v${version}${ext}`;
-    if (!(await pathExists(candidate))) return candidate;
-  }
-  return `${base}-${Date.now()}${ext}`;
-}
 
 function buildScopeFromBriefMarkdown(briefMarkdown: string, filename: string) {
   const prefillData = parseBriefToScope(briefMarkdown);
@@ -135,56 +104,7 @@ function getNextScopeVersionFilename(paths: string[]) {
   return `scope-v${maxMajor}.${maxMinor + 1}.md`;
 }
 
-function buildCustomerAnswerDocumentContext(
-  projectPath: string,
-  initialType: string,
-  reason: string,
-  recommendationWhy: string,
-  customerAnswerContext: CustomerAnswerWorkflowContext
-) {
-  return {
-    source: 'customer_answer' as const,
-    initialType,
-    reason,
-    projectPath,
-    recommendationWhy,
-    customerAnswerContext,
-  };
-}
 
-function referenceLine(label: string, doc?: any) {
-  if (!doc) return `- ${label}: ยังไม่มี`;
-  return `- ${label}: ${doc.title || getDocumentFileName(doc)}\n  - path: ${doc.file_path}`;
-}
-
-function buildQualityFollowUpMarkdown(args: {
-  baseMarkdown: string;
-  question: string;
-  projectName: string;
-  brief?: any;
-  scope?: any;
-}) {
-  return `${args.baseMarkdown}
-
-## ที่มา
-
-- มาจาก: Brief/Scope quality analyzer
-- โครงการ: ${args.projectName}
-
-## คำถามที่ต้องถามลูกค้า
-
-- [ ] ${args.question}
-
-## Reference กลับไปยัง Brief/Scope
-
-${referenceLine('Brief', args.brief)}
-${referenceLine('Scope', args.scope)}
-
-## วิธีนำคำตอบกลับมาใช้
-
-เมื่อลูกค้าตอบกลับ ให้นำคำตอบมาวางในส่วน “ข้อมูลที่ลูกค้าตอบกลับ” ใน Project Command Center เพื่อให้ ScopeFlow วิเคราะห์ว่าควรอัปเดต Brief, Scope, เปิด Change Request, ถามต่อ หรือไม่ต้องทำอะไร
-`;
-}
 
 
 
@@ -235,11 +155,7 @@ export default function ProjectOverview({
   const [guidedConflict, setGuidedConflict] = useState<GuidedConflictState | null>(null);
   const [guidedBusy, setGuidedBusy] = useState(false);
   const [guidedNotice, setGuidedNotice] = useState('');
-  const [qualityAnalysis, setQualityAnalysis] = useState<BriefScopeQualityAnalysis | null>(null);
-  const [qualityLoading, setQualityLoading] = useState(false);
-  const [qualityRefreshKey, setQualityRefreshKey] = useState(0);
-  const [deltaAnalysis, setDeltaAnalysis] = useState<BriefScopeDeltaAnalysis | null>(null);
-  const [deltaLoading, setDeltaLoading] = useState(false);
+
 
   const scanFiles = documents.map(doc => ({
     path: doc.file_path,
@@ -258,9 +174,6 @@ export default function ProjectOverview({
     blockers: readinessGate.blockers.map(blocker => blocker.reason),
   }), [guidedState, readinessGate]);
   const isEmptyProject = documents.length === 0;
-  const qualityBrief = useMemo(() => documents.find(doc => doc.type === 'brief' && (doc.status === 'approved' || doc.locked)) || documents.find(doc => doc.type === 'brief'), [documents]);
-  const qualityScope = useMemo(() => documents.find(doc => doc.type === 'scope' && (doc.status === 'approved' || doc.locked)) || documents.find(doc => doc.type === 'scope'), [documents]);
-
   useEffect(() => {
     let mounted = true;
     async function loadAiProviderState() {
@@ -280,27 +193,7 @@ export default function ProjectOverview({
     return () => { mounted = false; };
   }, [workspacePath]);
 
-  useEffect(() => {
-    let mounted = true;
-    async function runQualityAnalysis() {
-      setQualityLoading(true);
-      const analysis = await analyzeBriefScopeQuality(workspacePath, {
-        briefMarkdown: qualityBrief?.markdown || '',
-        scopeMarkdown: qualityScope?.markdown || '',
-        scopeStatus: qualityScope?.status,
-        scopeLocked: qualityScope?.locked,
-      });
-      if (mounted) {
-        setQualityAnalysis(analysis);
-        setQualityLoading(false);
-      }
-    }
-    runQualityAnalysis().catch(err => {
-      console.warn('Brief/Scope quality analysis failed', err);
-      if (mounted) setQualityLoading(false);
-    });
-    return () => { mounted = false; };
-  }, [workspacePath, qualityBrief?.file_path, qualityBrief?.markdown, qualityScope?.file_path, qualityScope?.markdown, qualityScope?.status, qualityScope?.locked, qualityRefreshKey]);
+
 
   const {
     showPreviewModal,
@@ -308,7 +201,6 @@ export default function ProjectOverview({
     priority,
     displayNextAction,
     commandAction,
-    executeAction,
     confirmCreateDocument,
   } = useLifecycleActionDispatcher({
     scanFiles,
@@ -319,20 +211,6 @@ export default function ProjectOverview({
     onCreateDocument: (initialType?: string, lifecycleContext?: any) => onCreateDocument(clientId, projectId, projectPath, initialType, lifecycleContext),
   });
 
-  const handleCreateCustomerAnswerDocument = (
-    initialType: string,
-    customerAnswerContext: CustomerAnswerWorkflowContext,
-    reason: string,
-    recommendationWhy: string
-  ) => {
-    onCreateDocument(
-      clientId,
-      projectId,
-      projectPath,
-      initialType,
-      buildCustomerAnswerDocumentContext(projectPath, initialType, reason, recommendationWhy, customerAnswerContext)
-    );
-  };
 
   const handleStartDiscovery = onStartBriefIntake ? () => onStartBriefIntake(clientId, projectId, projectPath) : undefined;
 
@@ -395,168 +273,9 @@ export default function ProjectOverview({
     }
   };
 
-  const createQualityFollowUpDocument = async (question: string) => {
-    const number = getNextNumberFromDocuments(documents, 'FW');
-    const filename = `FW-${number}-quality-question.md`;
-    const path = joinPath(projectPath, 'support-requests', filename);
-    const baseMarkdown = generateFollowUpDocument({ project: projectId, client: clientId, author: '', followUpNumber: `FW-${number}`, title: question.slice(0, 90) });
-    const content = buildQualityFollowUpMarkdown({ baseMarkdown, question, projectName, brief: qualityBrief, scope: qualityScope });
-    if (await pathExists(path)) {
-      const versionPath = await getNextVersionPathFromExisting(path);
-      await createDocument(versionPath, content);
-      await openAndRefresh(versionPath);
-      return;
-    }
-    await createDocument(path, content);
-    await openAndRefresh(path);
-  };
 
-  const handleCreateQualityFollowUp = async (question: string) => {
-    try {
-      setGuidedBusy(true);
-      setGuidedNotice('');
-      await createQualityFollowUpDocument(question);
-    } catch (err) {
-      setGuidedNotice(`สร้าง Follow-up จากคำถามนี้ไม่สำเร็จ: ${err}`);
-    } finally {
-      setGuidedBusy(false);
-    }
-  };
 
-  const handleAnalyzeDelta = async (message: string) => {
-    try {
-      setDeltaLoading(true);
-      const openFollowUpDocs = documents.filter(d => (d.folder === 'support-requests' || d.type === 'sup' || d.type === 'ma') && d.status !== 'resolved' && d.status !== 'rejected').map(d => d.file_path);
-      const openCRDocs = documents.filter(d => (d.folder === 'change-requests' || d.type === 'cr' || d.type === 'dcr') && d.status !== 'approved' && d.status !== 'rejected').map(d => d.file_path);
-      
-      const analysis = await analyzeBriefScopeDelta(workspacePath || '', {
-        customerMessage: message,
-        latestBriefMarkdown: qualityBrief?.markdown || '',
-        latestScopeMarkdown: qualityScope?.markdown || '',
-        openFollowUps: openFollowUpDocs,
-        openChangeRequests: openCRDocs,
-        scopeStatus: qualityScope?.status,
-        scopeLocked: qualityScope?.locked,
-      });
-      setDeltaAnalysis(analysis);
-    } catch (err) {
-      setGuidedNotice(`วิเคราะห์ข้อความลูกค้าไม่สำเร็จ: ${err}`);
-    } finally {
-      setDeltaLoading(false);
-    }
-  };
 
-  const handleUpdateBriefFromDelta = async (analysis: BriefScopeDeltaAnalysis) => {
-    if (!qualityBrief) {
-      handleStartDiscovery?.();
-      return;
-    }
-    try {
-      const existing = qualityBrief.markdown || await readFileContent(qualityBrief.file_path);
-      const protectedUpdate = Boolean(qualityBrief.locked || ['approved', 'locked', 'signed_off'].includes((qualityBrief.status || '').toLowerCase()));
-      setGuidedConflict({
-        existingPath: qualityBrief.file_path,
-        newVersionPath: await getNextVersionPathFromExisting(qualityBrief.file_path),
-        newContent: `${existing}\n\n## ข้อมูลบริบทเพิ่มเติมจากลูกค้า\n\n${analysis.summary_of_customer_change}\n\nสิ่งที่ต้องปรับใน Brief: ${analysis.brief_delta}`,
-        documentKind: 'Brief customer change update',
-        protectedUpdate,
-      });
-      if (protectedUpdate) setGuidedNotice('Brief นี้ approved/locked แล้ว ระบบจะเสนอเป็นเวอร์ชันใหม่ ไม่เขียนทับเดิมเงียบ ๆ');
-    } catch (err) {
-      setGuidedNotice(`เตรียมอัปเดต Brief ไม่สำเร็จ: ${err}`);
-    }
-  };
-
-  const handleUpdateScopeFromDelta = async (analysis: BriefScopeDeltaAnalysis) => {
-    if (!qualityScope) {
-      onCreateDocument(clientId, projectId, projectPath, 'scope', {
-        source: 'recommended_next_action',
-        initialType: 'scope',
-        reason: 'ยังไม่มี Scope ที่ใช้ควบคุมงาน',
-        projectPath,
-        recommendationWhy: analysis.scope_delta || analysis.summary_of_customer_change,
-      });
-      return;
-    }
-    try {
-      const existing = qualityScope.markdown || await readFileContent(qualityScope.file_path);
-      const protectedUpdate = Boolean(qualityScope.locked || ['approved', 'locked', 'signed_off'].includes((qualityScope.status || '').toLowerCase()));
-      setGuidedConflict({
-        existingPath: qualityScope.file_path,
-        newVersionPath: await getNextVersionPathFromExisting(qualityScope.file_path),
-        newContent: `${existing}\n\n## การปรับปรุงขอบเขตจากลูกค้า\n\n${analysis.summary_of_customer_change}\n\nสิ่งที่เปลี่ยนไป: ${analysis.scope_delta}`,
-        documentKind: protectedUpdate ? 'Scope proposed change update' : 'Scope change update',
-        protectedUpdate,
-      });
-      if (protectedUpdate) setGuidedNotice('Scope นี้ approved/locked แล้ว ระบบจะเสนอเป็นเวอร์ชันใหม่หรือ Change Request ไม่เขียนทับ Scope เดิมเงียบ ๆ');
-    } catch (err) {
-      setGuidedNotice(`เตรียมอัปเดต Scope ไม่สำเร็จ: ${err}`);
-    }
-  };
-
-  const handleCreateCRFromDelta = async (analysis: BriefScopeDeltaAnalysis) => {
-    try {
-      setGuidedBusy(true);
-      const number = getNextNumberFromDocuments(documents, 'CR');
-      const filename = `CR-${number}-customer-change.md`;
-      const path = joinPath(projectPath, 'change-requests', filename);
-      const baseMarkdown = generateCRDocument({ project: projectId, client: clientId, author: '', crNumber: `CR-${number}`, title: analysis.summary_of_customer_change.slice(0, 90) });
-      const content = `${baseMarkdown}\n\n## ที่มา\n\n- มาจาก: ลูกค้าแจ้งข้อมูลใหม่\n\n## Reference กลับไปยัง Brief/Scope\n\n${referenceLine('Brief', qualityBrief)}\n${referenceLine('Scope', qualityScope)}\n\n## คำตอบนี้กระทบ Brief/Scope อย่างไร\n\n- Brief: ${analysis.brief_delta}\n- Scope: ${analysis.scope_delta}\n\n## ข้อเสนอสำหรับ Change Request\n\n${analysis.summary_of_customer_change}\n`;
-      await createDocument(path, content);
-      await openAndRefresh(path);
-    } catch (err) {
-      setGuidedNotice(`สร้าง Change Request ไม่สำเร็จ: ${err}`);
-    } finally {
-      setGuidedBusy(false);
-    }
-  };
-
-  const handleCreateFollowUpFromDelta = async (analysis: BriefScopeDeltaAnalysis) => {
-    const question = analysis.missing_questions[0] || analysis.summary_of_customer_change;
-    await handleCreateQualityFollowUp(question);
-  };
-
-  const handleRecheckQuoteFromDelta = async (analysis: BriefScopeDeltaAnalysis) => {
-      setGuidedNotice(`การเปลี่ยนแปลงนี้ส่งผลกระทบต่อ Quote: ${analysis.quote_impact}. แนะนำให้ทบทวนราคาและสร้าง Quote ใหม่ถ้าจำเป็น`);
-  };
-
-  const handleUpdateScopeFromQuality = async (improvement: string) => {
-    if (!qualityAnalysis) return;
-    if (!qualityScope) {
-      onCreateDocument(clientId, projectId, projectPath, 'scope', {
-        source: 'recommended_next_action',
-        initialType: 'scope',
-        reason: 'ยังไม่มี Scope ที่ใช้ควบคุมงาน',
-        projectPath,
-        recommendationWhy: improvement,
-      });
-      return;
-    }
-
-    try {
-      setGuidedNotice('');
-      const scopeMarkdown = qualityScope.markdown || await readFileContent(qualityScope.file_path);
-      const scopePaths = documents.filter(doc => doc.type === 'scope').map(doc => doc.file_path);
-      const newVersionName = getNextScopeVersionFilename(scopePaths);
-      const focusedAnalysis: BriefScopeQualityAnalysis = {
-        ...qualityAnalysis,
-        suggested_scope_improvements: [improvement],
-      };
-      const protectedUpdate = qualityAnalysis.guardrails.scope_update_mode === 'proposed_update_or_change_request';
-      setGuidedConflict({
-        existingPath: qualityScope.file_path,
-        newVersionPath: joinPath(projectPath, 'baseline', newVersionName),
-        newContent: `${scopeMarkdown}${buildScopeQualityImprovementDraft(focusedAnalysis)}`,
-        documentKind: protectedUpdate ? 'Scope proposed quality update' : 'Scope quality update',
-        protectedUpdate,
-      });
-      if (protectedUpdate) {
-        setGuidedNotice('Scope นี้ approved/locked แล้ว ระบบจะเสนอเป็น proposed update หรือ Change Request เท่านั้น ไม่เขียนทับ Scope เดิมเงียบ ๆ');
-      }
-    } catch (err) {
-      setGuidedNotice(`เตรียมคำแนะนำสำหรับ Scope ไม่สำเร็จ: ${err}`);
-    }
-  };
 
   const executeGuidedAction = (action: GuidedPrimaryAction) => {
     if (action.kind === 'start_discovery') {
@@ -729,25 +448,27 @@ export default function ProjectOverview({
         onOpenDocument={onOpenDocument}
       />
 
-      <BriefScopeQualityPanel
-        analysis={qualityAnalysis}
-        loading={qualityLoading}
-        aiEnabled={aiEnabled}
-        onRefresh={() => setQualityRefreshKey(key => key + 1)}
-        onCreateFollowUp={handleCreateQualityFollowUp}
-        onUpdateScope={handleUpdateScopeFromQuality}
-      />
-
-      <CustomerChangeIntakePanel
-        analysis={deltaAnalysis}
-        loading={deltaLoading}
-        onAnalyze={handleAnalyzeDelta}
-        onUpdateBrief={handleUpdateBriefFromDelta}
-        onUpdateScope={handleUpdateScopeFromDelta}
-        onCreateChangeRequest={handleCreateCRFromDelta}
-        onCreateFollowUp={handleCreateFollowUpFromDelta}
-        onRecheckQuote={handleRecheckQuoteFromDelta}
-      />
+      {/* Replaced heavy intake panels with Scope Workshop Entry Card */}
+      <section className="mt-5 rounded-3xl border border-primary/20 bg-surface-2/80 p-6 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary-light">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-text">ห้องทำ Scope (Scope Workshop)</h2>
+            <p className="mt-1 text-sm text-text-muted">
+              พื้นที่สำหรับจัดการและอนุมัติ Scope จากข้อความของลูกค้า
+            </p>
+          </div>
+        </div>
+        <button 
+          type="button" 
+          onClick={() => onOpenDocument(`__scope_workshop__:${projectPath}`)} 
+          className="btn btn-primary"
+        >
+          เปิดห้องทำ Scope
+        </button>
+      </section>
 
       {isEmptyProject && (
         <section className="mt-5 rounded-3xl border border-primary/20 bg-surface/80 p-6 text-center shadow-sm">
@@ -790,29 +511,7 @@ export default function ProjectOverview({
             onClearLifecycleFeedback={onClearLifecycleFeedback}
           />
 
-          <CustomerAnswerIntakePanel
-            scanFiles={scanFiles}
-            onOpenDocument={onOpenDocument}
-            onCreateChangeRequest={(customerAnswerContext: CustomerAnswerWorkflowContext) => handleCreateCustomerAnswerDocument(
-              'cr',
-              customerAnswerContext,
-              'Customer answer indicates a possible scope change. Prepare CR/DCR instead of silently changing the current scope.',
-              customerAnswerContext.recommendedAction
-            )}
-            onCreateFollowUp={(customerAnswerContext: CustomerAnswerWorkflowContext) => handleCreateCustomerAnswerDocument(
-              'followup',
-              customerAnswerContext,
-              'Customer answer needs clarification before updating the project baseline or commercial documents.',
-              customerAnswerContext.recommendedAction
-            )}
-            onContinueLifecycle={() => executeAction()}
-            onStartRevisionReview={(customerAnswerContext: CustomerAnswerWorkflowContext) => handleCreateCustomerAnswerDocument(
-              'revision',
-              customerAnswerContext,
-              'Customer rejected or did not accept the current artifact. Start revision review before changing scope/quotation.',
-              customerAnswerContext.recommendedAction
-            )}
-          />
+
 
           <ProjectWorkflowStepper
             workflowState={workflowState}

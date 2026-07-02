@@ -1,5 +1,5 @@
 export type Locale = 'th' | 'en';
-export type CopyCategory = 'guided' | 'documentCreation' | 'conflict' | 'quality' | 'delta' | 'common' | 'advanced';
+export type CopyCategory = 'guided' | 'documentCreation' | 'conflict' | 'quality' | 'delta' | 'common' | 'advanced' | 'scopeWorkshop';
 
 type CopyLeaf = string;
 type CopyTree = { [key: string]: CopyLeaf | CopyTree };
@@ -180,6 +180,31 @@ export const copy: Record<Locale, LocaleCopy> = {
       pathHelp: 'path คือที่อยู่เอกสารใน Workspace ใช้สำหรับตรวจสอบขั้นสูงเท่านั้น',
       markdownHelp: 'markdown คือรูปแบบเนื้อหาเอกสารที่ระบบใช้จัดเก็บและแก้ไข',
     },
+    scopeWorkshop: {
+      title: 'ห้องทำ Scope',
+      pasteCustomerMessage: 'วางข้อความจากลูกค้า',
+      analyzeBriefScope: 'วิเคราะห์ Brief/Scope',
+      currentBrief: 'Brief ที่ระบบเข้าใจตอนนี้',
+      latestScope: 'Scope ล่าสุด',
+      whatChanged: 'สิ่งที่เปลี่ยน',
+      missingInfo: 'สิ่งที่ยังขาด',
+      followUpQuestions: 'คำถามที่ควรถามลูกค้า',
+      updateBrief: 'อัปเดต Brief',
+      updateScope: 'อัปเดต Scope',
+      createFollowUp: 'สร้าง Follow-up',
+      createChangeRequest: 'สร้าง Change Request',
+      acceptScope: 'ยอมรับ Scope นี้',
+      closeScopeLoop: 'ปิดรอบการทำ Scope',
+      status: {
+        collectingBrief: 'Collecting brief',
+        scopeDraftReady: 'Scope draft ready',
+        waitingForCustomer: 'Waiting for customer answer',
+        scopeChanged: 'Scope changed',
+        needsReview: 'Needs review',
+        acceptedByUser: 'Accepted by user',
+        closed: 'Closed'
+      }
+    },
   },
   en: {
     common: {
@@ -350,7 +375,32 @@ export const copy: Record<Locale, LocaleCopy> = {
       technicalTermsNote: 'Technical terms are limited to this manual area.',
       slugHelp: 'A slug is a short English tracking code.',
       pathHelp: 'A path is the document location in the workspace.',
-      markdownHelp: 'Markdown is the document content format used by the system.',
+      markdownHelp: 'Markdown is the document format used by the system to store and edit content.',
+    },
+    scopeWorkshop: {
+      title: 'Scope Workshop',
+      pasteCustomerMessage: 'Paste customer message',
+      analyzeBriefScope: 'Analyze Brief/Scope',
+      currentBrief: 'Current Brief',
+      latestScope: 'Latest Scope',
+      whatChanged: 'What changed',
+      missingInfo: 'Missing information',
+      followUpQuestions: 'Questions to ask the customer',
+      updateBrief: 'Update Brief',
+      updateScope: 'Update Scope',
+      createFollowUp: 'Create Follow-up',
+      createChangeRequest: 'Create Change Request',
+      acceptScope: 'Accept this Scope',
+      closeScopeLoop: 'Close Scope Loop',
+      status: {
+        collectingBrief: 'Collecting brief',
+        scopeDraftReady: 'Scope draft ready',
+        waitingForCustomer: 'Waiting for customer answer',
+        scopeChanged: 'Scope changed',
+        needsReview: 'Needs review',
+        acceptedByUser: 'Accepted by user',
+        closed: 'Closed'
+      }
     },
   },
 };

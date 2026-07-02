@@ -11,7 +11,8 @@ import {
   Plus,
   Settings,
   ShieldCheck,
-  Download
+  Download,
+  Sparkles
 } from 'lucide-react';
 import Logo from './ui/Logo';
 
@@ -249,6 +250,24 @@ function ProjectNode({
           </button>
         </div>
       </div>
+      {expanded && (
+        <div className="ml-3 pl-3 my-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(`__scope_workshop__:${node.path}`);
+            }}
+            className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-lg transition-all duration-200 cursor-pointer ${
+              selectedFile === `__scope_workshop__:${node.path}` 
+                ? 'bg-accent/20 text-accent-light ring-1 ring-accent/30' 
+                : 'hover:bg-white/5 text-text-dim hover:text-accent-light'
+            }`}
+          >
+            <Sparkles className="w-3 h-3 shrink-0" />
+            <span className="text-[10px] font-semibold truncate flex-1">ห้องทำ Scope</span>
+          </button>
+        </div>
+      )}
 
       {expanded && node.children && (
         <div className="ml-4 pl-3 border-l-2 border-white/5 my-1 space-y-0.5 relative">

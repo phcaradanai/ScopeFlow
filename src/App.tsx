@@ -12,6 +12,7 @@ import HealthCheckModal from './components/HealthCheckModal';
 import ProjectOverview from './components/ProjectOverview';
 import WorkspaceOverview from './components/WorkspaceOverview';
 import BriefIntakeModal from './components/BriefIntakeModal';
+import ScopeWorkshop from './components/project/ScopeWorkshop';
 import ClientOverview from './components/ClientOverview';
 import DemoFlowGuideModal from './components/demo/DemoFlowGuideModal';
 import DiscoveryStartModal from './components/brief/DiscoveryStartModal';
@@ -119,14 +120,17 @@ function AppContent() {
 
   const allProjects = getWorkspaceClients(tree).flatMap(c => c.projects);
   const selectedProject = (() => {
-    if (!selectedFile || selectedFile === '__workspace_overview__' || selectedFile.startsWith('__client__:')) return undefined;
+    if (!selectedFile || selectedFile === '__workspace_overview__' || selectedFile.startsWith('__client__:') || selectedFile.startsWith('__scope_workshop__:')) return undefined;
     const directMatch = findWorkspaceProject(tree, selectedFile);
     if (directMatch) return directMatch;
     const normalizedSelected = selectedFile.replace(/\\/g, '/');
     return allProjects.find(p => normalizedSelected.startsWith(p.path.replace(/\\/g, '/')));
   })();
   
-  const activeDocumentPath = selectedProject && selectedFile && selectedFile !== selectedProject.path && selectedFile !== '__workspace_overview__' && !selectedFile.startsWith('__client__:') ? selectedFile : undefined;
+  const activeDocumentPath = selectedProject && selectedFile && selectedFile !== selectedProject.path && selectedFile !== '__workspace_overview__' && !selectedFile.startsWith('__client__:') && !selectedFile.startsWith('__scope_workshop__:') ? selectedFile : undefined;
+
+  const scopeWorkshopProjectPath = selectedFile?.startsWith('__scope_workshop__:') ? selectedFile.substring('__scope_workshop__:'.length) : undefined;
+  const scopeWorkshopProject = scopeWorkshopProjectPath ? findWorkspaceProject(tree, scopeWorkshopProjectPath) : undefined;
 
   const handleCreateDemoDirectly = async () => {
     try {
@@ -180,6 +184,16 @@ function AppContent() {
         onBackupWorkspace={handleBackupWorkspace}
         onCreateProject={handleCreateProject}
         onDemoFlowCreated={(projectPath, artifactPaths) => setDemoGuide({ projectPath, artifactPaths })}
+      />
+    );
+  } else if (scopeWorkshopProject && scopeWorkshopProjectPath) {
+    mainContent = (
+      <ScopeWorkshop
+        projectPath={scopeWorkshopProject.path}
+        workspaceTree={tree as any}
+        workspacePath={activeWorkspacePath}
+        onOpenDocument={(path) => setSelectedFile(path)}
+        onCreateDocument={handleCreateDocument}
       />
     );
   } else {

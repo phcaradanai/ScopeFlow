@@ -116,3 +116,33 @@ export interface AppState {
   openDocument: Document | null;
   sidebarTree: TreeNode | null;
 }
+
+/** Scope Workshop */
+export interface ScopeLoopSession {
+  id: string;
+  projectId: string;
+  projectPath: string;
+  status: 'Collecting brief' | 'Scope draft ready' | 'Waiting for customer answer' | 'Scope changed' | 'Needs review' | 'Accepted by user' | 'Closed';
+  createdAt: string;
+  updatedAt: string;
+  acceptedAt?: string;
+  closedAt?: string;
+  currentBriefSummary: string;
+  currentScopeSummary: string;
+  latestScopeDocumentPath?: string;
+  iterations: ScopeLoopIteration[];
+}
+
+export interface ScopeLoopIteration {
+  id: string;
+  customerMessage: string;
+  summaryOfChange: string;
+  briefDelta: string;
+  scopeDelta: string;
+  quoteImpact: string;
+  acceptanceImpact: string;
+  missingQuestions: string[];
+  recommendedAction: 'Update Brief' | 'Update Scope' | 'Create Follow-up' | 'Create Change Request' | 'Re-check Quote' | 'No document update needed' | 'Accept Scope' | 'Close Scope Loop';
+  createdAt: string;
+}
+
