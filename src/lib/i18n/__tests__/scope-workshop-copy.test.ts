@@ -8,16 +8,16 @@ describe('Scope Workshop i18n copy', () => {
     expect(thCopy.title).toBe('ห้องทำ Scope');
     expect(thCopy.pasteCustomerMessage).toBe('วางข้อความจากลูกค้า');
     expect(thCopy.analyzeBriefScope).toBe('วิเคราะห์ Brief/Scope');
-    expect(thCopy.currentBrief).toBe('Brief ที่ระบบเข้าใจตอนนี้');
-    expect(thCopy.latestScope).toBe('Scope ล่าสุด');
+    expect(thCopy.currentBrief).toBe('Brief ปัจจุบัน');
+    expect(thCopy.latestScope).toBe('Scope ปัจจุบัน');
     expect(thCopy.whatChanged).toBe('สิ่งที่เปลี่ยน');
-    expect(thCopy.missingInfo).toBe('สิ่งที่ยังขาด');
-    expect(thCopy.followUpQuestions).toBe('คำถามที่ควรถามลูกค้า');
+    expect(thCopy.missingInfo).toBe('สิ่งที่ยังไม่ชัด');
+    expect(thCopy.followUpQuestions).toBe('คำถามที่ควรถามเพิ่ม');
     expect(thCopy.updateBrief).toBe('อัปเดต Brief');
     expect(thCopy.updateScope).toBe('อัปเดต Scope');
     expect(thCopy.createFollowUp).toBe('สร้าง Follow-up');
     expect(thCopy.createChangeRequest).toBe('สร้าง Change Request');
-    expect(thCopy.acceptScope).toBe('ยอมรับ Scope นี้');
+    expect(thCopy.acceptScope).toBe('ยอมรับ Scope นี้สำหรับการทำงาน');
     expect(thCopy.closeScopeLoop).toBe('ปิดรอบการทำ Scope');
   });
 

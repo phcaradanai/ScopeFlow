@@ -117,11 +117,11 @@ export interface AppState {
   sidebarTree: TreeNode | null;
 }
 
-/** Scope Workshop */
-export interface ScopeLoopSession {
+/** Brief/Scope Evolution */
+export interface BriefScopeEvolutionSession {
   id: string;
-  projectId: string;
-  projectPath: string;
+  projectId?: string;
+  projectPath?: string;
   status: 'Collecting brief' | 'Scope draft ready' | 'Waiting for customer answer' | 'Scope changed' | 'Needs review' | 'Accepted by user' | 'Closed';
   createdAt: string;
   updatedAt: string;
@@ -129,20 +129,28 @@ export interface ScopeLoopSession {
   closedAt?: string;
   currentBriefSummary: string;
   currentScopeSummary: string;
-  latestScopeDocumentPath?: string;
-  iterations: ScopeLoopIteration[];
+  currentScopeStatus: 'Draft' | 'Locked' | 'Approved';
+  iterations: BriefScopeIteration[];
 }
 
-export interface ScopeLoopIteration {
+export interface BriefScopeIteration {
   id: string;
+  sequenceNumber: number;
+  createdAt: string;
   customerMessage: string;
-  summaryOfChange: string;
-  briefDelta: string;
-  scopeDelta: string;
+  customerMessageSummary: string;
+  previousBriefSnapshot: string;
+  previousScopeSnapshot: string;
+  briefChanges: string[];
+  scopeChanges: string[];
   quoteImpact: string;
   acceptanceImpact: string;
   missingQuestions: string[];
   recommendedAction: 'Update Brief' | 'Update Scope' | 'Create Follow-up' | 'Create Change Request' | 'Re-check Quote' | 'No document update needed' | 'Accept Scope' | 'Close Scope Loop';
-  createdAt: string;
+  riskLevel: 'Low' | 'Medium' | 'High';
+  confidence: number;
+  userDecision?: string;
+  resultingBriefSummary?: string;
+  resultingScopeSummary?: string;
 }
 
