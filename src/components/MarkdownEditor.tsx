@@ -430,7 +430,7 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
         </div>
       )}
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden flex flex-col min-w-0">
         {mode === 'form' && docType === 'quotation' ? (
           <QuotationForm
             workspacePath={workspacePath}
@@ -546,8 +546,8 @@ export default function MarkdownEditor({ filePath, onDocumentChanged, onOpenDocu
         )}
       </div>
 
-      <div className="flex items-center justify-between px-6 py-2 border-t border-border bg-surface-2 text-xs text-text-dim shrink-0">
-        <span className="truncate max-w-[200px] sm:max-w-md" title={normalizedFilePath}>
+      <div className="flex items-center justify-between px-6 py-2 border-t border-border bg-surface-2 text-xs text-text-dim shrink-0 min-w-0">
+        <span className="truncate max-w-[200px] sm:max-w-md min-w-0" title={normalizedFilePath}>
           {getBasename(normalizedFilePath)}
         </span>
         <div className="flex items-center gap-4 shrink-0">
