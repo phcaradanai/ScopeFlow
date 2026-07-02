@@ -1,5 +1,5 @@
 export type Locale = 'th' | 'en';
-export type CopyCategory = 'guided' | 'documentCreation' | 'conflict' | 'quality' | 'common' | 'advanced';
+export type CopyCategory = 'guided' | 'documentCreation' | 'conflict' | 'quality' | 'delta' | 'common' | 'advanced';
 
 type CopyLeaf = string;
 type CopyTree = { [key: string]: CopyLeaf | CopyTree };
@@ -155,6 +155,23 @@ export const copy: Record<Locale, LocaleCopy> = {
         unclear: 'ยังคลุมเครือ',
       },
     },
+    delta: {
+      pasteMessage: 'วางข้อความใหม่จากลูกค้า',
+      analyzeImpact: 'วิเคราะห์ผลกระทบต่อ Brief/Scope',
+      whatChangedBrief: 'ส่วนที่เปลี่ยนไปจาก Brief ปัจจุบัน',
+      whatAffectsScope: 'ส่วนที่กระทบ Scope ล่าสุด',
+      missingQuestions: 'คำถามที่ยังต้องถามเพิ่ม',
+      recommendation: 'คำแนะนำเพื่อลุยงานต่อ',
+      updateBrief: 'อัปเดต Brief',
+      updateScope: 'อัปเดต Scope',
+      createFollowUp: 'สร้าง Follow-up',
+      createChangeRequest: 'สร้าง Change Request',
+      noUpdateNeeded: 'ไม่ต้องอัปเดตเอกสาร',
+      recheckQuote: 'ตรวจสอบใบเสนอราคา (Quote) อีกครั้ง',
+      deltaViewTitle: 'วิเคราะห์ผลกระทบ',
+      customerMessageLabel: 'ลูกค้าแจ้งว่า',
+      currentContextLabel: 'เทียบกับบริบทปัจจุบัน',
+    },
     advanced: {
       manual: 'Advanced / Manual',
       manualDescription: 'สำหรับ Invoice, DCR, MA หรือกรณีที่รู้ชัดว่าต้องใช้เอกสารชนิดไหน',
@@ -309,6 +326,23 @@ export const copy: Record<Locale, LocaleCopy> = {
         askMore: 'Ask more before quotation',
         unclear: 'Unclear',
       },
+    },
+    delta: {
+      pasteMessage: 'Paste new customer message',
+      analyzeImpact: 'Analyze impact on Brief/Scope',
+      whatChangedBrief: 'What changed from the current Brief',
+      whatAffectsScope: 'What affects the latest Scope',
+      missingQuestions: 'Questions still needed',
+      recommendation: 'Recommendation for continuing scope work',
+      updateBrief: 'Update Brief',
+      updateScope: 'Update Scope',
+      createFollowUp: 'Create Follow-up',
+      createChangeRequest: 'Create Change Request',
+      noUpdateNeeded: 'No document update needed',
+      recheckQuote: 'Re-check Quote',
+      deltaViewTitle: 'Impact Analysis',
+      customerMessageLabel: 'Customer message',
+      currentContextLabel: 'Current context',
     },
     advanced: {
       manual: 'Advanced / Manual',

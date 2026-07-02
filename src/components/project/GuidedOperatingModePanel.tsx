@@ -64,8 +64,8 @@ export default function GuidedOperatingModePanel({ state, aiEnabled, onPrimaryAc
               {aiEnabled ? t('guided.aiReady') : t('guided.templateReady')}
             </span>
           </div>
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-text">{t('guided.title')}</h2>
-          <p className="text-sm md:text-base text-text-muted leading-relaxed mt-2">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-text break-words">{t('guided.title')}</h2>
+          <p className="text-sm md:text-base text-text-muted leading-relaxed mt-2 break-words">
             {t('guided.description')}
           </p>
         </div>
@@ -106,9 +106,9 @@ export default function GuidedOperatingModePanel({ state, aiEnabled, onPrimaryAc
                 </div>
                 <span className="text-[10px] font-black uppercase tracking-wider opacity-75">{index + 1}</span>
               </div>
-              <div className="mt-3 text-sm font-black text-text">{stage.shortLabel}</div>
-              <div className="mt-1 text-[11px] font-bold uppercase tracking-wide opacity-80">{getStageStatusLabel(stage.status)}</div>
-              <p className="mt-2 text-xs leading-relaxed text-text-muted line-clamp-3">{stage.description}</p>
+              <div className="mt-3 text-sm font-black text-text break-words">{stage.shortLabel}</div>
+              <div className="mt-1 text-[11px] font-bold uppercase tracking-wide opacity-80 break-words">{getStageStatusLabel(stage.status)}</div>
+              <p className="mt-2 text-xs leading-relaxed text-text-muted line-clamp-3 break-words">{stage.description}</p>
               {stage.count > 0 && <div className="mt-3 text-[11px] font-semibold opacity-80">{stage.count} รายการ</div>}
             </button>
           );
@@ -117,15 +117,15 @@ export default function GuidedOperatingModePanel({ state, aiEnabled, onPrimaryAc
 
       <div className="relative mt-6 rounded-3xl border border-primary/30 bg-surface/90 p-5 shadow-lg">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap mb-2">
-              <span className="badge badge-primary">{getPrimaryBadge(state.primaryAction)}</span>
-              <span className="badge badge-muted">{t('guided.onePrimaryAction')}</span>
+              <span className="badge badge-primary shrink-0 break-words">{getPrimaryBadge(state.primaryAction)}</span>
+              <span className="badge badge-muted shrink-0 break-words">{t('guided.onePrimaryAction')}</span>
             </div>
-            <h3 className="text-xl font-black text-text">{state.primaryAction.label}</h3>
-            <p className="text-sm text-text-muted leading-relaxed mt-1">{state.primaryAction.description}</p>
+            <h3 className="text-xl font-black text-text break-words">{state.primaryAction.label}</h3>
+            <p className="text-sm text-text-muted leading-relaxed mt-1 break-words">{state.primaryAction.description}</p>
           </div>
-          <button type="button" onClick={onPrimaryAction} className="btn btn-primary min-h-[48px] px-6 shrink-0 shadow-lg shadow-primary/10">
+          <button type="button" onClick={onPrimaryAction} className="btn btn-primary min-h-[48px] px-6 shrink-0 shadow-lg shadow-primary/10 whitespace-nowrap">
             {t('guided.primaryButton')}
             <ArrowRight className="w-4 h-4" />
           </button>

@@ -15,7 +15,7 @@ import DocumentCreationPreviewModal from './project/DocumentCreationPreviewModal
 import GuidedOperatingModePanel from './project/GuidedOperatingModePanel';
 import ProjectReadinessGatePanel from './project/ProjectReadinessGatePanel';
 import BriefScopeQualityPanel from './project/BriefScopeQualityPanel';
-import FollowUpAnswerIntakePanel from './project/FollowUpAnswerIntakePanel';
+import CustomerChangeIntakePanel from './project/CustomerChangeIntakePanel';
 import FriendlyDocumentConflictModal, { type FriendlyConflictAction } from './project/FriendlyDocumentConflictModal';
 import { useLifecycleActionDispatcher } from '../hooks/useLifecycleActionDispatcher';
 import type { CustomerAnswerWorkflowContext } from '../lib/ai/customer-answer/customerAnswerWorkflowContext';
@@ -24,10 +24,10 @@ import { buildGuidedOperatingModeState } from '../lib/guided-operating-mode';
 import { buildProjectReadinessGate } from '../lib/project-readiness-gate';
 import { parseBriefToScope } from '../lib/brief-builder';
 import { generateScopeMarkdown } from '../lib/scope-builder';
+import { analyzeBriefScopeDelta, type BriefScopeDeltaAnalysis } from '../lib/ai/customer-change/briefScopeDeltaAnalyzer';
 import { mergeDocumentDeterministically, mergeDocumentWithAi } from '../lib/ai/documentMergeAssistant';
 import { getAiProviders } from '../lib/ai/providers/providerSettings';
 import { analyzeBriefScopeQuality, buildScopeQualityImprovementDraft, type BriefScopeQualityAnalysis } from '../lib/ai/brief-scope-quality/briefScopeQualityAnalyzer';
-import { buildFollowUpAnswerUpdateDraft, decideFollowUpAnswer, type FollowUpAnswerDecision } from '../lib/ai/follow-up/followUpAnswerDecision';
 import { generateCRDocument, generateFollowUpDocument } from '../lib/templates';
 import { t } from '../lib/i18n/copy';
 import MarkdownEditor from './MarkdownEditor';
@@ -186,40 +186,7 @@ ${referenceLine('Scope', args.scope)}
 `;
 }
 
-function buildChangeRequestFromFollowUp(args: {
-  baseMarkdown: string;
-  decision: FollowUpAnswerDecision;
-  brief?: any;
-  scope?: any;
-}) {
-  const changed = args.decision.changed_items.length > 0
-    ? args.decision.changed_items.map(item => `- ${item}`).join('\n')
-    : '- ดูรายละเอียดจากคำตอบลูกค้า';
-  return `${args.baseMarkdown}
 
-## ที่มา
-
-- มาจาก: คำตอบลูกค้าจาก Follow-up
-- เหตุผลที่แนะนำ: ${args.decision.guardrails.reason}
-
-## Reference กลับไปยัง Brief/Scope
-
-${referenceLine('Brief', args.brief)}
-${referenceLine('Scope', args.scope)}
-
-## คำตอบนี้กระทบ Brief/Scope อย่างไร
-
-${args.decision.impact_summary}
-
-## สิ่งที่เปลี่ยนหรือได้คำตอบเพิ่ม
-
-${changed}
-
-## ข้อเสนอสำหรับ Change Request
-
-${args.decision.suggested_update || args.decision.summary}
-`;
-}
 
 export default function ProjectOverview({
   projectPath,
@@ -271,8 +238,8 @@ export default function ProjectOverview({
   const [qualityAnalysis, setQualityAnalysis] = useState<BriefScopeQualityAnalysis | null>(null);
   const [qualityLoading, setQualityLoading] = useState(false);
   const [qualityRefreshKey, setQualityRefreshKey] = useState(0);
-  const [followUpDecision, setFollowUpDecision] = useState<FollowUpAnswerDecision | null>(null);
-  const [followUpLoading, setFollowUpLoading] = useState(false);
+  const [deltaAnalysis, setDeltaAnalysis] = useState<BriefScopeDeltaAnalysis | null>(null);
+  const [deltaLoading, setDeltaLoading] = useState(false);
 
   const scanFiles = documents.map(doc => ({
     path: doc.file_path,
@@ -456,25 +423,30 @@ export default function ProjectOverview({
     }
   };
 
-  const handleAnalyzeFollowUpAnswer = async (answer: string) => {
+  const handleAnalyzeDelta = async (message: string) => {
     try {
-      setFollowUpLoading(true);
-      const decision = await decideFollowUpAnswer(workspacePath, {
-        answer,
-        briefMarkdown: qualityBrief?.markdown || '',
-        scopeMarkdown: qualityScope?.markdown || '',
+      setDeltaLoading(true);
+      const openFollowUpDocs = documents.filter(d => (d.folder === 'support-requests' || d.type === 'sup' || d.type === 'ma') && d.status !== 'resolved' && d.status !== 'rejected').map(d => d.file_path);
+      const openCRDocs = documents.filter(d => (d.folder === 'change-requests' || d.type === 'cr' || d.type === 'dcr') && d.status !== 'approved' && d.status !== 'rejected').map(d => d.file_path);
+      
+      const analysis = await analyzeBriefScopeDelta(workspacePath || '', {
+        customerMessage: message,
+        latestBriefMarkdown: qualityBrief?.markdown || '',
+        latestScopeMarkdown: qualityScope?.markdown || '',
+        openFollowUps: openFollowUpDocs,
+        openChangeRequests: openCRDocs,
         scopeStatus: qualityScope?.status,
         scopeLocked: qualityScope?.locked,
       });
-      setFollowUpDecision(decision);
+      setDeltaAnalysis(analysis);
     } catch (err) {
-      setGuidedNotice(`วิเคราะห์คำตอบลูกค้าไม่สำเร็จ: ${err}`);
+      setGuidedNotice(`วิเคราะห์ข้อความลูกค้าไม่สำเร็จ: ${err}`);
     } finally {
-      setFollowUpLoading(false);
+      setDeltaLoading(false);
     }
   };
 
-  const handleUpdateBriefFromFollowUp = async (decision: FollowUpAnswerDecision) => {
+  const handleUpdateBriefFromDelta = async (analysis: BriefScopeDeltaAnalysis) => {
     if (!qualityBrief) {
       handleStartDiscovery?.();
       return;
@@ -485,8 +457,8 @@ export default function ProjectOverview({
       setGuidedConflict({
         existingPath: qualityBrief.file_path,
         newVersionPath: await getNextVersionPathFromExisting(qualityBrief.file_path),
-        newContent: `${existing}${buildFollowUpAnswerUpdateDraft(decision, 'Brief')}`,
-        documentKind: 'Brief follow-up update',
+        newContent: `${existing}\n\n## ข้อมูลบริบทเพิ่มเติมจากลูกค้า\n\n${analysis.summary_of_customer_change}\n\nสิ่งที่ต้องปรับใน Brief: ${analysis.brief_delta}`,
+        documentKind: 'Brief customer change update',
         protectedUpdate,
       });
       if (protectedUpdate) setGuidedNotice('Brief นี้ approved/locked แล้ว ระบบจะเสนอเป็นเวอร์ชันใหม่ ไม่เขียนทับเดิมเงียบ ๆ');
@@ -495,35 +467,14 @@ export default function ProjectOverview({
     }
   };
 
-  const handleCreateChangeRequestFromFollowUp = async (decision: FollowUpAnswerDecision) => {
-    try {
-      setGuidedBusy(true);
-      const number = getNextNumberFromDocuments(documents, 'CR');
-      const filename = `CR-${number}-follow-up-answer.md`;
-      const path = joinPath(projectPath, 'change-requests', filename);
-      const baseMarkdown = generateCRDocument({ project: projectId, client: clientId, author: '', crNumber: `CR-${number}`, title: decision.summary.slice(0, 90) });
-      const content = buildChangeRequestFromFollowUp({ baseMarkdown, decision, brief: qualityBrief, scope: qualityScope });
-      await createDocument(path, content);
-      await openAndRefresh(path);
-    } catch (err) {
-      setGuidedNotice(`สร้าง Change Request ไม่สำเร็จ: ${err}`);
-    } finally {
-      setGuidedBusy(false);
-    }
-  };
-
-  const handleUpdateScopeFromFollowUp = async (decision: FollowUpAnswerDecision) => {
-    if (decision.guardrails.should_create_change_request) {
-      await handleCreateChangeRequestFromFollowUp(decision);
-      return;
-    }
+  const handleUpdateScopeFromDelta = async (analysis: BriefScopeDeltaAnalysis) => {
     if (!qualityScope) {
       onCreateDocument(clientId, projectId, projectPath, 'scope', {
         source: 'recommended_next_action',
         initialType: 'scope',
         reason: 'ยังไม่มี Scope ที่ใช้ควบคุมงาน',
         projectPath,
-        recommendationWhy: decision.suggested_update || decision.summary,
+        recommendationWhy: analysis.scope_delta || analysis.summary_of_customer_change,
       });
       return;
     }
@@ -533,8 +484,8 @@ export default function ProjectOverview({
       setGuidedConflict({
         existingPath: qualityScope.file_path,
         newVersionPath: await getNextVersionPathFromExisting(qualityScope.file_path),
-        newContent: `${existing}${buildFollowUpAnswerUpdateDraft(decision, 'Scope')}`,
-        documentKind: protectedUpdate ? 'Scope proposed follow-up update' : 'Scope follow-up update',
+        newContent: `${existing}\n\n## การปรับปรุงขอบเขตจากลูกค้า\n\n${analysis.summary_of_customer_change}\n\nสิ่งที่เปลี่ยนไป: ${analysis.scope_delta}`,
+        documentKind: protectedUpdate ? 'Scope proposed change update' : 'Scope change update',
         protectedUpdate,
       });
       if (protectedUpdate) setGuidedNotice('Scope นี้ approved/locked แล้ว ระบบจะเสนอเป็นเวอร์ชันใหม่หรือ Change Request ไม่เขียนทับ Scope เดิมเงียบ ๆ');
@@ -543,9 +494,30 @@ export default function ProjectOverview({
     }
   };
 
-  const handleAskMoreFromFollowUp = async (decision: FollowUpAnswerDecision) => {
-    const question = decision.follow_up_questions[0] || decision.summary;
+  const handleCreateCRFromDelta = async (analysis: BriefScopeDeltaAnalysis) => {
+    try {
+      setGuidedBusy(true);
+      const number = getNextNumberFromDocuments(documents, 'CR');
+      const filename = `CR-${number}-customer-change.md`;
+      const path = joinPath(projectPath, 'change-requests', filename);
+      const baseMarkdown = generateCRDocument({ project: projectId, client: clientId, author: '', crNumber: `CR-${number}`, title: analysis.summary_of_customer_change.slice(0, 90) });
+      const content = `${baseMarkdown}\n\n## ที่มา\n\n- มาจาก: ลูกค้าแจ้งข้อมูลใหม่\n\n## Reference กลับไปยัง Brief/Scope\n\n${referenceLine('Brief', qualityBrief)}\n${referenceLine('Scope', qualityScope)}\n\n## คำตอบนี้กระทบ Brief/Scope อย่างไร\n\n- Brief: ${analysis.brief_delta}\n- Scope: ${analysis.scope_delta}\n\n## ข้อเสนอสำหรับ Change Request\n\n${analysis.summary_of_customer_change}\n`;
+      await createDocument(path, content);
+      await openAndRefresh(path);
+    } catch (err) {
+      setGuidedNotice(`สร้าง Change Request ไม่สำเร็จ: ${err}`);
+    } finally {
+      setGuidedBusy(false);
+    }
+  };
+
+  const handleCreateFollowUpFromDelta = async (analysis: BriefScopeDeltaAnalysis) => {
+    const question = analysis.missing_questions[0] || analysis.summary_of_customer_change;
     await handleCreateQualityFollowUp(question);
+  };
+
+  const handleRecheckQuoteFromDelta = async (analysis: BriefScopeDeltaAnalysis) => {
+      setGuidedNotice(`การเปลี่ยนแปลงนี้ส่งผลกระทบต่อ Quote: ${analysis.quote_impact}. แนะนำให้ทบทวนราคาและสร้าง Quote ใหม่ถ้าจำเป็น`);
   };
 
   const handleUpdateScopeFromQuality = async (improvement: string) => {
@@ -717,14 +689,14 @@ export default function ProjectOverview({
 
   const Header = (
     <div className="page-header-inner page-container-wide">
-      <div className="page-title-group">
-        <h1 className="page-title">
+      <div className="page-title-group min-w-0 flex-1 break-words">
+        <h1 className="page-title min-w-0 flex-1 break-words">
           <Briefcase className="w-7 h-7 text-primary shrink-0" />
-          <span className="page-title-text">{projectName}</span>
+          <span className="page-title-text truncate">{projectName}</span>
         </h1>
-        <p className="page-subtitle">{t('guided.description')}</p>
+        <p className="page-subtitle break-words">{t('guided.description')}</p>
       </div>
-      <div className="page-actions">
+      <div className="page-actions shrink-0">
         {handleStartDiscovery && (
           <button onClick={handleStartDiscovery} className="btn btn-primary">
             <Search className="w-4 h-4" /> {t('common.startFromCustomerRequest')}
@@ -766,14 +738,15 @@ export default function ProjectOverview({
         onUpdateScope={handleUpdateScopeFromQuality}
       />
 
-      <FollowUpAnswerIntakePanel
-        decision={followUpDecision}
-        loading={followUpLoading}
-        onAnalyze={handleAnalyzeFollowUpAnswer}
-        onUpdateBrief={handleUpdateBriefFromFollowUp}
-        onUpdateScope={handleUpdateScopeFromFollowUp}
-        onCreateChangeRequest={handleCreateChangeRequestFromFollowUp}
-        onAskMoreQuestions={handleAskMoreFromFollowUp}
+      <CustomerChangeIntakePanel
+        analysis={deltaAnalysis}
+        loading={deltaLoading}
+        onAnalyze={handleAnalyzeDelta}
+        onUpdateBrief={handleUpdateBriefFromDelta}
+        onUpdateScope={handleUpdateScopeFromDelta}
+        onCreateChangeRequest={handleCreateCRFromDelta}
+        onCreateFollowUp={handleCreateFollowUpFromDelta}
+        onRecheckQuote={handleRecheckQuoteFromDelta}
       />
 
       {isEmptyProject && (

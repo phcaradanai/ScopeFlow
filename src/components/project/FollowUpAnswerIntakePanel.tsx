@@ -50,17 +50,17 @@ export default function FollowUpAnswerIntakePanel({
   return (
     <section className="mt-5 rounded-3xl border border-border bg-surface/80 p-5 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1 break-words">
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="badge bg-primary/15 text-primary-light border border-primary/25 text-[10px]">Follow-up loop</span>
-            <span className="badge badge-muted text-[10px]">{t('quality.safeUpdate')}</span>
+            <span className="badge bg-primary/15 text-primary-light border border-primary/25 text-[10px] break-words">Follow-up loop</span>
+            <span className="badge badge-muted text-[10px] break-words">{t('quality.safeUpdate')}</span>
           </div>
-          <h2 className="text-lg font-black text-text flex items-center gap-2">
-            <MessageSquareText className="w-5 h-5 text-primary" /> {t('quality.answerIntakeTitle')}
+          <h2 className="text-lg font-black text-text flex items-center gap-2 break-words">
+            <MessageSquareText className="w-5 h-5 text-primary shrink-0" /> {t('quality.answerIntakeTitle')}
           </h2>
-          <p className="mt-1 text-sm text-text-muted leading-relaxed">{t('quality.answerIntakeDescription')}</p>
+          <p className="mt-1 text-sm text-text-muted leading-relaxed break-words">{t('quality.answerIntakeDescription')}</p>
         </div>
-        <button type="button" onClick={() => onAnalyze(answer)} disabled={!hasAnswer || loading} className="btn btn-primary shrink-0">
+        <button type="button" onClick={() => onAnalyze(answer)} disabled={!hasAnswer || loading} className="btn btn-primary shrink-0 whitespace-nowrap">
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> {t('quality.analyzeAnswer')}
         </button>
       </div>
@@ -74,7 +74,7 @@ export default function FollowUpAnswerIntakePanel({
           placeholder={t('quality.answerPlaceholder')}
         />
 
-        <div className="rounded-2xl border border-border bg-surface-2/70 p-4 min-h-[160px]">
+        <div className="rounded-2xl border border-border bg-surface-2/70 p-4 min-h-[160px] flex flex-col min-w-0 break-words">
           {!decision && (
             <p className="text-sm text-text-muted leading-relaxed">
               {t('quality.answerImpactTitle')} จะปรากฏตรงนี้หลังวิเคราะห์คำตอบลูกค้า
@@ -84,16 +84,16 @@ export default function FollowUpAnswerIntakePanel({
           {decision && (
             <div className="space-y-3">
               <div className={`rounded-xl border p-3 ${actionTone(decision.recommended_action)}`}>
-                <div className="flex items-center gap-2 text-sm font-bold">
+                <div className="flex items-center gap-2 text-sm font-bold break-words">
                   {actionIcon(decision.recommended_action)}
                   {actionLabel(decision.recommended_action)}
                 </div>
-                <p className="mt-2 text-xs leading-relaxed opacity-90">{decision.summary}</p>
+                <p className="mt-2 text-xs leading-relaxed opacity-90 break-words">{decision.summary}</p>
               </div>
 
               <div>
                 <p className="text-[11px] font-bold text-text mb-1">{t('quality.answerImpactTitle')}</p>
-                <p className="text-xs text-text-muted leading-relaxed">{decision.impact_summary}</p>
+                <p className="text-xs text-text-muted leading-relaxed break-words">{decision.impact_summary}</p>
               </div>
 
               {decision.changed_items.length > 0 && (
@@ -114,7 +114,7 @@ export default function FollowUpAnswerIntakePanel({
                 </div>
               )}
 
-              <div className="rounded-xl border border-border bg-surface p-3 flex gap-2 text-xs text-text-muted leading-relaxed">
+              <div className="rounded-xl border border-border bg-surface p-3 flex gap-2 text-xs text-text-muted leading-relaxed break-words">
                 <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
                 <span>{decision.guardrails.reason}</span>
               </div>

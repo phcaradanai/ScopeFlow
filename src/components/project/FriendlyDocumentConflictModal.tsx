@@ -1,4 +1,4 @@
-import { AlertTriangle, Copy, FileText, RefreshCw, Trash2, Wand2, X } from 'lucide-react';
+import { FileText, Wand2, RefreshCw, Copy, Trash2, X } from 'lucide-react';
 import { t } from '../../lib/i18n/copy';
 
 export type FriendlyConflictAction = 'open' | 'ai-merge' | 'update' | 'version' | 'replace';
@@ -87,25 +87,24 @@ export default function FriendlyDocumentConflictModal({
   return (
     <div className="modal-overlay">
       <div className="modal-container !max-w-3xl">
-        <div className="modal-header">
-          <div className="modal-header-content">
-            <h2 className="modal-title flex items-center gap-2">
-              <FileText className="w-5 h-5 text-warning" /> {title}
-            </h2>
-            <p className="modal-subtitle">{description}</p>
+        <div className="modal-header shrink-0">
+          <div className="modal-header-content min-w-0">
+            <h2 className="modal-title break-words">{t('conflict.title')}</h2>
+            <p className="modal-subtitle break-words">{t('conflict.subtitle')}</p>
           </div>
-          <button type="button" onClick={onClose} className="modal-close" disabled={busy}>
+          <button onClick={onClose} className="modal-close shrink-0">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="modal-body space-y-4">
-          <div className="rounded-2xl border border-warning/20 bg-warning/10 p-4 text-sm text-warning leading-relaxed flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-bold">{t('conflict.existingTitle', undefined, { documentLabel })}</p>
-              <p className="text-xs opacity-90 mt-1">{t('conflict.existingDescription')}</p>
+        <div className="modal-body pb-6 flex-1 overflow-y-auto min-w-0">
+          <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 shadow-sm min-w-0 break-words">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="badge badge-warning break-words">{t('conflict.safeUpdateWarning')}</span>
+              <span className="badge badge-muted text-[10px] break-words">{documentLabel}</span>
             </div>
+            <h3 className="text-lg font-bold text-text leading-snug break-words">{title}</h3>
+            <p className="mt-2 text-sm text-text-muted leading-relaxed break-words">{description}</p>
           </div>
 
           <div className="rounded-2xl border border-border bg-surface-2 p-4">
